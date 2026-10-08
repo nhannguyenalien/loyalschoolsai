@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tổng quan - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+  <div class="row row-cards mb-1" id="stats"></div>
+  <div class="row row-cards">
+    <div class="col-lg-8">
+      <section class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Hoạt động 14 ngày qua</h3>
+          <div class="card-actions btn-group btn-group-sm" id="metric-toggle"><button class="btn active" data-metric="amount">Doanh số</button><button class="btn" data-metric="points">Điểm</button><button class="btn" data-metric="receipts">Hóa đơn</button></div></div>
+        <div class="card-body"><div class="chart" id="chart"></div></div>
+      </section>
+      <section class="card">
+        <div class="card-header"><h3 class="card-title">Giao dịch gần đây</h3><a class="ms-auto small" href="customers.html">Tra cứu khách →</a></div>
+        <div class="card-body py-2" id="recent"></div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Bắt đầu nhanh</h3></div>
+        <div class="card-body py-2" id="steps"><div class="text-secondary py-3">Đang kiểm tra...</div></div>
+      </section>
+      <section class="card">
+        <div class="card-body">
+          <div class="fw-bold mb-2">Lối tắt</div>
+          <div class="d-grid gap-2">
+            <a class="btn btn-grad" href="customers.html"><i class="ti ti-plus me-1"></i>Cộng điểm cho khách</a>
+            <a class="btn btn-outline-primary" href="rewards.html"><i class="ti ti-gift me-1"></i>Mở vòng quay</a>
+            <a class="btn btn-outline-secondary" href="docs.html" target="_blank"><i class="ti ti-book-2 me-1"></i>Tài liệu API</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('overview', `Xin chào${window.AUTH_USER?.name ? ', ' + window.AUTH_USER.name.split(' ').slice(-1)[0] : ''} 👋`, 'Tình hình chương trình khách hàng thân thiết của cửa hàng.');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const $ = id => document.getElementById(id);
+  let stats, metric = 'amount';
+
+  const card = (icon, tone, label, value, sub = '') => `<div class="col-6 col-md-4 col-xl-2"><div class="card stat"><div class="card-body"><div class="stat-icon tone-${tone}"><i class="ti ${icon}"></i></div><div class="stat-label">${label}</div><div class="stat-value">${value}</div>${sub ? `<div class="small text-secondary mt-1">${sub}</div>` : ''}</div></div></div>`;
+  const compact = v => v >= 1e9 ? (v / 1e9).toFixed(1) + ' tỷ' : v >= 1e6 ? (v / 1e6).toFixed(1).replace('.0', '') + ' tr' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(v);
+
+  const vnd = v => v >= 1e9 ? (v / 1e9).toFixed(2).replace('.', ',') + ' tỷ ₫' : v >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' tr ₫' : money.format(v) + ' ₫';
+
+  function renderStats() {
+    $('stats').innerHTML =
+      card('ti-users', 'indigo', 'Khách hàng', money.format(stats.customers)) +
+      card('ti-coins', 'green', 'Điểm đã phát', money.format(stats.points_issued)) +
+      card('ti-gift-card', 'amber', 'Điểm đã dùng', money.format(stats.points_redeemed)) +
+      card('ti-receipt-2', 'blue', 'Doanh số 30 ngày', `<span title="${money.format(stats.sales_30d)} ₫">${vnd(stats.sales_30d)}</span>`, `${stats.receipts_today} hóa đơn hôm nay`) +
+      card('ti-rotate-clockwise-2', 'violet', 'Lượt quay chờ', money.format(stats.spins_available), `${money.format(stats.spins_used)} lượt đã quay`) +
+      card('ti-trophy', 'pink', 'Giải chờ giao', money.format(stats.prizes_pending));
+  }
+
+  function renderChart() {
+    const days = [], base = new Date(stats.today + 'T00:00:00');
+    for (let i = 13; i >= 0; i--) { const d = new Date(base); d.setDate(d.getDate() - i); days.push(d.toISOString().slice(0, 10)); }
+    const byDay = new Map(stats.daily.map(d => [d.day, d]));
+    const values = days.map(d => byDay.get(d)?.[metric] || 0);
+    const max = Math.max(...values, 1);
+    $('chart').innerHTML = days.map((d, i) => {
+      const v = values[i], h = v ? Math.max(4, Math.round(v / max * 100)) : 0;
+      return `<div class="col" title="${d}: ${money.format(v)}"><div class="val">${v ? (metric === 'amount' ? compact(v) : money.format(v)) : ''}</div><div class="bar ${d === stats.today ? 'today' : ''} ${v ? '' : 'zero'}" style="height:${v ? h * 1.2 : 3}px"></div><div class="lbl">${d.slice(8)}/${d.slice(5, 7)}</div></div>`;
+    }).join('');
+  }
+  $('metric-toggle').addEventListener('click', e => {
+    const b = e.target.closest('[data-metric]'); if (!b) return;
+    metric = b.dataset.metric;
+    $('metric-toggle').querySelectorAll('.btn').forEach(x => x.classList.toggle('active', x === b));
+    renderChart();
+  });
+
+  function renderRecent() {
+    $('recent').innerHTML = stats.recent.map(r => {
+      const earn = r.transaction_type === 'earn';
+      return `<div class="activity"><span class="avatar avatar-sm ${earn ? 'tone-green' : 'tone-amber'} rounded-circle"><i class="ti ${earn ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}"></i></span>
+        <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(r.name || r.customer_ref)} <span class="text-secondary fw-normal small">${esc(r.customer_ref)}</span></div><div class="small text-secondary">${earn ? 'Hóa đơn' : 'Đổi thưởng'} ${esc(r.source_ref)} · ${esc(fmtShort(r.occurred_at))}</div></div>
+        <div class="text-end"><div class="fw-bold ${earn ? 'text-success' : 'text-danger'}">${earn ? '+' : ''}${money.format(r.points_delta)} điểm</div>${earn ? `<div class="small text-secondary">${money.format(r.amount_minor)} ₫</div>` : ''}</div></div>`;
+    }).join('') || '<div class="empty-state"><i class="ti ti-receipt-off"></i>Chưa có giao dịch nào. Cộng điểm hóa đơn đầu tiên để bắt đầu.</div>';
+  }
+
+  async function renderSteps() {
+    const [program, keys, world] = await Promise.all([LoyaltyAPI.getProgram(), LoyaltyAPI.listKeys(), LoyaltyAPI.campaigns()]);
+    const steps = [
+      [!!program.program, 'Đặt luật tích điểm', 'Chi bao nhiêu thì được 1 điểm.', 'settings.html'],
+      [keys.keys.length > 0, 'Tạo API key cho POS', 'Để POS tự cộng điểm khi chốt đơn.', 'integrations.html'],
+      [world.campaigns.some(c => c.joined), 'Tham gia chương trình quay thưởng', 'Hóa đơn đủ điều kiện sẽ tự nhận lượt quay.', 'rewards.html'],
+      [stats.receipts_today > 0 || stats.points_issued > 0, 'Cộng điểm hóa đơn đầu tiên', 'Thử nhập một hóa đơn thủ công.', 'customers.html'],
+    ];
+    $('steps').innerHTML = steps.map(([done, title, text, href], i) => `<a class="step text-reset text-decoration-none ${done ? 'done' : ''}" href="${href}"><span class="dot">${done ? '✓' : i + 1}</span><div><div class="fw-bold">${title}</div><div class="small text-secondary">${text}</div></div></a>`).join('');
+  }
+
+  try {
+    stats = await LoyaltyAPI.stats();
+    renderStats(); renderChart(); renderRecent();
+    await renderSteps();
+  } catch (e) { showAlert(e.message, 'danger'); }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

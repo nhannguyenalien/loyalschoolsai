@@ -17,13 +17,19 @@ const COLUMNS = {
   reward_claims: ["tenant", "campaign_id", "result_id", "customer_ref", "prize_id", "prize_name", "prize_type",
     "prize_value_json", "claim_note", "claimed_at"],
 };
+const NUMERIC_COLUMNS = ["points_delta", "amount_minor", "spend_per_point_minor", "spend_per_spin_minor", "weight"];
 const NULLABLE_DATES = new Set(["starts_at", "ends_at"]);
 const SELECT = "*, created_at AS created";
 const isUnique = (error) => error?.code === "23505";
 
 export function createNeonRepository(databaseUrl) {
   const sql = neon(databaseUrl);
-  const query = (text, params = []) => sql.query(text, params);
+  // bigint/numeric được driver trả về dạng chuỗi; đổi sang number cho các cột số nguyên nghiệp vụ.
+  const toNumber = (row) => {
+    for (const key of NUMERIC_COLUMNS) if (typeof row[key] === "string") row[key] = Number(row[key]);
+    return row;
+  };
+  const query = async (text, params = []) => (await sql.query(text, params)).map(toNumber);
   const one = async (text, params) => (await query(text, params))[0] || null;
 
   const clean = (column, value) => (value === "" && NULLABLE_DATES.has(column) ? null : value);
@@ -60,6 +66,51 @@ export function createNeonRepository(databaseUrl) {
        WHERE tenant = $1 AND revoked_at IS NULL ORDER BY created_at DESC`, [tenant]),
     revokeApiKey: (tenant, id) => one(
       "UPDATE api_keys SET revoked_at = now() WHERE id = $1 AND tenant = $2 AND revoked_at IS NULL RETURNING id", [id, tenant]),
+
+    // ---- Thống kê tổng quan & lượt quay còn lại
+    async getStats(tenant) {
+      const tz = "Asia/Ho_Chi_Minh";
+      const [totals, spins, daily, recent, today] = await Promise.all([
+        one(`SELECT (SELECT COUNT(*) FROM loyalty_customers WHERE tenant = $1) AS customers,
+               COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points_issued,
+               COALESCE(-SUM(points_delta) FILTER (WHERE points_delta < 0), 0) AS points_redeemed,
+               COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND occurred_at >= now() - interval '30 days'), 0) AS sales_30d,
+               COUNT(*) FILTER (WHERE transaction_type = 'earn' AND (occurred_at AT TIME ZONE '${tz}')::date = (now() AT TIME ZONE '${tz}')::date) AS receipts_today
+             FROM loyalty_ledger WHERE tenant = $1`, [tenant]),
+        one(`SELECT
+               (SELECT COUNT(*) FROM reward_spin_entitlements e WHERE e.tenant = $1 AND e.status = 'available'
+                  AND NOT EXISTS (SELECT 1 FROM reward_spin_results r WHERE r.entitlement_id = e.id)) AS spins_available,
+               (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1) AS spins_used,
+               (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1 AND status = 'won') AS prizes_pending`, [tenant]),
+        query(`SELECT to_char((occurred_at AT TIME ZONE '${tz}')::date, 'YYYY-MM-DD') AS day,
+                 COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn'), 0) AS amount,
+                 COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points,
+                 COUNT(*) FILTER (WHERE transaction_type = 'earn') AS receipts
+               FROM loyalty_ledger WHERE tenant = $1 AND occurred_at >= now() - interval '15 days'
+               GROUP BY 1 ORDER BY 1`, [tenant]),
+        query(`SELECT l.id, l.transaction_type, l.points_delta, l.amount_minor, l.source_ref, l.occurred_at, l.customer_ref, c.name
+               FROM loyalty_ledger l JOIN loyalty_customers c ON c.id = l.customer_id
+               WHERE l.tenant = $1 ORDER BY l.occurred_at DESC, l.created_at DESC LIMIT 8`, [tenant]),
+        one(`SELECT to_char(now() AT TIME ZONE '${tz}', 'YYYY-MM-DD') AS today`),
+      ]);
+      const n = (row, keys) => Object.fromEntries(keys.map((k) => [k, Number(row[k])]));
+      return {
+        ...n(totals, ["customers", "points_issued", "points_redeemed", "sales_30d", "receipts_today"]),
+        ...n(spins, ["spins_available", "spins_used", "prizes_pending"]),
+        today: today.today,
+        daily: daily.map((d) => ({ day: d.day, amount: Number(d.amount), points: Number(d.points), receipts: Number(d.receipts) })),
+        recent,
+      };
+    },
+    async countAvailableSpins(tenant, customerRef) {
+      const rows = await query(
+        `SELECT e.campaign_id, COUNT(*) AS n FROM reward_spin_entitlements e
+         WHERE e.tenant = $1 AND e.customer_ref = $2 AND e.status = 'available'
+           AND NOT EXISTS (SELECT 1 FROM reward_spin_results r WHERE r.entitlement_id = e.id)
+         GROUP BY e.campaign_id`, [tenant, customerRef]);
+      const campaigns = rows.map((r) => ({ campaign_id: r.campaign_id, available: Number(r.n) }));
+      return { available: campaigns.reduce((sum, c) => sum + c.available, 0), campaigns };
+    },
 
     // ---- Chương trình tích điểm
     getActiveProgram: (tenant) => one(

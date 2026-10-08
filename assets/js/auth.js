@@ -37,15 +37,15 @@ const authError = error => new Error(AUTH_ERRORS[error.code] || error.message);
 
 async function loginWithPassword(email, password) {
   try { await fbAuth.signInWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
-  location.href = 'customers.html';
+  location.href = 'overview.html';
 }
 async function registerWithPassword(email, password) {
   try { await fbAuth.createUserWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
-  location.href = 'customers.html';
+  location.href = 'overview.html';
 }
 async function loginWithGoogle() {
   try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } catch (e) { throw authError(e); }
-  location.href = 'customers.html';
+  location.href = 'overview.html';
 }
 async function resetPassword(email) {
   try { await fbAuth.sendPasswordResetEmail(email); } catch (e) { throw authError(e); }

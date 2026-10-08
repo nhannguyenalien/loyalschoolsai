@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tài liệu API - Loyal SchoolsAI</title>
+  <meta name="description" content="Tài liệu API tích điểm, đổi thưởng và quay thưởng cho POS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <style>
+    .docs-top { background: #fff; border-bottom: 1px solid #e8eaf6; position: sticky; top: 0; z-index: 20; }
+    .docs-nav { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; padding-right: .5rem; }
+    .docs-nav a { display: block; padding: .32rem .75rem; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500; }
+    .docs-nav a:hover { background: #eef0ff; color: var(--brand-1); }
+    .docs-nav a.on { background: #eef0ff; color: var(--brand-1); font-weight: 700; }
+    .docs-nav .grp { font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #9aa0c3; padding: 1rem .75rem .25rem; }
+    .doc-section { scroll-margin-top: 90px; margin-bottom: 2.6rem; }
+    .doc-section h2 { font-weight: 800; letter-spacing: -.02em; font-size: 1.5rem; }
+    .ep { scroll-margin-top: 90px; margin-bottom: 1.6rem; }
+    .ep .card-header { background: #fafbff; }
+    .param-table th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .req { color: #dc2626; font-weight: 700; font-size: .72rem; }
+    .label-sm { font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #8b90b3; margin: 1rem 0 .4rem; }
+    .callout { border-left: 4px solid var(--brand-2); background: #f7f4ff; border-radius: 0 12px 12px 0; padding: .8rem 1rem; }
+  </style>
+</head>
+<body>
+<header class="docs-top"><div class="container-xl d-flex align-items-center py-3">
+  <a href="index.html" class="d-flex align-items-center text-decoration-none"><span class="brand-mark" style="width:34px;height:34px;font-size:18px"><i class="ti ti-gift"></i></span><span class="fw-bold" style="color:var(--ink)">Loyal SchoolsAI <span class="text-secondary fw-normal">· API</span></span></a>
+  <div class="ms-auto d-flex gap-2"><a class="btn btn-outline-primary btn-sm" href="integrations.html"><i class="ti ti-key me-1"></i>Lấy API key</a><a class="btn btn-grad btn-sm" href="index.html">Đăng nhập</a></div>
+</div></header>
+
+<div class="container-xl py-4"><div class="row">
+  <aside class="col-lg-3 d-none d-lg-block"><nav class="docs-nav" id="toc"></nav></aside>
+  <main class="col-lg-9" id="doc"></main>
+</div></div>
+
+<script>
+const BASE = location.origin + '/api/v1/loyalty';
+const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const code = (text, lang = '') => `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">Sao chép</button><code>${esc(text.replaceAll('{{BASE}}', BASE))}</code></pre>`;
+const KEY = '-H "Authorization: Bearer lsk_YOUR_KEY"';
+const entry = (extra) => ({ id: '6c0a7713-…', customer_ref: '0901234567', transaction_type: 'earn', points_delta: 25, amount_minor: 250000, currency: 'VND', source_type: 'pos', source_ref: 'HD001', rule_version: 1, idempotency_key: 'pos:HD001', occurred_at: '2026-10-08T07:13:59.942Z', ...extra });
+
+/* ---------- Nội dung các endpoint ---------- */
+const GROUPS = [
+  { id: 'points', title: 'Tích điểm', endpoints: [
+    { id: 'post-sales', m: 'POST', path: '/sales', title: 'Cộng điểm cho hóa đơn',
+      desc: 'Ghi một hóa đơn và cộng điểm theo luật hiện hành. Mỗi hóa đơn chỉ được cộng một lần. Nếu cửa hàng đã tham gia chương trình quay thưởng, hóa đơn đủ điều kiện sẽ tự sinh lượt quay (trường <code>entitlements</code>).',
+      params: [['idempotency_key', 'string', true, 'Khóa chống trùng, ví dụ <code>pos:HD001</code>. Gửi lại cùng khóa sẽ trả lại kết quả cũ (<code>replayed: true</code>).'],
+        ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách. Khách được tạo tự động nếu chưa có.'],
+        ['source_ref', 'string', true, 'Mã hóa đơn. Một mã chỉ được cộng một lần.'],
+        ['amount_minor', 'integer', true, 'Giá trị hóa đơn (VND, số nguyên dương).'],
+        ['source_type', 'string', false, 'Nguồn, mặc định <code>manual</code>. POS nên dùng <code>pos</code>.'],
+        ['customer', 'object', false, '<code>{ name, phone }</code> — cập nhật hồ sơ khi tạo khách mới.'],
+        ['metadata', 'object', false, 'Dữ liệu tùy ý được lưu kèm giao dịch.']],
+      curl: `curl -X POST {{BASE}}/sales ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000,"customer":{"name":"An","phone":"0901234567"}}'`,
+      status: '201 Created (200 nếu replayed)', res: { entry: entry(), replayed: false, entitlements: [] } },
+    { id: 'post-redemptions', m: 'POST', path: '/redemptions', title: 'Trừ điểm (đổi thưởng)',
+      desc: 'Trừ điểm của khách khi đổi quà tại quầy. Hệ thống kiểm tra đủ điểm — kể cả khi hai máy POS trừ cùng lúc, số dư không bao giờ âm.',
+      params: [['idempotency_key', 'string', true, 'Khóa chống trùng, ví dụ <code>redeem:G001</code>.'],
+        ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (phải đã tồn tại).'],
+        ['source_ref', 'string', true, 'Mã đổi thưởng, mỗi mã chỉ dùng một lần.'],
+        ['points', 'integer', true, 'Số điểm cần trừ (nguyên dương).'],
+        ['note', 'string', false, 'Ghi chú, tối đa 500 ký tự.']],
+      curl: `curl -X POST {{BASE}}/redemptions ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"redeem:G001","customer_ref":"0901234567","source_ref":"G001","points":5,"note":"Đổi 1 ly nước"}'`,
+      status: '201 Created (200 nếu replayed)', res: { entry: entry({ transaction_type: 'redeem', points_delta: -5, amount_minor: 0, source_type: 'redemption', source_ref: 'G001', idempotency_key: 'redeem:G001' }), replayed: false, balance: 20 } },
+    { id: 'get-account', m: 'GET', path: '/account', title: 'Xem điểm & lịch sử của khách',
+      desc: 'Trả về số dư điểm và lịch sử giao dịch (cũ → mới). Báo 404 nếu khách chưa từng phát sinh giao dịch.',
+      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).'], ['page', 'integer', false, 'Trang, mặc định 1.'], ['per_page', 'integer', false, 'Số dòng mỗi trang, mặc định 100, tối đa 500.']],
+      curl: `curl "{{BASE}}/account?customer_ref=0901234567" ${KEY}`,
+      status: '200 OK', res: { customer: { id: 'b082973a-…', customer_ref: '0901234567', name: 'An', status: 'active' }, balance: 20, entries: [entry()], pagination: { page: 1, per_page: 100, total_items: 1 } } },
+    { id: 'get-program', m: 'GET', path: '/program', title: 'Xem luật tích điểm hiện tại',
+      desc: 'Trả về luật đang hoạt động, hoặc <code>program: null</code> nếu chưa cấu hình.', params: [],
+      curl: `curl {{BASE}}/program ${KEY}`, status: '200 OK',
+      res: { program: { id: '5864eb28-…', version: 1, currency: 'VND', spend_per_point_minor: 10000, points_per_step: 1, status: 'active' } } },
+    { id: 'put-program', m: 'PUT', path: '/program', title: 'Đặt luật tích điểm',
+      desc: 'Tạo một phiên bản luật mới và kích hoạt. Giao dịch cũ giữ nguyên điểm đã tính.',
+      params: [['spend_per_point_minor', 'integer', true, 'Chi bao nhiêu (VND) thì được một "bước" điểm.'], ['points_per_step', 'integer', false, 'Số điểm mỗi bước, mặc định 1.'], ['currency', 'string', false, 'Mặc định <code>VND</code>.']],
+      curl: `curl -X PUT {{BASE}}/program ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"spend_per_point_minor":10000,"points_per_step":1}'`,
+      status: '200 OK', res: { id: '5864eb28-…', version: 2, currency: 'VND', spend_per_point_minor: 10000, points_per_step: 1, status: 'active' } },
+    { id: 'get-stats', m: 'GET', path: '/stats', title: 'Thống kê tổng quan',
+      desc: 'Số liệu cho dashboard: khách hàng, điểm đã phát/dùng, doanh số 30 ngày, lượt quay, 15 ngày gần nhất và 8 giao dịch mới nhất.', params: [],
+      curl: `curl {{BASE}}/stats ${KEY}`, status: '200 OK',
+      res: { customers: 128, points_issued: 5400, points_redeemed: 1200, sales_30d: 54000000, receipts_today: 7, spins_available: 3, spins_used: 41, prizes_pending: 2, today: '2026-10-08', daily: [{ day: '2026-10-08', amount: 1250000, points: 125, receipts: 7 }], recent: ['…'] } },
+  ]},
+  { id: 'rewards', title: 'Quay thưởng', endpoints: [
+    { id: 'get-campaigns', m: 'GET', path: '/reward-world/campaigns', title: 'Danh sách chương trình đang mở',
+      desc: 'Các chương trình quay thưởng chung đang chạy, kèm giải thưởng và việc cửa hàng đã tham gia (<code>joined</code>) hay chưa.', params: [],
+      curl: `curl {{BASE}}/reward-world/campaigns ${KEY}`, status: '200 OK',
+      res: { campaigns: [{ id: 'c1…', name: 'Tết may mắn', status: 'active', starts_at: '2026-10-01T00:00:00Z', ends_at: '2026-12-31T00:00:00Z', spend_per_spin_minor: 100000, max_spins_per_sale: 2, joined: true, prizes: [{ id: 'p1…', name: 'Voucher 50k', prize_type: 'voucher', weight: 1, max_wins: 10, status: 'active' }] }] } },
+    { id: 'post-join', m: 'POST', path: '/reward-world/campaigns/:id/join', title: 'Tham gia chương trình',
+      desc: 'Cửa hàng tham gia một chương trình. Từ đó, hóa đơn đủ điều kiện (mỗi <code>spend_per_spin_minor</code> một lượt, tối đa <code>max_spins_per_sale</code>) tự sinh lượt quay.', params: [],
+      curl: `curl -X POST {{BASE}}/reward-world/campaigns/CAMPAIGN_ID/join ${KEY}`, status: '200 OK',
+      res: { join: { id: 'j1…', campaign_id: 'c1…', status: 'active', joined_at: '2026-10-08T07:00:00Z' }, replayed: false } },
+    { id: 'get-entitlements', m: 'GET', path: '/reward-world/entitlements', title: 'Khách còn bao nhiêu lượt quay',
+      desc: 'Đếm lượt quay chưa dùng của khách, tổng và theo từng chương trình.',
+      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+      curl: `curl "{{BASE}}/reward-world/entitlements?customer_ref=0901234567" ${KEY}`, status: '200 OK',
+      res: { available: 2, campaigns: [{ campaign_id: 'c1…', available: 2 }] } },
+    { id: 'post-spins', m: 'POST', path: '/reward-world/spins', title: 'Quay thưởng cho khách',
+      desc: 'Dùng một lượt quay. <b>Kết quả do máy chủ quyết định</b> (ngẫu nhiên theo trọng số, tôn trọng giới hạn số lần trúng của từng giải) rồi mới trả về — client chỉ việc hiển thị.',
+      params: [['campaign_id', 'string', true, 'Chương trình cần quay.'], ['customer_ref', 'string', true, 'Khách quay.'], ['idempotency_key', 'string', true, 'Khóa chống trùng; gửi lại cùng khóa trả cùng kết quả, không tốn thêm lượt.']],
+      curl: `curl -X POST {{BASE}}/reward-world/spins ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"campaign_id":"CAMPAIGN_ID","customer_ref":"0901234567","idempotency_key":"spin:0901234567:1"}'`,
+      status: '201 Created (200 nếu replayed)', res: { result: { id: 'r1…', prize_id: 'p1…', prize_name: 'Voucher 50k', prize_type: 'voucher', status: 'won', spun_at: '2026-10-08T07:20:00Z' }, replayed: false } },
+    { id: 'get-rewards', m: 'GET', path: '/reward-world/rewards', title: 'Giải thưởng đã trúng của khách',
+      desc: 'Các giải khách đã trúng; <code>claim</code> là <code>null</code> nếu chưa bàn giao.',
+      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+      curl: `curl "{{BASE}}/reward-world/rewards?customer_ref=0901234567" ${KEY}`, status: '200 OK',
+      res: { rewards: [{ id: 'r1…', prize_name: 'Voucher 50k', status: 'won', spun_at: '2026-10-08T07:20:00Z', claim: null }] } },
+    { id: 'post-claim', m: 'POST', path: '/reward-world/results/:id/claim', title: 'Xác nhận đã giao thưởng',
+      desc: 'Đánh dấu cửa hàng đã trao giải cho khách. Gọi lại là an toàn (trả <code>replayed: true</code>).',
+      params: [['claim_note', 'string', false, 'Ghi chú, tối đa 500 ký tự.']],
+      curl: `curl -X POST {{BASE}}/reward-world/results/RESULT_ID/claim ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"claim_note":"Giao tại quầy 1"}'`,
+      status: '201 Created (200 nếu replayed)', res: { claim: { id: 'cl1…', result_id: 'r1…', prize_name: 'Voucher 50k', claimed_at: '2026-10-08T07:25:00Z' }, replayed: false } },
+  ]},
+];
+
+const ERRORS = [
+  ['400', 'Dữ liệu gửi lên sai hoặc thiếu', '<code>amount_minor must be a positive integer.</code>'],
+  ['401', 'Thiếu hoặc sai API key / key đã bị thu hồi', '<code>API key is invalid or revoked.</code>'],
+  ['403', 'Không có quyền (ví dụ dùng API key để quản lý key)', '<code>API keys can only be managed from a signed-in session.</code>'],
+  ['404', 'Không tìm thấy', '<code>Customer was not found.</code> · <code>No active loyalty program is configured for this tenant.</code>'],
+  ['409', 'Xung đột nghiệp vụ', '<code>This receipt/source was already credited.</code> · <code>Insufficient points. Current balance is 3.</code> · <code>Customer has no available spin.</code> · <code>Sale amount is below the minimum spend required to earn points.</code>'],
+  ['500', 'Lỗi máy chủ — thử lại cùng <code>idempotency_key</code>', '<code>Internal server error.</code>'],
+];
+
+const FLOW = {
+  curl: `# 1) Khách đưa số điện thoại → hiện điểm
+curl "{{BASE}}/account?customer_ref=0901234567" ${KEY}
+
+# 2) Chốt đơn → cộng điểm (an toàn khi gọi lại)
+curl -X POST {{BASE}}/sales ${KEY} -H "Content-Type: application/json" \\
+  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000}'
+
+# 3) Khách đổi 5 điểm lấy quà
+curl -X POST {{BASE}}/redemptions ${KEY} -H "Content-Type: application/json" \\
+  -d '{"idempotency_key":"redeem:G001","customer_ref":"0901234567","source_ref":"G001","points":5}'`,
+  js: `const API = "{{BASE}}";
+const KEY = "lsk_YOUR_KEY";
+
+async function call(path, body) {
+  const res = await fetch(API + path, {
+    method: body ? "POST" : "GET",
+    headers: { Authorization: \`Bearer \${KEY}\`, "Content-Type": "application/json" },
+    body: body && JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);   // { error: "..." }
+  return data;
+}
+
+// Chốt đơn: cộng điểm. Mạng lỗi? Cứ gọi lại, không bao giờ cộng trùng.
+const sale = await call("/sales", {
+  idempotency_key: "pos:HD001", customer_ref: "0901234567",
+  source_type: "pos", source_ref: "HD001", amount_minor: 250000,
+});
+console.log("Đã cộng", sale.entry.points_delta, "điểm; lượt quay mới:", sale.entitlements?.length ?? 0);
+
+// Đổi điểm
+const redeem = await call("/redemptions", {
+  idempotency_key: "redeem:G001", customer_ref: "0901234567", source_ref: "G001", points: 5,
+});
+console.log("Còn", redeem.balance, "điểm");`,
+  py: `import requests
+
+API = "{{BASE}}"
+HEADERS = {"Authorization": "Bearer lsk_YOUR_KEY"}
+
+def call(path, body=None):
+    r = requests.request("POST" if body else "GET", API + path, headers=HEADERS, json=body, timeout=10)
+    data = r.json()
+    if not r.ok:
+        raise RuntimeError(data["error"])
+    return data
+
+sale = call("/sales", {
+    "idempotency_key": "pos:HD001", "customer_ref": "0901234567",
+    "source_type": "pos", "source_ref": "HD001", "amount_minor": 250000,
+})
+print("Đã cộng", sale["entry"]["points_delta"], "điểm")
+
+redeem = call("/redemptions", {
+    "idempotency_key": "redeem:G001", "customer_ref": "0901234567", "source_ref": "G001", "points": 5,
+})
+print("Còn", redeem["balance"], "điểm")`,
+  php: `<?php
+$api = "{{BASE}}"; $key = "lsk_YOUR_KEY";
+
+function call($path, $body = null) {
+    global $api, $key;
+    $ch = curl_init($api . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
+        CURLOPT_HTTPHEADER => ["Authorization: Bearer $key", "Content-Type: application/json"],
+    ]);
+    if ($body) { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body)); }
+    $data = json_decode(curl_exec($ch), true);
+    if (curl_getinfo($ch, CURLINFO_HTTP_CODE) >= 400) throw new Exception($data["error"]);
+    return $data;
+}
+
+$sale = call("/sales", [
+    "idempotency_key" => "pos:HD001", "customer_ref" => "0901234567",
+    "source_type" => "pos", "source_ref" => "HD001", "amount_minor" => 250000,
+]);
+echo "Đã cộng " . $sale["entry"]["points_delta"] . " điểm";`,
+};
+
+/* ---------- Render ---------- */
+const sections = [];
+sections.push(`<section class="doc-section" id="intro">
+  <div class="mb-3"><span class="pill" style="background:#eef0ff;color:#4f46e5">REST · JSON</span></div>
+  <h1 class="fw-bold mb-2" style="font-size:2.1rem;letter-spacing:-.02em">API tích điểm & quay thưởng</h1>
+  <p class="fs-4 text-secondary">Kết nối POS của cửa hàng để cộng điểm khi chốt đơn, đổi thưởng tại quầy và quay thưởng cho khách.</p>
+  <div class="card"><div class="card-body"><div class="label-sm mt-0">Base URL</div><div class="d-flex align-items-center gap-2"><code class="fs-5" id="base-url"></code><button class="btn btn-sm btn-outline-secondary" onclick="copyBase(this)">Sao chép</button></div></div></div>
+</section>`);
+sections.push(`<section class="doc-section" id="auth"><h2>Xác thực</h2>
+  <p>Tạo API key tại <a href="integrations.html">Tích hợp POS</a> trong dashboard, rồi gửi trong header mọi yêu cầu:</p>
+  ${code('Authorization: Bearer lsk_YOUR_KEY')}
+  <div class="callout mt-3"><b>Mỗi key gắn với một cửa hàng</b> và chỉ truy cập dữ liệu của cửa hàng đó. Key chỉ hiện đầy đủ một lần khi tạo — hãy lưu ở nơi an toàn, <b>không nhúng vào ứng dụng chạy trên máy khách</b> (web, app di động); hãy gọi từ máy chủ hoặc phần mềm POS. Lộ key? Thu hồi và tạo key mới.</div>
+</section>`);
+sections.push(`<section class="doc-section" id="idempotency"><h2>Chống trùng (idempotency)</h2>
+  <p>Các yêu cầu ghi (<code>/sales</code>, <code>/redemptions</code>, <code>/reward-world/spins</code>) bắt buộc có <code>idempotency_key</code>. Nếu mạng lỗi hoặc POS không chắc yêu cầu đã thành công, <b>cứ gửi lại y nguyên</b>: hệ thống trả lại kết quả cũ với <code>replayed: true</code> và không cộng/trừ thêm.</p>
+  <ul><li>Dùng khóa ổn định theo nghiệp vụ: <code>pos:&lt;mã hóa đơn&gt;</code>, <code>redeem:&lt;mã đổi thưởng&gt;</code>.</li>
+  <li>Dùng lại một khóa cho yêu cầu <b>khác nội dung</b> sẽ báo lỗi 409.</li>
+  <li>Mã hóa đơn (<code>source_ref</code>) cũng chỉ được cộng một lần, kể cả khi khóa khác nhau.</li></ul>
+</section>`);
+sections.push(`<section class="doc-section" id="conventions"><h2>Quy ước</h2>
+  <ul><li>Tiền tệ là VND, gửi dạng <b>số nguyên</b> (<code>amount_minor</code>). Điểm cũng là số nguyên.</li>
+  <li>Thời gian theo ISO 8601 (UTC). Số trả về là <b>number</b> (không phải chuỗi).</li>
+  <li><code>customer_ref</code> là số điện thoại hoặc mã khách tùy bạn chọn — hãy dùng nhất quán.</li>
+  <li>Lỗi trả về dạng <code>{ "error": "thông báo" }</code> kèm mã HTTP phù hợp.</li></ul>
+</section>`);
+
+for (const g of GROUPS) {
+  sections.push(`<section class="doc-section" id="${g.id}"><h2 class="mb-3">${g.title}</h2>${g.endpoints.map(e => `
+    <article class="card ep" id="${e.id}">
+      <div class="card-header"><span class="method m-${e.m.toLowerCase()}">${e.m}</span><span class="ep-path">${esc(e.path)}</span><span class="ms-auto text-secondary d-none d-md-inline">${e.title}</span></div>
+      <div class="card-body">
+        <p class="mb-2">${e.desc}</p>
+        ${e.params.length ? `<div class="label-sm">Tham số</div><div class="table-responsive"><table class="table table-sm param-table"><thead><tr><th>Tên</th><th>Kiểu</th><th>Mô tả</th></tr></thead><tbody>${e.params.map(([n, t, r, d]) => `<tr><td><code>${n}</code> ${r ? '<span class="req">bắt buộc</span>' : ''}</td><td class="text-secondary">${t}</td><td>${d}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        <div class="label-sm">Ví dụ yêu cầu</div>${code(e.curl)}
+        <div class="label-sm">Phản hồi <span class="text-secondary" style="text-transform:none;letter-spacing:0;font-weight:500">· ${e.status}</span></div>${code(JSON.stringify(e.res, null, 2))}
+      </div></article>`).join('')}</section>`);
+}
+sections.push(`<section class="doc-section" id="flow"><h2>Luồng mẫu cho POS</h2>
+  <p>Ba bước thường gặp tại quầy: tra điểm → cộng điểm khi chốt đơn → đổi điểm. Chọn ngôn ngữ:</p>
+  <ul class="nav nav-pills tabs-pill mb-3" data-bs-toggle="tabs">${Object.keys(FLOW).map((k, i) => `<li class="nav-item"><a class="nav-link ${i ? '' : 'active'}" href="#flow-${k}" data-bs-toggle="tab">${{ curl: 'curl', js: 'JavaScript', py: 'Python', php: 'PHP' }[k]}</a></li>`).join('')}</ul>
+  <div class="tab-content">${Object.entries(FLOW).map(([k, v], i) => `<div class="tab-pane ${i ? '' : 'active show'}" id="flow-${k}">${code(v)}</div>`).join('')}</div>
+</section>`);
+sections.push(`<section class="doc-section" id="errors"><h2>Mã lỗi</h2>
+  <div class="card"><div class="table-responsive"><table class="table table-vcenter card-table"><thead><tr><th style="width:70px">HTTP</th><th>Ý nghĩa</th><th>Ví dụ thông báo</th></tr></thead><tbody>${ERRORS.map(([c, m, e]) => `<tr><td><b>${c}</b></td><td>${m}</td><td class="small">${e}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="callout mt-3"><b>Mẹo:</b> lỗi 5xx hoặc timeout → gọi lại với <b>cùng</b> <code>idempotency_key</code>. Lỗi 4xx (trừ 401) là lỗi nghiệp vụ, gọi lại sẽ cho kết quả y hệt.</div>
+</section>`);
+document.getElementById('doc').innerHTML = sections.join('');
+document.getElementById('base-url').textContent = BASE;
+function copyBase(btn) { navigator.clipboard.writeText(BASE); btn.textContent = 'Đã chép'; setTimeout(() => btn.textContent = 'Sao chép', 1400); }
+
+/* Mục lục + đánh dấu mục đang xem */
+const toc = [['Giới thiệu', 'intro'], ['Xác thực', 'auth'], ['Chống trùng', 'idempotency'], ['Quy ước', 'conventions']];
+let html = toc.map(([t, id]) => `<a href="#${id}">${t}</a>`).join('');
+for (const g of GROUPS) html += `<div class="grp">${g.title}</div>` + g.endpoints.map(e => `<a href="#${e.id}"><span class="method m-${e.m.toLowerCase()}" style="min-width:44px;font-size:.62rem;margin-right:.4rem">${e.m}</span>${e.title}</a>`).join('');
+html += `<div class="grp">Khác</div><a href="#flow">Luồng mẫu cho POS</a><a href="#errors">Mã lỗi</a>`;
+document.getElementById('toc').innerHTML = html;
+const links = [...document.querySelectorAll('#toc a')];
+const spy = new IntersectionObserver(entries => entries.forEach(en => {
+  if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
+}), { rootMargin: '-90px 0px -70% 0px' });
+document.querySelectorAll('.doc-section, .ep').forEach(el => spy.observe(el));
+document.addEventListener('click', e => { const b = e.target.closest('.copy-btn'); if (!b) return; navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent); b.textContent = 'Đã chép'; setTimeout(() => b.textContent = 'Sao chép', 1400); });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tích hợp POS - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <section class="card mb-3">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-key me-2"></i>API key</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">POS gọi API loyalty bằng key này. Key chỉ hiện đầy đủ <b>một lần</b> khi tạo; hệ thống chỉ lưu bản băm.</p>
+        <form class="input-group mb-3" id="key-form"><input id="key-name" class="form-control" maxlength="100" placeholder="Tên key, ví dụ: POS quầy 1" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i>Tạo key</button></form>
+        <div id="new-key"></div>
+        <div id="key-list"><div class="text-secondary">Đang tải...</div></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-code me-2"></i>Bắt đầu nhanh</h3><a class="ms-auto btn btn-sm btn-outline-primary" href="docs.html" target="_blank">Xem tài liệu đầy đủ <i class="ti ti-arrow-right ms-1"></i></a></div>
+      <div class="card-body">
+        <ul class="nav nav-pills tabs-pill mb-3" data-bs-toggle="tabs">
+          <li class="nav-item"><a class="nav-link active" href="#q-curl" data-bs-toggle="tab">curl</a></li>
+          <li class="nav-item"><a class="nav-link" href="#q-js" data-bs-toggle="tab">JavaScript</a></li>
+          <li class="nav-item"><a class="nav-link" href="#q-py" data-bs-toggle="tab">Python</a></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active show" id="q-curl"></div><div class="tab-pane" id="q-js"></div><div class="tab-pane" id="q-py"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="card mb-3"><div class="card-body">
+      <div class="fw-bold mb-2">Luồng tích hợp POS</div>
+      <div class="step"><span class="dot">1</span><div><b>Khi khách đưa SĐT</b><div class="small text-secondary"><code>GET /account</code> để hiện số dư điểm.</div></div></div>
+      <div class="step"><span class="dot">2</span><div><b>Khi chốt đơn</b><div class="small text-secondary"><code>POST /sales</code> với <code>idempotency_key</code> = <code>pos:&lt;mã hóa đơn&gt;</code>.</div></div></div>
+      <div class="step"><span class="dot">3</span><div><b>Khi khách đổi điểm</b><div class="small text-secondary"><code>POST /redemptions</code>, trừ điểm tại quầy.</div></div></div>
+      <div class="step"><span class="dot">4</span><div><b>Quà tặng</b><div class="small text-secondary">Hóa đơn đủ điều kiện tự sinh lượt quay, mở ở trang <a href="rewards.html">Quay thưởng</a>.</div></div></div>
+    </div></section>
+    <section class="card"><div class="card-body">
+      <div class="fw-bold mb-2"><i class="ti ti-shield-lock me-1 text-success"></i>An toàn</div>
+      <ul class="text-secondary ps-3 mb-0">
+        <li>Mỗi key chỉ truy cập dữ liệu của <b>cửa hàng này</b>.</li>
+        <li>Gửi lại cùng <code>idempotency_key</code> khi mạng lỗi sẽ không cộng/trừ trùng.</li>
+        <li>Key không tạo hay thu hồi được key khác.</li>
+        <li>Nghi ngờ lộ key? Thu hồi ngay và tạo key mới.</li>
+      </ul>
+    </div></section>
+  </div>
+</div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('integrations', 'Tích hợp POS', 'Kết nối POS của cửa hàng với hệ thống tích điểm bằng API key.', '<a class="btn btn-outline-primary" href="docs.html" target="_blank"><i class="ti ti-book-2 me-1"></i>Tài liệu API</a>');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const base = location.origin + '/api/v1/loyalty';
+
+  const samples = {
+    'q-curl': `# Cộng điểm khi chốt đơn
+curl -X POST ${base}/sales \\
+  -H "Authorization: Bearer lsk_YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000,"customer":{"name":"An","phone":"0901234567"}}'
+
+# Xem điểm của khách
+curl "${base}/account?customer_ref=0901234567" -H "Authorization: Bearer lsk_YOUR_KEY"`,
+    'q-js': `const API = "${base}", KEY = "lsk_YOUR_KEY";
+
+async function addPoints(receipt, phone, amount) {
+  const res = await fetch(\`\${API}/sales\`, {
+    method: "POST",
+    headers: { Authorization: \`Bearer \${KEY}\`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      idempotency_key: \`pos:\${receipt}\`, customer_ref: phone,
+      source_type: "pos", source_ref: receipt, amount_minor: amount,
+    }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  return res.json(); // { entry: { points_delta }, replayed, entitlements }
+}`,
+    'q-py': `import requests
+
+API, KEY = "${base}", "lsk_YOUR_KEY"
+HEADERS = {"Authorization": f"Bearer {KEY}"}
+
+def add_points(receipt, phone, amount):
+    r = requests.post(f"{API}/sales", headers=HEADERS, json={
+        "idempotency_key": f"pos:{receipt}", "customer_ref": phone,
+        "source_type": "pos", "source_ref": receipt, "amount_minor": amount,
+    })
+    r.raise_for_status()
+    return r.json()  # {"entry": {"points_delta": ...}, "replayed": False, ...}`,
+  };
+  for (const [id, code] of Object.entries(samples)) {
+    document.getElementById(id).innerHTML = `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">Sao chép</button><code>${esc(code)}</code></pre>`;
+  }
+  document.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', () => copyText(b.parentElement.querySelector('code').textContent, b)));
+
+  async function loadKeys() {
+    const { keys } = await LoyaltyAPI.listKeys();
+    document.getElementById('key-list').innerHTML = keys.length
+      ? `<div class="list-group list-group-flush">${keys.map(k => `<div class="list-group-item d-flex align-items-center px-0"><span class="avatar avatar-sm tone-indigo me-3"><i class="ti ti-key"></i></span><div><div class="fw-bold">${esc(k.name)}</div><div class="small text-secondary"><code>${esc(k.key_prefix)}…</code> · tạo ${esc(fmtDate(k.created_at))} · ${k.last_used_at ? `dùng gần nhất ${esc(fmtDate(k.last_used_at))}` : 'chưa dùng'}</div></div><button class="btn btn-sm btn-outline-danger ms-auto revoke-key" data-id="${esc(k.id)}">Thu hồi</button></div>`).join('')}</div>`
+      : '<div class="empty-state py-3"><i class="ti ti-key-off"></i>Chưa có key nào. Tạo key đầu tiên để kết nối POS.</div>';
+  }
+  onSubmit('key-form', async () => {
+    const { key } = await LoyaltyAPI.createKey(document.getElementById('key-name').value.trim());
+    document.getElementById('key-name').value = '';
+    document.getElementById('new-key').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>Sao chép key ngay — sẽ không hiện lại.</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(key)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">Sao chép</button></div></div>`;
+    await loadKeys();
+  });
+  document.getElementById('key-list').addEventListener('click', async event => {
+    const button = event.target.closest('.revoke-key'); if (!button) return;
+    if (!confirm('Thu hồi key này? POS đang dùng key sẽ ngừng hoạt động ngay.')) return;
+    try { await LoyaltyAPI.revokeKey(button.dataset.id); showAlert('Đã thu hồi key.'); await loadKeys(); }
+    catch (e) { showAlert(e.message, 'danger'); }
+  });
+  loadKeys().catch(e => showAlert(e.message, 'danger'));
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

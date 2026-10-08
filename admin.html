@@ -4,55 +4,95 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Quản trị Reward World - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
   <script src="assets/js/ui.js"></script>
+  <style>
+    .admin-top { background: linear-gradient(180deg, #14183d, #0d1030); color: #fff; }
+    .campaign-card[data-status="active"] { border-left: 4px solid #10b981; }
+    .campaign-card[data-status="paused"] { border-left: 4px solid #f59e0b; }
+    .campaign-card[data-status="draft"] { border-left: 4px solid #94a3b8; }
+    .campaign-card[data-status="ended"] { border-left: 4px solid #ef4444; opacity: .85; }
+    .prob { height: 6px; border-radius: 99px; background: #eef0f8; overflow: hidden; min-width: 80px; }
+    .prob > i { display: block; height: 100%; background: var(--brand-grad); }
+  </style>
 </head>
 <body>
-<main class="page-body"><div class="container-xl py-4">
-  <div class="d-flex align-items-start mb-4">
-    <div><h1 class="mb-1">Reward World — quản trị hệ thống</h1><div class="text-secondary">Tạo thể lệ và giải thưởng một lần; cửa hàng chỉ chọn tham gia.</div></div>
-    <button id="logout-btn" class="btn btn-outline-secondary ms-auto d-none" type="button"><i class="ti ti-logout me-1"></i>Đăng xuất</button>
-  </div>
+<header class="admin-top"><div class="container-xl d-flex align-items-center py-3">
+  <span class="brand-mark"><i class="ti ti-shield-star"></i></span>
+  <div><div class="brand-text">Reward World · Quản trị</div><div class="small" style="color:#8f95c4">Tạo thể lệ và giải thưởng một lần — cửa hàng chỉ cần tham gia</div></div>
+  <button id="logout-btn" class="btn btn-sm ms-auto d-none" style="background:rgba(255,255,255,.12);color:#fff" type="button"><i class="ti ti-logout me-1"></i>Thoát</button>
+</div></header>
+
+<main class="page-body mt-0 pt-4"><div class="container-xl">
   <div id="alert"></div>
 
-  <section id="login-screen" class="row justify-content-center"><div class="col-md-6 col-lg-5"><div class="card">
-    <form id="login-form" class="card-body">
-      <div class="mb-3"><label class="form-label">Admin secret</label><input id="secret" type="password" class="form-control" autocomplete="current-password" required></div>
-      <button class="btn btn-primary w-100" type="submit">Vào quản trị</button>
-      <div class="form-hint mt-3">Giá trị biến <code>ADMIN_SECRET</code> của Pages project. Chỉ lưu trong tab này.</div>
-    </form>
-  </div></div></section>
+  <section id="login-screen" class="row justify-content-center pt-4"><div class="col-md-6 col-lg-4"><div class="card"><form id="login-form" class="card-body p-4">
+    <div class="text-center mb-3"><span class="avatar avatar-lg avatar-grad rounded-circle"><i class="ti ti-lock fs-2"></i></span></div>
+    <h3 class="text-center mb-1">Khu vực quản trị</h3><p class="text-center text-secondary">Nhập admin secret để tiếp tục.</p>
+    <div class="mb-3"><input id="secret" type="password" class="form-control form-control-lg" placeholder="Admin secret" autocomplete="current-password" required></div>
+    <button class="btn btn-grad w-100" type="submit">Vào quản trị</button>
+    <div class="form-hint mt-3">Là biến <code>ADMIN_SECRET</code> của Pages project. Chỉ lưu trong tab này.</div>
+  </form></div></div></section>
 
   <section id="workspace" class="d-none">
-    <div class="card mb-4">
-      <div class="card-header"><h3 class="card-title"><i class="ti ti-confetti me-2"></i><span id="form-title">Tạo chương trình chung</span></h3></div>
-      <form id="campaign-form" class="card-body">
-        <input id="campaign-id" type="hidden">
-        <div class="row g-3">
-          <div class="col-md-6"><label class="form-label">Tên chương trình</label><input id="c-name" class="form-control" maxlength="200" required></div>
-          <div class="col-md-3"><label class="form-label">Bắt đầu</label><input id="c-start" type="datetime-local" class="form-control"></div>
-          <div class="col-md-3"><label class="form-label">Kết thúc</label><input id="c-end" type="datetime-local" class="form-control"></div>
-          <div class="col-md-6"><label class="form-label">Mô tả / thể lệ ngắn</label><textarea id="c-desc" class="form-control" rows="2" maxlength="2000"></textarea></div>
-          <div class="col-md-2"><label class="form-label">Chi tiêu / lượt (VND)</label><input id="c-spend" type="number" min="1" value="100000" class="form-control" required></div>
-          <div class="col-md-2"><label class="form-label">Tối đa / hóa đơn</label><input id="c-max" type="number" min="1" value="1" class="form-control" required></div>
-          <div class="col-md-2"><label class="form-label">Trạng thái</label><select id="c-status" class="form-select"><option value="draft">Bản nháp</option><option value="active">Đang chạy</option><option value="paused">Tạm dừng</option><option value="ended">Kết thúc</option></select></div>
+    <div class="row row-cards mb-3" id="admin-stats"></div>
+    <div class="row row-cards">
+      <div class="col-xl-4">
+        <div class="card position-sticky" style="top:16px">
+          <div class="card-header"><h3 class="card-title"><i class="ti ti-confetti me-2"></i><span id="form-title">Tạo chương trình chung</span></h3></div>
+          <form id="campaign-form" class="card-body">
+            <input id="campaign-id" type="hidden">
+            <div class="mb-3"><label class="form-label">Tên chương trình</label><input id="c-name" class="form-control" maxlength="200" required placeholder="Ví dụ: Tết may mắn 2027"></div>
+            <div class="mb-3"><label class="form-label">Mô tả / thể lệ ngắn</label><textarea id="c-desc" class="form-control" rows="2" maxlength="2000" placeholder="Điều kiện tham gia, cách nhận giải..."></textarea></div>
+            <div class="row g-3 mb-3">
+              <div class="col-6"><label class="form-label">Bắt đầu</label><input id="c-start" type="datetime-local" class="form-control"></div>
+              <div class="col-6"><label class="form-label">Kết thúc</label><input id="c-end" type="datetime-local" class="form-control"></div>
+              <div class="col-6"><label class="form-label">Chi tiêu / lượt (₫)</label><input id="c-spend" type="number" min="1" value="100000" class="form-control" required></div>
+              <div class="col-6"><label class="form-label">Tối đa lượt / hóa đơn</label><input id="c-max" type="number" min="1" value="1" class="form-control" required></div>
+            </div>
+            <div class="mb-3"><label class="form-label">Trạng thái</label><select id="c-status" class="form-select"><option value="draft">Bản nháp (chưa hiện với cửa hàng)</option><option value="active">Đang chạy</option><option value="paused">Tạm dừng</option><option value="ended">Kết thúc</option></select></div>
+            <div class="d-flex gap-2"><button class="btn btn-grad flex-fill" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu chương trình</button><button id="cancel-edit" class="btn btn-outline-secondary d-none" type="button">Hủy</button></div>
+            <div class="form-hint mt-2">Chương trình chỉ hiện cho cửa hàng khi ở trạng thái <b>Đang chạy</b> và trong khoảng thời gian áp dụng.</div>
+          </form>
         </div>
-        <div class="mt-3 d-flex gap-2"><button class="btn btn-success" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu chương trình</button><button id="cancel-edit" class="btn btn-outline-secondary d-none" type="button">Hủy sửa</button></div>
-      </form>
+      </div>
+      <div class="col-xl-8">
+        <div class="d-flex align-items-center mb-3"><h2 class="m-0 fs-3 fw-bold">Các chương trình</h2><button id="refresh-btn" class="btn btn-outline-primary btn-sm ms-auto" type="button"><i class="ti ti-refresh me-1"></i>Làm mới</button></div>
+        <div id="campaigns"><div class="text-secondary">Đang tải...</div></div>
+      </div>
     </div>
-    <div class="d-flex align-items-center mb-3"><h2 class="m-0">Các chương trình</h2><button id="refresh-btn" class="btn btn-outline-primary btn-sm ms-auto" type="button"><i class="ti ti-refresh me-1"></i>Làm mới</button></div>
-    <div id="campaigns"><div class="text-secondary">Đang tải...</div></div>
   </section>
 </div></main>
+
+<div class="modal modal-blur fade" id="prize-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="prize-edit-form">
+  <div class="modal-header"><h3 class="modal-title">Sửa giải thưởng</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input type="hidden" id="p-id">
+    <div class="mb-3"><label class="form-label">Tên giải</label><input id="p-name" class="form-control" required maxlength="200"></div>
+    <div class="row g-3">
+      <div class="col-6"><label class="form-label">Loại</label><select id="p-type" class="form-select"></select></div>
+      <div class="col-6"><label class="form-label">Trạng thái</label><select id="p-status" class="form-select"><option value="active">Đang bật</option><option value="paused">Tạm dừng</option><option value="exhausted">Hết giải</option></select></div>
+      <div class="col-4"><label class="form-label">Trọng số</label><input id="p-weight" type="number" min="0.0001" step="any" class="form-control" required></div>
+      <div class="col-4"><label class="form-label">Tối đa trúng</label><input id="p-max" type="number" min="0" class="form-control"></div>
+      <div class="col-4"><label class="form-label">Thứ tự</label><input id="p-order" type="number" min="0" class="form-control"></div>
+    </div>
+    <div class="form-hint mt-2">Trọng số càng lớn càng dễ trúng. “Tối đa trúng” = 0 là không giới hạn.</div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn" data-bs-dismiss="modal">Hủy</button><button class="btn btn-grad" type="submit">Lưu giải</button></div>
+</form></div></div>
+
 <script>
 const KEY = 'loyal_admin_secret';
-const STATUS = { draft: 'Bản nháp', active: 'Đang chạy', paused: 'Tạm dừng', ended: 'Kết thúc' };
-const PRIZE_TYPES = { none: 'Không trúng', points: 'Điểm', voucher: 'Voucher', product: 'Sản phẩm', partner_code: 'Mã đối tác' };
+const STATUS = { draft: ['Bản nháp', 'secondary'], active: ['Đang chạy', 'success'], paused: ['Tạm dừng', 'warning'], ended: ['Kết thúc', 'danger'] };
+const PRIZE_TYPES = { none: 'Chúc may mắn (không giải)', points: 'Điểm thưởng', voucher: 'Voucher', product: 'Sản phẩm', partner_code: 'Mã đối tác' };
 let campaigns = [];
 const $ = id => document.getElementById(id);
 const secret = () => sessionStorage.getItem(KEY) || '';
 const inputDate = v => v ? new Date(new Date(v).getTime() - new Date(v).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+$('p-type').innerHTML = Object.entries(PRIZE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 
 async function adminFetch(path, options = {}) {
   const res = await fetch(`/api/v1/admin/reward-world${path}`, { ...options, headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret() } });
@@ -71,29 +111,48 @@ function resetForm() {
   $('form-title').textContent = 'Tạo chương trình chung'; $('cancel-edit').classList.add('d-none');
 }
 
-function prizeRow(p) {
-  return `<div class="prize-row d-flex align-items-center border-bottom py-2"><div class="me-auto"><b>${esc(p.name)}</b> <span class="badge bg-purple-lt">${esc(PRIZE_TYPES[p.prize_type] || p.prize_type)}</span>
-    <div class="small text-secondary">Trọng số ${esc(p.weight)} · tối đa ${Number(p.max_wins) ? esc(p.max_wins) : '∞'} lần trúng · ${esc(p.status)}</div></div>
-    <button class="btn btn-sm btn-outline-secondary toggle-prize" data-id="${esc(p.id)}" data-status="${p.status === 'active' ? 'paused' : 'active'}">${p.status === 'active' ? 'Tạm dừng' : 'Bật lại'}</button></div>`;
+function prizeRow(p, totalWeight) {
+  const pct = p.status === 'active' && totalWeight ? Number(p.weight) / totalWeight * 100 : 0;
+  return `<tr class="${p.status === 'active' ? '' : 'text-secondary'}">
+    <td><b>${esc(p.name)}</b><div class="small text-secondary">${esc(PRIZE_TYPES[p.prize_type] || p.prize_type)}</div></td>
+    <td style="width:170px"><div class="d-flex align-items-center gap-2"><div class="prob flex-fill"><i style="width:${pct}%"></i></div><span class="small fw-bold" style="width:44px">${pct ? pct.toFixed(pct < 10 ? 1 : 0) + '%' : '—'}</span></div></td>
+    <td class="small text-secondary text-nowrap">${Number(p.max_wins) ? 'tối đa ' + esc(p.max_wins) : 'không giới hạn'}</td>
+    <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-secondary edit-prize" data-id="${esc(p.id)}" data-campaign="${esc(p.campaign_id)}"><i class="ti ti-pencil"></i></button>
+      <button class="btn btn-sm ${p.status === 'active' ? 'btn-outline-warning' : 'btn-outline-success'} toggle-prize" data-id="${esc(p.id)}" data-status="${p.status === 'active' ? 'paused' : 'active'}">${p.status === 'active' ? 'Tạm dừng' : 'Bật lại'}</button></td></tr>`;
 }
 function campaignCard(c) {
-  return `<article class="card mb-3"><div class="card-header"><div><h3 class="card-title">${esc(c.name)}</h3><div class="small text-secondary">${esc(c.description || 'Chưa có mô tả')}</div></div>
-    <span class="badge ms-auto">${esc(STATUS[c.status] || c.status)}</span></div>
-    <div class="card-body"><div class="small text-secondary mb-3">Mỗi ${money.format(Number(c.spend_per_spin_minor))} ₫ nhận 1 lượt · tối đa ${esc(c.max_spins_per_sale)} lượt/hóa đơn · ${c.starts_at ? esc(fmtDate(c.starts_at)) : 'ngay'} → ${c.ends_at ? esc(fmtDate(c.ends_at)) : 'không giới hạn'}</div>
-    ${(c.prizes || []).map(prizeRow).join('') || '<div class="text-secondary mb-2">Chưa có giải thưởng.</div>'}
-    <form class="prize-form row g-2 mt-2" data-campaign="${esc(c.id)}">
-      <div class="col-md-3"><input name="name" class="form-control" placeholder="Tên giải" required></div>
-      <div class="col-md-2"><select name="prize_type" class="form-select">${Object.entries(PRIZE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
-      <div class="col-md-2"><input name="weight" type="number" min="0.0001" step="any" value="1" class="form-control" title="Trọng số" required></div>
-      <div class="col-md-2"><input name="max_wins" type="number" min="0" value="0" class="form-control" title="Tối đa lần trúng (0 = không giới hạn)"></div>
-      <div class="col-md-3"><button class="btn btn-outline-success w-100" type="submit"><i class="ti ti-plus me-1"></i>Thêm giải</button></div>
-    </form></div>
-    <div class="card-footer"><button class="btn btn-sm btn-outline-primary edit-campaign" data-id="${esc(c.id)}">Sửa</button></div></article>`;
+  const [label, tone] = STATUS[c.status] || [c.status, 'secondary'];
+  const total = (c.prizes || []).filter(p => p.status === 'active').reduce((s, p) => s + Number(p.weight), 0);
+  return `<article class="card campaign-card mb-3" data-status="${esc(c.status)}">
+    <div class="card-header"><div><h3 class="card-title mb-0">${esc(c.name)}</h3><div class="small text-secondary">${esc(c.description || 'Chưa có mô tả')}</div></div><span class="badge bg-${tone}-lt text-${tone} ms-auto">${label}</span></div>
+    <div class="card-body">
+      <div class="small text-secondary mb-3"><i class="ti ti-receipt me-1"></i>Mỗi ${money.format(Number(c.spend_per_spin_minor))} ₫ nhận 1 lượt (tối đa ${esc(c.max_spins_per_sale)}/hóa đơn) · <i class="ti ti-calendar ms-1 me-1"></i>${c.starts_at ? esc(new Date(c.starts_at).toLocaleDateString('vi-VN')) : 'ngay'} → ${c.ends_at ? esc(new Date(c.ends_at).toLocaleDateString('vi-VN')) : 'không giới hạn'}</div>
+      ${(c.prizes || []).length ? `<div class="table-responsive"><table class="table table-vcenter mb-3"><thead><tr><th>Giải thưởng</th><th>Xác suất</th><th>Giới hạn</th><th></th></tr></thead><tbody>${c.prizes.map(p => prizeRow(p, total)).join('')}</tbody></table></div>` : '<div class="empty-state py-3"><i class="ti ti-gift-off"></i>Chưa có giải thưởng — thêm giải bên dưới.</div>'}
+      <form class="prize-form row g-2" data-campaign="${esc(c.id)}">
+        <div class="col-md-4"><input name="name" class="form-control" placeholder="Tên giải, ví dụ: Voucher 50k" required maxlength="200"></div>
+        <div class="col-md-3"><select name="prize_type" class="form-select">${Object.entries(PRIZE_TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div class="col-md-2 col-6"><input name="weight" type="number" min="0.0001" step="any" value="1" class="form-control" title="Trọng số (càng lớn càng dễ trúng)" required></div>
+        <div class="col-md-1 col-6"><input name="max_wins" type="number" min="0" value="0" class="form-control" title="Tối đa lần trúng (0 = không giới hạn)"></div>
+        <div class="col-md-2"><button class="btn btn-outline-success w-100" type="submit"><i class="ti ti-plus me-1"></i>Thêm</button></div>
+      </form>
+    </div>
+    <div class="card-footer d-flex gap-2"><button class="btn btn-sm btn-outline-primary edit-campaign" data-id="${esc(c.id)}"><i class="ti ti-pencil me-1"></i>Sửa chương trình</button>
+      ${c.status !== 'active' ? `<button class="btn btn-sm btn-success set-status" data-id="${esc(c.id)}" data-status="active"><i class="ti ti-player-play me-1"></i>Kích hoạt</button>` : `<button class="btn btn-sm btn-outline-warning set-status" data-id="${esc(c.id)}" data-status="paused"><i class="ti ti-player-pause me-1"></i>Tạm dừng</button>`}</div>
+  </article>`;
+}
+function renderStats() {
+  const prizes = campaigns.flatMap(c => c.prizes || []);
+  const card = (icon, tone, label, v) => `<div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="stat-icon tone-${tone}"><i class="ti ${icon}"></i></div><div class="stat-label">${label}</div><div class="stat-value">${v}</div></div></div></div>`;
+  $('admin-stats').innerHTML = card('ti-confetti', 'indigo', 'Chương trình', campaigns.length) + card('ti-player-play', 'green', 'Đang chạy', campaigns.filter(c => c.status === 'active').length) +
+    card('ti-pencil', 'amber', 'Bản nháp / tạm dừng', campaigns.filter(c => ['draft', 'paused'].includes(c.status)).length) + card('ti-gift', 'pink', 'Giải thưởng', prizes.length);
 }
 
 async function load() {
-  try { campaigns = (await adminFetch('/campaigns')).campaigns; $('campaigns').innerHTML = campaigns.map(campaignCard).join('') || '<div class="text-secondary">Chưa có chương trình.</div>'; }
-  catch (e) { showAlert(e.message, 'danger'); }
+  try {
+    campaigns = (await adminFetch('/campaigns')).campaigns;
+    renderStats();
+    $('campaigns').innerHTML = campaigns.map(campaignCard).join('') || '<div class="card"><div class="empty-state"><i class="ti ti-confetti-off"></i>Chưa có chương trình. Tạo chương trình đầu tiên ở khung bên trái.</div></div>';
+  } catch (e) { showAlert(e.message, 'danger'); }
 }
 
 $('login-form').addEventListener('submit', e => { e.preventDefault(); sessionStorage.setItem(KEY, $('secret').value); showWorkspace(); });
@@ -114,7 +173,7 @@ onSubmit('campaign-form', async () => {
 });
 
 $('campaigns').addEventListener('click', async event => {
-  const edit = event.target.closest('.edit-campaign'), toggle = event.target.closest('.toggle-prize');
+  const edit = event.target.closest('.edit-campaign'), toggle = event.target.closest('.toggle-prize'), setStatus = event.target.closest('.set-status'), editPrize = event.target.closest('.edit-prize');
   try {
     if (edit) {
       const c = campaigns.find(x => x.id === edit.dataset.id); if (!c) return;
@@ -123,7 +182,14 @@ $('campaigns').addEventListener('click', async event => {
       $('c-spend').value = c.spend_per_spin_minor; $('c-max').value = c.max_spins_per_sale; $('c-status').value = c.status;
       $('form-title').textContent = 'Sửa chương trình'; $('cancel-edit').classList.remove('d-none'); scrollTo({ top: 0, behavior: 'smooth' });
     }
+    if (setStatus) { await send('PATCH', `/campaigns/${encodeURIComponent(setStatus.dataset.id)}`, { status: setStatus.dataset.status }); showAlert('Đã cập nhật trạng thái.'); await load(); }
     if (toggle) { await send('PATCH', `/prizes/${encodeURIComponent(toggle.dataset.id)}`, { status: toggle.dataset.status }); await load(); }
+    if (editPrize) {
+      const p = (campaigns.find(c => c.id === editPrize.dataset.campaign)?.prizes || []).find(x => x.id === editPrize.dataset.id); if (!p) return;
+      $('p-id').value = p.id; $('p-name').value = p.name; $('p-type').value = p.prize_type; $('p-status').value = p.status;
+      $('p-weight').value = p.weight; $('p-max').value = p.max_wins; $('p-order').value = p.sort_order;
+      bootstrap.Modal.getOrCreateInstance($('prize-modal')).show();
+    }
   } catch (e) { showAlert(e.message, 'danger'); }
 });
 $('campaigns').addEventListener('submit', async event => {
@@ -136,8 +202,16 @@ $('campaigns').addEventListener('submit', async event => {
     showAlert('Đã thêm giải thưởng.'); await load();
   } catch (e) { showAlert(e.message, 'danger'); }
 });
+onSubmit('prize-edit-form', async () => {
+  await send('PATCH', `/prizes/${encodeURIComponent($('p-id').value)}`, {
+    name: $('p-name').value.trim(), prize_type: $('p-type').value, status: $('p-status').value,
+    weight: Number($('p-weight').value), max_wins: Number($('p-max').value || 0), sort_order: Number($('p-order').value || 0)
+  });
+  bootstrap.Modal.getInstance($('prize-modal'))?.hide(); showAlert('Đã lưu giải thưởng.'); await load();
+});
 
 if (secret()) showWorkspace(); else showLogin();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
 </body>
 </html>

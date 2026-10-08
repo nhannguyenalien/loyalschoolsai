@@ -25,6 +25,8 @@ const LoyaltyAPI = {
   getAccount: ref => loyaltyFetch(`/account?customer_ref=${encodeURIComponent(ref)}&per_page=100`),
   addSale: data => loyaltyFetch('/sales', jsonBody('POST', data)),
   redeem: data => loyaltyFetch('/redemptions', jsonBody('POST', data)),
+  stats: () => loyaltyFetch('/stats'),
+  spinsFor: ref => loyaltyFetch(`/reward-world/entitlements?customer_ref=${encodeURIComponent(ref)}`),
   listKeys: () => loyaltyFetch('/api-keys'),
   createKey: name => loyaltyFetch('/api-keys', jsonBody('POST', { name })),
   revokeKey: id => loyaltyFetch(`/api-keys/${encodeURIComponent(id)}`, { method: 'DELETE' }),

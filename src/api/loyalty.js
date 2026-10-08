@@ -2,6 +2,7 @@ import { configureLoyaltyProgram } from "../workflows/loyalty/configureProgram.j
 import { recordLoyaltySale } from "../workflows/loyalty/recordSale.js";
 import { getLoyaltyAccount } from "../workflows/loyalty/getAccount.js";
 import { redeemLoyaltyPoints } from "../workflows/loyalty/redeemPoints.js";
+import { requireNonEmpty } from "../domain/loyalty/points.js";
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
 import { claimReward, joinRewardCampaign, listCustomerRewards, listRewardWorld, spinRewardWorld } from "../workflows/loyalty/rewardWorld.js";
 
@@ -48,6 +49,13 @@ export function createLoyaltyApi({ repository, fulfillmentService }) {
           perPage: positivePage(url.searchParams.get("per_page"), 100, 500),
         });
         return json(200, result, responseHeaders);
+      }
+      if (request.method === "GET" && path === "/api/v1/loyalty/stats") {
+        return json(200, await repository.getStats(tenant), responseHeaders);
+      }
+      if (request.method === "GET" && path === "/api/v1/loyalty/reward-world/entitlements") {
+        const customerRef = requireNonEmpty(url.searchParams.get("customer_ref"), "customer_ref", 200);
+        return json(200, await repository.countAvailableSpins(tenant, customerRef), responseHeaders);
       }
       if (request.method === "GET" && path === "/api/v1/loyalty/reward-world/campaigns") {
         return json(200, await listRewardWorld({ repository, tenant }), responseHeaders);

@@ -66,11 +66,20 @@ test("loyalty + reward world trên Neon", { skip }, async (t) => {
   const replay = await recordLoyaltySale({ repository, tenant, input: { idempotency_key: "manual:R2", customer_ref: "0901", source_ref: "R2", amount_minor: 100000 } });
   assert.equal(replay.entitlements.length, 2);
 
+  const spins = await repository.countAvailableSpins(tenant, "0901");
+  assert.equal(spins.available, 2); assert.equal(spins.campaigns[0].campaign_id, campaignId);
+  assert.equal(typeof (await repository.getActiveProgram(tenant)).spend_per_point_minor, "number"); // số, không phải chuỗi
+
   const spin = await spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:1" } });
   assert.equal(spin.result.status, "won");
   assert.equal((await spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:1" } })).replayed, true);
   // Giải duy nhất (max_wins=1) đã hết: lượt thứ hai không còn giải.
   await assert.rejects(spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:2" } }), /no available prize/);
+
+  const stats = await repository.getStats(tenant);
+  assert.equal(stats.customers, 1); assert.equal(stats.points_issued, 20); assert.equal(stats.points_redeemed, 8); // 4 + một lần trừ thắng trong bài test đua
+  assert.equal(stats.spins_used, 1); assert.equal(stats.spins_available, 1); assert.equal(stats.prizes_pending, 1);
+  assert.equal(stats.recent.length, 4); assert.equal(stats.daily.at(-1).day, stats.today);
 
   let rewards = (await listCustomerRewards({ repository, tenant, customerRef: "0901" })).rewards;
   assert.equal(rewards.length, 1); assert.equal(rewards[0].claim, null);

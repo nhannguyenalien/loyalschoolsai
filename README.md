@@ -10,10 +10,13 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 ## Trang
 | File | Chức năng |
 |---|---|
-| `index.html` | Đăng nhập |
+| `index.html` | Đăng nhập / đăng ký (email, Google) |
+| `overview.html` | Tổng quan: số liệu, biểu đồ 14 ngày, giao dịch gần đây, bắt đầu nhanh |
 | `customers.html` | Cộng điểm theo hóa đơn, trừ điểm, tra cứu khách |
-| `rewards.html` | Tham gia Reward World, vòng quay, giao thưởng |
-| `settings.html` | Luật tích điểm (có phiên bản) |
+| `rewards.html` | Quay thưởng: vòng quay, đếm lượt quay của khách, giao thưởng |
+| `settings.html` | Luật tích điểm (có phiên bản, xem trước) |
+| `integrations.html` | API key cho POS + hướng dẫn nhanh |
+| `docs.html` | Tài liệu API công khai (không cần đăng nhập) |
 | `admin.html` | Quản trị chương trình/giải thưởng chung (dùng `ADMIN_SECRET`) |
 
 ## API
