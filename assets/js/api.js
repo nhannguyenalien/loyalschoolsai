@@ -1,14 +1,13 @@
 /**
  * Client cho API loyalty (Cloudflare Pages Function cùng origin: /api/v1/loyalty/*).
- * Xác thực bằng token PocketBase của người dùng + header X-Tenant.
+ * Xác thực bằng Firebase ID token của người dùng.
  */
 async function loyaltyFetch(path, options = {}) {
   const res = await fetch(`/api/v1/loyalty${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: PB.authStore.token,
-      'X-Tenant': window.TENANT,
+      Authorization: `Bearer ${await getIdToken()}`,
       ...(options.headers || {})
     }
   });

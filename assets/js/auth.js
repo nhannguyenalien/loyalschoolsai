@@ -1,85 +1,55 @@
 /**
- * Đăng nhập bằng tài khoản `tenants` của PocketBase (cùng tài khoản dashboard).
- * Sau requireAuth(): window.TENANT, window.AUTH_USER.
+ * Đăng nhập bằng Firebase Auth (email/mật khẩu + Google).
+ * Sau requireAuth(): window.AUTH_USER = {uid, email, name}; window.TENANT = uid
+ * (mỗi tài khoản là một cửa hàng; server tính tenant từ uid trong ID token).
  */
-const TENANT_KEY = uid => `loyalschoolsai.activeTenant.${uid}`;
+if (!FIREBASE_CONFIG.apiKey) console.error('Thiếu cấu hình Firebase: điền assets/js/firebase-config.js');
+firebase.initializeApp(FIREBASE_CONFIG);
+const fbAuth = firebase.auth();
 
-async function resolveTenant(user) {
-  const legacy = String(user?.tenant || '').trim();
-  let list = [];
-  try {
-    const rows = await PB.collection('tenant_memberships').getFullList({
-      filter: `account = "${user.id}" && status = "active"`, sort: '-is_default,tenant'
-    });
-    list = rows.map(r => ({ tenant: String(r.tenant || '').trim(), isDefault: !!r.is_default }));
-  } catch { /* collection chưa migrate: dùng tenant cũ */ }
-  if (legacy && !list.some(m => m.tenant === legacy)) list.push({ tenant: legacy, isDefault: true });
-  const seen = new Set();
-  list = list.filter(m => m.tenant && !seen.has(m.tenant) && seen.add(m.tenant));
-  const saved = localStorage.getItem(TENANT_KEY(user.id));
-  const active = list.find(m => m.tenant === saved) || list.find(m => m.isDefault) || list[0];
-  window.TENANT_LIST = list.map(m => m.tenant);
-  window.TENANT = active?.tenant || '';
-  if (active) localStorage.setItem(TENANT_KEY(user.id), active.tenant);
-  return window.TENANT;
-}
-
-function switchTenant(tenant) {
-  if (!window.TENANT_LIST.includes(tenant) || tenant === window.TENANT) return;
-  localStorage.setItem(TENANT_KEY(PB.authStore.model.id), tenant);
-  location.reload(); // xoá toàn bộ state của tenant cũ
-}
+const toAppUser = u => ({ uid: u.uid, email: u.email || '', name: u.displayName || u.email || '' });
+const authReady = new Promise(resolve => { const off = fbAuth.onAuthStateChanged(u => { off(); resolve(u); }); });
 
 async function requireAuth() {
-  if (!PB.authStore.isValid) return redirectToLogin();
-  try { await PB.collection('tenants').authRefresh(); }
-  catch (err) {
-    // Chỉ đăng xuất khi token sai/hết hạn; lỗi mạng thì giữ session.
-    if (err.status === 400 || err.status === 401) { PB.authStore.clear(); return redirectToLogin(); }
-  }
-  const user = PB.authStore.model;
-  if (!user || !(await resolveTenant(user))) { PB.authStore.clear(); return redirectToLogin(); }
-  window.AUTH_USER = user;
+  const user = await authReady;
+  if (!user) return redirectToLogin();
+  window.AUTH_USER = toAppUser(user);
+  window.TENANT = user.uid;
 }
+
+async function getIdToken() {
+  if (!fbAuth.currentUser) throw new Error('Phiên đăng nhập đã hết hạn.');
+  return fbAuth.currentUser.getIdToken(); // SDK tự làm mới token khi gần hết hạn
+}
+
+const AUTH_ERRORS = {
+  'auth/invalid-credential': 'Sai email hoặc mật khẩu.',
+  'auth/wrong-password': 'Sai email hoặc mật khẩu.',
+  'auth/user-not-found': 'Sai email hoặc mật khẩu.',
+  'auth/email-already-in-use': 'Email này đã có tài khoản.',
+  'auth/weak-password': 'Mật khẩu cần ít nhất 6 ký tự.',
+  'auth/invalid-email': 'Email không hợp lệ.',
+  'auth/too-many-requests': 'Thử quá nhiều lần, hãy đợi một lúc.',
+  'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập Google.',
+  'auth/unauthorized-domain': 'Tên miền này chưa được thêm vào Authorized domains của Firebase.',
+};
+const authError = error => new Error(AUTH_ERRORS[error.code] || error.message);
 
 async function loginWithPassword(email, password) {
-  await PB.collection('tenants').authWithPassword(email, password);
-  if (!(await resolveTenant(PB.authStore.model))) {
-    PB.authStore.clear();
-    throw new Error('Tài khoản chưa được cấp tenant.');
-  }
+  try { await fbAuth.signInWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
   location.href = 'customers.html';
 }
-
-// Đăng nhập Google qua OAuth2 của PocketBase. redirect_uri = origin của trang này,
-// nên origin đó phải được thêm vào "Authorized redirect URIs" của OAuth client Google.
+async function registerWithPassword(email, password) {
+  try { await fbAuth.createUserWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
+  location.href = 'customers.html';
+}
 async function loginWithGoogle() {
-  const methods = await PB.collection('tenants').listAuthMethods();
-  const providers = methods.oauth2?.providers || methods.authProviders || [];
-  const google = providers.find(p => p.name === 'google');
-  if (!google) throw new Error('Chưa cấu hình Google Auth trên PocketBase.');
-  sessionStorage.setItem('loyal.oauthProvider', JSON.stringify(google));
-  location.href = google.authUrl + location.origin;
-}
-
-// Gọi khi trang đăng nhập được Google chuyển về kèm ?code=&state=. Trả về true nếu đã xử lý.
-async function handleOAuthCallback() {
-  const params = new URLSearchParams(location.search);
-  const code = params.get('code'), state = params.get('state');
-  if (!code || !state) return false;
-  const saved = sessionStorage.getItem('loyal.oauthProvider');
-  sessionStorage.removeItem('loyal.oauthProvider');
-  history.replaceState(null, '', location.pathname);
-  const provider = saved ? JSON.parse(saved) : null;
-  if (!provider || provider.state !== state) throw new Error('Phiên đăng nhập Google không hợp lệ, hãy thử lại.');
-  await PB.collection('tenants').authWithOAuth2Code(provider.name, code, provider.codeVerifier, location.origin);
-  if (!(await resolveTenant(PB.authStore.model))) {
-    PB.authStore.clear();
-    throw new Error('Tài khoản Google này chưa được cấp cửa hàng (tenant).');
-  }
+  try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } catch (e) { throw authError(e); }
   location.href = 'customers.html';
-  return true;
+}
+async function resetPassword(email) {
+  try { await fbAuth.sendPasswordResetEmail(email); } catch (e) { throw authError(e); }
 }
 
-function logout() { PB.authStore.clear(); redirectToLogin(); }
+async function logout() { await fbAuth.signOut(); redirectToLogin(); }
 function redirectToLogin() { location.href = 'index.html'; }

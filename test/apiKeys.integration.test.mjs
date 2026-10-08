@@ -5,7 +5,7 @@ import { onRequest } from "../functions/api/v1/[[path]].js";
 
 const url = process.env.DATABASE_URL;
 const tenant = `test-${crypto.randomUUID().slice(0, 8)}`;
-const env = { DATABASE_URL: url, PB_URL: "http://invalid.local", ADMIN_SECRET: "x" };
+const env = { DATABASE_URL: url, FIREBASE_PROJECT_ID: "test-project", ADMIN_SECRET: "x" };
 const call = (path, { key, method = "GET", body } = {}) => onRequest({
   env, request: new Request(`http://t${path}`, { method, body: body && JSON.stringify(body), headers: { ...(key ? { authorization: `Bearer ${key}` } : {}) } }),
 });

@@ -6,9 +6,6 @@ const NAV = [
 
 function renderLayout(active, title) {
   const links = NAV.map(n => `<li class="nav-item"><a class="nav-link ${n.page === active ? 'active' : ''}" href="${n.href}"><span class="nav-link-icon"><i class="ti ${n.icon}"></i></span><span class="nav-link-title">${n.label}</span></a></li>`).join('');
-  const tenants = (window.TENANT_LIST || []).length > 1
-    ? `<select class="form-select form-select-sm mt-2" onchange="switchTenant(this.value)">${window.TENANT_LIST.map(t => `<option ${t === window.TENANT ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`
-    : '';
   document.getElementById('layout').innerHTML = `
     <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
       <div class="container-fluid">
@@ -17,8 +14,7 @@ function renderLayout(active, title) {
         <div class="collapse navbar-collapse" id="sidebar-menu">
           <ul class="navbar-nav pt-lg-3">${links}</ul>
           <div class="mt-auto p-3 small text-secondary">
-            <div>${esc(window.AUTH_USER?.name || window.AUTH_USER?.email || '')}</div>
-            <div>Cửa hàng: <b>${esc(window.TENANT)}</b></div>${tenants}
+            <div class="text-truncate">${esc(window.AUTH_USER?.email || window.AUTH_USER?.name || '')}</div>
             <button class="btn btn-sm btn-outline-secondary mt-2 w-100" onclick="logout()"><i class="ti ti-logout me-1"></i>Đăng xuất</button>
           </div>
         </div>

@@ -5,7 +5,7 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 - **Frontend**: static (Tabler + JS thuần), không cần build.
 - **API**: Cloudflare Pages Functions (`functions/api/v1/[[path]].js`), cùng origin với frontend.
 - **Dữ liệu**: Postgres trên Neon (`schema.sql`). Sổ cái chỉ ghi thêm, số dư = `SUM(points_delta)`.
-- **Đăng nhập**: dùng lại tài khoản `tenants` của PocketBase (cùng tài khoản dashboard); function xác thực token qua PocketBase.
+- **Đăng nhập**: Firebase Auth (email/mật khẩu + Google). Function xác thực Firebase ID token; mỗi tài khoản là một cửa hàng (`tenant = uid`). Project Firebase: `loyalschoolsai`.
 
 ## Trang
 | File | Chức năng |
@@ -17,7 +17,7 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 | `admin.html` | Quản trị chương trình/giải thưởng chung (dùng `ADMIN_SECRET`) |
 
 ## API
-`/api/v1/loyalty/*` (header `Authorization: <PocketBase token>` + `X-Tenant`) và `/api/v1/admin/reward-world/*` (header `X-Admin-Secret`).
+`/api/v1/loyalty/*` (header `Authorization: Bearer <Firebase ID token>` hoặc `Bearer lsk_...`) và `/api/v1/admin/reward-world/*` (header `X-Admin-Secret`).
 Giữ nguyên hợp đồng của API cũ để tích hợp POS sau này: `POST /sales`, `POST /redemptions`, `GET /account`, ...
 
 ## Tích hợp POS
@@ -34,10 +34,10 @@ curl -X POST https://<domain>/api/v1/loyalty/redemptions -H "Authorization: Bear
 ```
 Key không tạo/thu hồi được key khác; việc đó chỉ làm được bằng phiên đăng nhập.
 
-## Đăng nhập Google
-Dùng OAuth2 của PocketBase (provider `google` đã cấu hình cho collection `tenants`). Mỗi origin dùng để đăng nhập phải được thêm vào
-**Authorized redirect URIs** của OAuth client trong Google Cloud Console, ví dụ `https://loyalschoolsai.pages.dev` và `http://localhost:8788`
-(đúng như origin, không có dấu `/` ở cuối).
+## Đăng nhập (Firebase)
+Bật sẵn Email/Password và Google trong Firebase console. Mỗi tên miền dùng để đăng nhập phải nằm trong
+**Authentication → Settings → Authorized domains** (đã có `localhost` và `loyalschoolsai.pages.dev`; thêm domain riêng nếu gắn).
+Cấu hình web ở `assets/js/firebase-config.js` là thông tin công khai.
 
 ## Chạy local
 ```

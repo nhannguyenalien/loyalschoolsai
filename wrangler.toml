@@ -3,7 +3,7 @@ compatibility_date = "2024-09-23"
 pages_build_output_dir = "dist"
 
 [vars]
-PB_URL = "https://nhannguyen123-chat.hf.space"
+FIREBASE_PROJECT_ID = "loyalschoolsai"  # trùng projectId trong assets/js/firebase-config.js
 
 # Secrets (không đặt ở đây):
 #   DATABASE_URL  - chuỗi kết nối Neon

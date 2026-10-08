@@ -1,7 +1,5 @@
-/**
- * Xác thực người dùng bằng token PocketBase (cùng tài khoản `tenants` ở dashboard chính),
- * và kiểm tra họ có quyền với cửa hàng (tenant) trong header X-Tenant.
- */
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
@@ -29,20 +27,25 @@ export async function authenticateApiKey(request, repository) {
   return { tenant: row.tenant, via: "api_key" };
 }
 
-export async function authenticateTenant(request, env) {
+const FIREBASE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
+
+/**
+ * Xác thực Firebase ID token (RS256) và trả về cửa hàng của người dùng.
+ * Mỗi tài khoản Firebase là một cửa hàng: tenant = uid.
+ */
+export async function authenticateTenant(request, env, { jwks = FIREBASE_JWKS } = {}) {
   const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!token) throw new HttpError(401, "Authentication is required.");
-  const refreshed = await fetch(`${env.PB_URL}/api/collections/tenants/auth-refresh`, { method: "POST", headers: { Authorization: token } });
-  if (!refreshed.ok) throw new HttpError(401, "Session is invalid or expired.");
-  const { record } = await refreshed.json();
-  const requested = (request.headers.get("x-tenant") || record.tenant || "").trim();
-  if (!requested) throw new HttpError(403, "No tenant for this account.");
-  if (requested === String(record.tenant || "").trim()) return { tenant: requested, user: record, via: "session" };
-  const filter = encodeURIComponent(`account = "${record.id}" && tenant = "${requested.replace(/["\\]/g, "")}" && status = "active"`);
-  const membership = await fetch(`${env.PB_URL}/api/collections/tenant_memberships/records?perPage=1&filter=${filter}`, { headers: { Authorization: token } });
-  const data = membership.ok ? await membership.json() : { items: [] };
-  if (!data.items?.length) throw new HttpError(403, "You do not have access to this tenant.");
-  return { tenant: requested, user: record, via: "session" };
+  const projectId = env.FIREBASE_PROJECT_ID;
+  if (!projectId) throw new HttpError(500, "FIREBASE_PROJECT_ID is not configured.");
+  let payload;
+  try {
+    ({ payload } = await jwtVerify(token, jwks, { issuer: `https://securetoken.google.com/${projectId}`, audience: projectId, algorithms: ["RS256"] }));
+  } catch {
+    throw new HttpError(401, "Session is invalid or expired.");
+  }
+  if (!payload.sub) throw new HttpError(401, "Session is invalid or expired.");
+  return { tenant: payload.sub, user: { uid: payload.sub, email: payload.email || "", name: payload.name || "" }, via: "session" };
 }
 
 export function requireAdmin(request, env) {
