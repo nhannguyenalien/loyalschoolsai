@@ -20,6 +20,20 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 `/api/v1/loyalty/*` (header `Authorization: <PocketBase token>` + `X-Tenant`) và `/api/v1/admin/reward-world/*` (header `X-Admin-Secret`).
 Giữ nguyên hợp đồng của API cũ để tích hợp POS sau này: `POST /sales`, `POST /redemptions`, `GET /account`, ...
 
+## Tích hợp POS
+Tạo key ở trang **Luật tích điểm → API key cho POS** (key chỉ hiện một lần; DB chỉ lưu hash). Key gắn với một cửa hàng, nên không cần `X-Tenant`.
+```
+# Cộng điểm khi chốt đơn (gửi lại cùng idempotency_key khi mạng lỗi sẽ không cộng trùng)
+curl -X POST https://<domain>/api/v1/loyalty/sales -H "Authorization: Bearer lsk_..." -H "Content-Type: application/json" \
+  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000,"customer":{"name":"An","phone":"0901234567"}}'
+# Xem điểm
+curl "https://<domain>/api/v1/loyalty/account?customer_ref=0901234567" -H "Authorization: Bearer lsk_..."
+# Đổi điểm
+curl -X POST https://<domain>/api/v1/loyalty/redemptions -H "Authorization: Bearer lsk_..." -H "Content-Type: application/json" \
+  -d '{"idempotency_key":"redeem:G1","customer_ref":"0901234567","source_ref":"G1","points":50}'
+```
+Key không tạo/thu hồi được key khác; việc đó chỉ làm được bằng phiên đăng nhập.
+
 ## Chạy local
 ```
 npm install
@@ -39,6 +53,5 @@ wrangler pages secret put ADMIN_SECRET
 ```
 
 ## Chưa làm
-- API key cho POS gọi trực tiếp (hiện chỉ xác thực bằng phiên đăng nhập PocketBase).
 - Di chuyển dữ liệu cũ từ PocketBase sang Neon (`dashpoc/scripts/pb-loyalty-export.mjs` là điểm khởi đầu).
 - Đăng nhập Google.

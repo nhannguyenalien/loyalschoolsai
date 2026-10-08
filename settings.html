@@ -26,6 +26,15 @@
     <div class="form-hint mt-2" id="program-status">Đang tải luật hiện tại...</div>
   </form>
 </section>
+<section class="card mt-4" style="max-width:720px">
+  <div class="card-header"><h3 class="card-title"><i class="ti ti-key me-2"></i>API key cho POS</h3></div>
+  <div class="card-body">
+    <p class="text-secondary">POS gọi API loyalty trực tiếp bằng key này (<code>Authorization: Bearer lsk_...</code>). Key chỉ hiện đầy đủ một lần khi tạo.</p>
+    <form class="input-group mb-3" id="key-form"><input id="key-name" class="form-control" maxlength="100" placeholder="Tên key, ví dụ: POS quầy 1" required><button class="btn btn-primary" type="submit"><i class="ti ti-plus me-1"></i>Tạo key</button></form>
+    <div id="new-key"></div>
+    <div id="key-list"><div class="text-secondary">Đang tải...</div></div>
+  </div>
+</section>
 </template>
 <script>
 (async () => {
@@ -50,6 +59,26 @@
     showAlert(`Đã kích hoạt luật phiên bản ${program.version}.`);
     renderProgram(program);
   });
+
+  async function loadKeys() {
+    const { keys } = await LoyaltyAPI.listKeys();
+    document.getElementById('key-list').innerHTML = keys.length
+      ? `<div class="list-group list-group-flush">${keys.map(k => `<div class="list-group-item d-flex align-items-center px-0"><div><div class="fw-bold">${esc(k.name)}</div><div class="small text-secondary"><code>${esc(k.key_prefix)}…</code> · tạo ${esc(fmtDate(k.created_at))} · ${k.last_used_at ? `dùng gần nhất ${esc(fmtDate(k.last_used_at))}` : 'chưa dùng'}</div></div><button class="btn btn-sm btn-outline-danger ms-auto revoke-key" data-id="${esc(k.id)}">Thu hồi</button></div>`).join('')}</div>`
+      : '<div class="text-secondary">Chưa có key nào.</div>';
+  }
+  onSubmit('key-form', async () => {
+    const { key } = await LoyaltyAPI.createKey(document.getElementById('key-name').value.trim());
+    document.getElementById('key-name').value = '';
+    document.getElementById('new-key').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-1">Sao chép key ngay — sẽ không hiện lại.</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(key)}" onclick="this.select()"><button class="btn" type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value)">Sao chép</button></div></div>`;
+    await loadKeys();
+  });
+  document.getElementById('key-list').addEventListener('click', async event => {
+    const button = event.target.closest('.revoke-key'); if (!button) return;
+    if (!confirm('Thu hồi key này? POS đang dùng key sẽ ngừng hoạt động ngay.')) return;
+    try { await LoyaltyAPI.revokeKey(button.dataset.id); showAlert('Đã thu hồi key.'); await loadKeys(); }
+    catch (e) { showAlert(e.message, 'danger'); }
+  });
+  loadKeys().catch(e => showAlert(e.message, 'danger'));
 
   try { renderProgram((await LoyaltyAPI.getProgram()).program); }
   catch (e) { showAlert(e.message, 'danger'); document.getElementById('program-status').textContent = 'Không tải được luật hiện tại.'; }

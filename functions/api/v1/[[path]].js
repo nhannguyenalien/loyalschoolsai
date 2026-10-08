@@ -1,7 +1,8 @@
 import { createNeonRepository } from "../../../src/neonRepository.js";
 import { createLoyaltyApi } from "../../../src/api/loyalty.js";
 import { createRewardWorldAdminApi } from "../../../src/api/rewardWorldAdmin.js";
-import { authenticateTenant, HttpError, requireAdmin } from "../../../src/auth.js";
+import { createApiKeysApi } from "../../../src/api/apiKeys.js";
+import { authenticateApiKey, authenticateTenant, HttpError, requireAdmin } from "../../../src/auth.js";
 
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
@@ -15,8 +16,9 @@ export async function onRequest({ request, env }) {
       requireAdmin(request, env);
       response = await createRewardWorldAdminApi({ repository })(request, {});
     } else if (path.startsWith("/api/v1/loyalty")) {
-      const { tenant } = await authenticateTenant(request, env);
-      response = await createLoyaltyApi({ repository })(request, { tenant });
+      const auth = (await authenticateApiKey(request, repository)) || (await authenticateTenant(request, env));
+      if (path.startsWith("/api/v1/loyalty/api-keys")) response = await createApiKeysApi({ repository })(request, auth);
+      else response = await createLoyaltyApi({ repository })(request, { tenant: auth.tenant });
     }
     return response || json(404, { error: "Not found." });
   } catch (error) {

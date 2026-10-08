@@ -46,6 +46,21 @@ export function createNeonRepository(databaseUrl) {
   const get = (table, id) => one(`SELECT ${SELECT} FROM ${table} WHERE id = $1`, [id]);
 
   const repo = {
+    // ---- API key (chỉ lưu hash)
+    createApiKey: ({ tenant, name, keyPrefix, keyHash }) => one(
+      `INSERT INTO api_keys (id, tenant, name, key_prefix, key_hash) VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, tenant, name, key_prefix, created_at, last_used_at, revoked_at`,
+      [crypto.randomUUID(), tenant, name, keyPrefix, keyHash]),
+    findActiveApiKey: (keyHash) => one(
+      "SELECT id, tenant FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL", [keyHash]),
+    touchApiKey: (id) => query(
+      "UPDATE api_keys SET last_used_at = now() WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')", [id]),
+    listApiKeys: (tenant) => query(
+      `SELECT id, name, key_prefix, created_at, last_used_at, revoked_at FROM api_keys
+       WHERE tenant = $1 AND revoked_at IS NULL ORDER BY created_at DESC`, [tenant]),
+    revokeApiKey: (tenant, id) => one(
+      "UPDATE api_keys SET revoked_at = now() WHERE id = $1 AND tenant = $2 AND revoked_at IS NULL RETURNING id", [id, tenant]),
+
     // ---- Chương trình tích điểm
     getActiveProgram: (tenant) => one(
       `SELECT ${SELECT} FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1`, [tenant]),

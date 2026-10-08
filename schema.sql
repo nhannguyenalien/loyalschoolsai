@@ -76,3 +76,11 @@ CREATE TABLE IF NOT EXISTS reward_claims (
   claimed_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_claim_customer ON reward_claims (tenant, customer_ref, claimed_at);
+
+-- API key cho POS/hệ thống ngoài. Chỉ lưu hash SHA-256; key gốc chỉ hiện một lần khi tạo.
+CREATE TABLE IF NOT EXISTS api_keys (
+  id text PRIMARY KEY, tenant text NOT NULL, name text NOT NULL,
+  key_prefix text NOT NULL, key_hash text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(), last_used_at timestamptz, revoked_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys (tenant, revoked_at);
