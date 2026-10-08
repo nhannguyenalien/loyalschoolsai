@@ -1,6 +1,7 @@
 import { createNeonRepository } from "../../../src/neonRepository.js";
 import { createLoyaltyApi } from "../../../src/api/loyalty.js";
 import { createRewardWorldAdminApi } from "../../../src/api/rewardWorldAdmin.js";
+import { createGamesApi } from "../../../src/api/games.js";
 import { createApiKeysApi } from "../../../src/api/apiKeys.js";
 import { authenticateApiKey, authenticateTenant, HttpError, requireAdmin } from "../../../src/auth.js";
 
@@ -18,6 +19,7 @@ export async function onRequest({ request, env }) {
     } else if (path.startsWith("/api/v1/loyalty")) {
       const auth = (await authenticateApiKey(request, repository)) || (await authenticateTenant(request, env));
       if (path.startsWith("/api/v1/loyalty/api-keys")) response = await createApiKeysApi({ repository })(request, auth);
+      else if (path.startsWith("/api/v1/loyalty/games/")) response = await createGamesApi({ repository })(request, { tenant: auth.tenant });
       else response = await createLoyaltyApi({ repository })(request, { tenant: auth.tenant });
     }
     return response || json(404, { error: "Not found." });

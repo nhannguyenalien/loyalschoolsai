@@ -15,11 +15,9 @@ export async function recordLoyaltySale({ repository, tenant, input, now = () =>
       && Number(existing.amount_minor) === amountMinor;
     if (!sameRequest) throw new LoyaltyConflictError("idempotency_key was already used for another sale.");
     const result = { entry: existing, replayed: true };
-    if (repository.issueRewardEntitlementsForSale) {
-      result.entitlements = await repository.issueRewardEntitlementsForSale({
-        tenant, customerRef, sourceRef, amountMinor, occurredAt: existing.occurred_at || existing.created,
-      });
-    }
+    const sale = { tenant, customerRef, sourceRef, amountMinor, occurredAt: existing.occurred_at || existing.created };
+    if (repository.issueRewardEntitlementsForSale) result.entitlements = await repository.issueRewardEntitlementsForSale(sale);
+    if (repository.issueDrawTicketsForSale) result.tickets = await repository.issueDrawTicketsForSale(sale);
     return result;
   }
   if (await repository.findLedgerBySource(tenant, sourceType, sourceRef)) {
@@ -38,11 +36,9 @@ export async function recordLoyaltySale({ repository, tenant, input, now = () =>
       rule_version: Number(program.version), idempotency_key: idempotencyKey,
       occurred_at: now().toISOString(), metadata_json: JSON.stringify(input.metadata || {}),
     });
-    if (repository.issueRewardEntitlementsForSale) {
-      result.entitlements = await repository.issueRewardEntitlementsForSale({
-        tenant, customerRef, sourceRef, amountMinor, occurredAt: result.entry.occurred_at,
-      });
-    }
+    const sale = { tenant, customerRef, sourceRef, amountMinor, occurredAt: result.entry.occurred_at };
+    if (repository.issueRewardEntitlementsForSale) result.entitlements = await repository.issueRewardEntitlementsForSale(sale);
+    if (repository.issueDrawTicketsForSale) result.tickets = await repository.issueDrawTicketsForSale(sale);
     return result;
   } catch (cause) {
     if (await repository.findLedgerBySource(tenant, sourceType, sourceRef)) {

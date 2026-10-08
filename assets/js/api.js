@@ -19,7 +19,28 @@ async function loyaltyFetch(path, options = {}) {
 
 const jsonBody = (method, data) => ({ method, body: JSON.stringify(data) });
 
+const enc = encodeURIComponent;
+const games = (path, options) => loyaltyFetch(`/games${path}`, options);
+
 const LoyaltyAPI = {
+  // ---- Game giữ chân & quay số
+  gameSettings: () => games('/settings'),
+  saveGameSettings: data => games('/settings', jsonBody('PUT', data)),
+  checkinStatus: ref => games(`/checkin?customer_ref=${enc(ref)}`),
+  checkin: ref => games('/checkin', jsonBody('POST', { customer_ref: ref })),
+  missions: () => games('/missions'),
+  missionBoard: ref => games(`/missions?customer_ref=${enc(ref)}`),
+  createMission: data => games('/missions', jsonBody('POST', data)),
+  updateMission: (id, data) => games(`/missions/${enc(id)}`, jsonBody('PATCH', data)),
+  claimMission: (id, ref) => games(`/missions/${enc(id)}/claim`, jsonBody('POST', { customer_ref: ref })),
+  draws: () => games('/draws'),
+  createDraw: data => games('/draws', jsonBody('POST', data)),
+  updateDraw: (id, data) => games(`/draws/${enc(id)}`, jsonBody('PATCH', data)),
+  drawDetail: (id, ref) => games(`/draws/${enc(id)}${ref ? `?customer_ref=${enc(ref)}` : ''}`),
+  grantTickets: (id, data) => games(`/draws/${enc(id)}/tickets`, jsonBody('POST', data)),
+  runDraw: id => games(`/draws/${enc(id)}/draw`, { method: 'POST' }),
+  claimWinner: (id, winnerId) => games(`/draws/${enc(id)}/winners/${enc(winnerId)}/claim`, { method: 'POST' }),
+
   getProgram: () => loyaltyFetch('/program'),
   saveProgram: data => loyaltyFetch('/program', jsonBody('PUT', data)),
   getAccount: ref => loyaltyFetch(`/account?customer_ref=${encodeURIComponent(ref)}&per_page=100`),

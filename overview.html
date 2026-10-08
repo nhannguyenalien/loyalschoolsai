@@ -94,9 +94,9 @@
 
   function renderRecent() {
     $('recent').innerHTML = stats.recent.map(r => {
-      const earn = r.transaction_type === 'earn';
-      return `<div class="activity"><span class="avatar avatar-sm ${earn ? 'tone-green' : 'tone-amber'} rounded-circle"><i class="ti ${earn ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}"></i></span>
-        <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(r.name || r.customer_ref)} <span class="text-secondary fw-normal small">${esc(r.customer_ref)}</span></div><div class="small text-secondary">${earn ? 'Hóa đơn' : 'Đổi thưởng'} ${esc(r.source_ref)} · ${esc(fmtShort(r.occurred_at))}</div></div>
+      const bonus = r.transaction_type === 'bonus', earn = r.transaction_type === 'earn' || bonus;
+      return `<div class="activity"><span class="avatar avatar-sm ${bonus ? 'tone-violet' : earn ? 'tone-green' : 'tone-amber'} rounded-circle"><i class="ti ${bonus ? 'ti-sparkles' : earn ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}"></i></span>
+        <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(r.name || r.customer_ref)} <span class="text-secondary fw-normal small">${esc(r.customer_ref)}</span></div><div class="small text-secondary">${bonus ? 'Thưởng game' : earn ? 'Hóa đơn' : 'Đổi thưởng'} ${bonus ? '' : esc(r.source_ref)} · ${esc(fmtShort(r.occurred_at))}</div></div>
         <div class="text-end"><div class="fw-bold ${earn ? 'text-success' : 'text-danger'}">${earn ? '+' : ''}${money.format(r.points_delta)} điểm</div>${earn ? `<div class="small text-secondary">${money.format(r.amount_minor)} ₫</div>` : ''}</div></div>`;
     }).join('') || '<div class="empty-state"><i class="ti ti-receipt-off"></i>Chưa có giao dịch nào. Cộng điểm hóa đơn đầu tiên để bắt đầu.</div>';
   }

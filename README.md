@@ -14,6 +14,9 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 | `overview.html` | Tổng quan: số liệu, biểu đồ 14 ngày, giao dịch gần đây, bắt đầu nhanh |
 | `customers.html` | Cộng điểm theo hóa đơn, trừ điểm, tra cứu khách |
 | `rewards.html` | Quay thưởng: vòng quay, đếm lượt quay của khách, giao thưởng |
+| `checkin.html` | Điểm danh hằng ngày + chuỗi liên tiếp (7/14/30 ngày), cấu hình điểm và mốc thưởng |
+| `missions.html` | Nhiệm vụ hằng ngày (điểm danh / số hóa đơn / chi tiêu) → thưởng điểm hoặc lượt quay |
+| `draws.html` | Quay số may mắn: phát vé theo hóa đơn, cấp vé thủ công, rút thăm có hiệu ứng, giao thưởng |
 | `settings.html` | Luật tích điểm (có phiên bản, xem trước) |
 | `integrations.html` | API key cho POS + hướng dẫn nhanh |
 | `docs.html` | Tài liệu API công khai (không cần đăng nhập) |
@@ -22,6 +25,16 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 ## API
 `/api/v1/loyalty/*` (header `Authorization: Bearer <Firebase ID token>` hoặc `Bearer lsk_...`) và `/api/v1/admin/reward-world/*` (header `X-Admin-Secret`).
 Giữ nguyên hợp đồng của API cũ để tích hợp POS sau này: `POST /sales`, `POST /redemptions`, `GET /account`, ...
+
+## Game giữ chân & quay số (P0)
+| Game | Cách hoạt động |
+|---|---|
+| Daily Check-in | Mỗi khách một lần/ngày (ngày theo giờ VN), nhận điểm cấu hình được. |
+| Streak Rewards | Điểm danh liên tiếp chạm mốc (mặc định 7/14/30 ngày) được thưởng thêm, mỗi mốc một lần trong một chuỗi. Bỏ lỡ một ngày thì chuỗi về 1. |
+| Daily Mission | Nhiệm vụ trong ngày (điểm danh, N hóa đơn, chi ≥ X ₫) → nhận điểm hoặc lượt quay của Reward World. |
+| Lucky Draw | Hóa đơn tự sinh vé khi kỳ đang mở; cuối kỳ rút thăm ngẫu nhiên (CSPRNG), mỗi kỳ quay một lần, tuỳ chọn mỗi khách một giải. |
+
+Điểm thưởng game ghi vào cùng sổ cái điểm (`transaction_type = 'bonus'`), idempotent theo ngày/mốc/nhiệm vụ. Chưa làm: Pick a Card, Lucky Dice, Slot Machine, Lucky Number, Weekly Challenge, Treasure Hunt.
 
 ## Tích hợp POS
 Tạo key ở trang **Luật tích điểm → API key cho POS** (key chỉ hiện một lần; DB chỉ lưu hash). Key gắn với một cửa hàng, nên không cần `X-Tenant`.

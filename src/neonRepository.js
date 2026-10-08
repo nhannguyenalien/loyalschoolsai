@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { LoyaltyConflictError } from "./domain/loyalty/errors.js";
+import { createGamesRepository } from "./gamesRepository.js";
 
 // Cột được phép ghi cho từng bảng (id tự sinh). Giữ tên cột trùng với field PocketBase cũ
 // để workflow/domain dùng lại nguyên vẹn.
@@ -17,7 +18,7 @@ const COLUMNS = {
   reward_claims: ["tenant", "campaign_id", "result_id", "customer_ref", "prize_id", "prize_name", "prize_type",
     "prize_value_json", "claim_note", "claimed_at"],
 };
-const NUMERIC_COLUMNS = ["points_delta", "amount_minor", "spend_per_point_minor", "spend_per_spin_minor", "weight"];
+const NUMERIC_COLUMNS = ["points_delta", "amount_minor", "spend_per_point_minor", "spend_per_spin_minor", "weight", "target", "spend_per_ticket_minor", "ticket_count", "customer_count", "winner_count"];
 const NULLABLE_DATES = new Set(["starts_at", "ends_at"]);
 const SELECT = "*, created_at AS created";
 const isUnique = (error) => error?.code === "23505";
@@ -281,5 +282,6 @@ export function createNeonRepository(databaseUrl) {
          ORDER BY r.spun_at DESC LIMIT 100`, [tenant, customerRef]);
     },
   };
+  Object.assign(repo, createGamesRepository({ query, one, repo }));
   return repo;
 }

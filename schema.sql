@@ -84,3 +84,66 @@ CREATE TABLE IF NOT EXISTS api_keys (
   created_at timestamptz NOT NULL DEFAULT now(), last_used_at timestamptz, revoked_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys (tenant, revoked_at);
+
+-- ===================== Game giữ chân & quay số (theo cửa hàng) =====================
+-- Cấu hình điểm danh + mốc chuỗi (1 dòng / cửa hàng).
+CREATE TABLE IF NOT EXISTS game_settings (
+  tenant text PRIMARY KEY, checkin_points int NOT NULL DEFAULT 10,
+  streak_milestones jsonb NOT NULL DEFAULT '[{"days":7,"points":50},{"days":14,"points":120},{"days":30,"points":300}]',
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- Mỗi khách một lần điểm danh mỗi ngày (ngày theo giờ Việt Nam).
+CREATE TABLE IF NOT EXISTS game_checkins (
+  id text PRIMARY KEY, tenant text NOT NULL, customer_ref text NOT NULL, day date NOT NULL,
+  points int NOT NULL DEFAULT 0, streak int NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant, customer_ref, day)
+);
+CREATE INDEX IF NOT EXISTS idx_checkins_customer ON game_checkins (tenant, customer_ref, day DESC);
+-- Thưởng mốc chuỗi: mỗi mốc chỉ nhận một lần trong một chuỗi (streak_start = ngày bắt đầu chuỗi).
+CREATE TABLE IF NOT EXISTS game_streak_rewards (
+  id text PRIMARY KEY, tenant text NOT NULL, customer_ref text NOT NULL, streak_start date NOT NULL,
+  days int NOT NULL, points int NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant, customer_ref, streak_start, days)
+);
+
+CREATE TABLE IF NOT EXISTS game_missions (
+  id text PRIMARY KEY, tenant text NOT NULL, name text NOT NULL, description text NOT NULL DEFAULT '',
+  kind text NOT NULL,                    -- checkin | receipts | spend
+  target bigint NOT NULL DEFAULT 1,
+  reward_type text NOT NULL,             -- points | spin
+  reward_points int NOT NULL DEFAULT 0, reward_campaign_id text,
+  status text NOT NULL DEFAULT 'active', -- active | paused | archived
+  sort_order int NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_missions_tenant ON game_missions (tenant, status, sort_order);
+CREATE TABLE IF NOT EXISTS game_mission_claims (
+  id text PRIMARY KEY, tenant text NOT NULL, mission_id text NOT NULL, customer_ref text NOT NULL, day date NOT NULL,
+  reward_type text NOT NULL, reward_points int NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant, mission_id, customer_ref, day)
+);
+
+CREATE TABLE IF NOT EXISTS game_draws (
+  id text PRIMARY KEY, tenant text NOT NULL, name text NOT NULL, description text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'draft',  -- draft | open | closed | drawn
+  starts_at timestamptz, ends_at timestamptz,
+  spend_per_ticket_minor bigint NOT NULL DEFAULT 0, max_tickets_per_sale int NOT NULL DEFAULT 1,
+  prizes jsonb NOT NULL DEFAULT '[]',    -- [{ "name": "...", "quantity": 1 }]
+  one_prize_per_customer boolean NOT NULL DEFAULT true,
+  drawn_at timestamptz, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_draws_tenant ON game_draws (tenant, status, created_at DESC);
+CREATE TABLE IF NOT EXISTS game_draw_tickets (
+  id text PRIMARY KEY, tenant text NOT NULL, draw_id text NOT NULL REFERENCES game_draws(id),
+  ticket_no int NOT NULL, customer_ref text NOT NULL, source_type text NOT NULL, source_ref text NOT NULL,
+  ordinal int NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (draw_id, ticket_no),
+  UNIQUE (draw_id, source_type, source_ref, ordinal)
+);
+CREATE INDEX IF NOT EXISTS idx_tickets_customer ON game_draw_tickets (tenant, draw_id, customer_ref);
+CREATE TABLE IF NOT EXISTS game_draw_winners (
+  id text PRIMARY KEY, tenant text NOT NULL, draw_id text NOT NULL REFERENCES game_draws(id),
+  ticket_id text NOT NULL, ticket_no int NOT NULL, customer_ref text NOT NULL,
+  prize_name text NOT NULL, prize_index int NOT NULL, status text NOT NULL DEFAULT 'won',
+  claimed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (draw_id, ticket_id)
+);

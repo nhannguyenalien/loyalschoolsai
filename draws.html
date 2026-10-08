@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quay số may mắn - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+  <script src="assets/js/confetti.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div id="draw-list"><div class="text-secondary">Đang tải...</div></div>
+
+<!-- Tạo / sửa kỳ quay số -->
+<div class="modal modal-blur fade" id="draw-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><form class="modal-content" id="draw-form">
+  <div class="modal-header"><h3 class="modal-title" id="draw-modal-title">Tạo kỳ quay số</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input type="hidden" id="d-id">
+    <div class="row g-3">
+      <div class="col-md-8"><label class="form-label">Tên kỳ quay số</label><input id="d-name" class="form-control" maxlength="150" required placeholder="Ví dụ: Quay số tháng 10"></div>
+      <div class="col-md-4"><label class="form-label">Trạng thái</label><select id="d-status" class="form-select"><option value="draft">Nháp (chưa phát vé)</option><option value="open">Đang mở (phát vé)</option><option value="closed">Đã đóng (chờ quay)</option></select></div>
+      <div class="col-12"><label class="form-label">Mô tả / thể lệ</label><textarea id="d-desc" class="form-control" rows="2" maxlength="1000"></textarea></div>
+      <div class="col-md-6"><label class="form-label">Bắt đầu phát vé</label><input id="d-start" type="datetime-local" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label">Kết thúc phát vé</label><input id="d-end" type="datetime-local" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label">Chi tiêu mỗi vé (₫)</label><input id="d-spend" type="number" min="0" class="form-control" value="100000"><div class="form-hint">Để 0 nếu chỉ cấp vé thủ công.</div></div>
+      <div class="col-md-6"><label class="form-label">Tối đa vé / hóa đơn</label><input id="d-max" type="number" min="1" max="100" class="form-control" value="3"></div>
+      <div class="col-12"><label class="form-check"><input id="d-one" class="form-check-input" type="checkbox" checked><span class="form-check-label">Mỗi khách chỉ trúng tối đa một giải</span></label></div>
+      <div class="col-12"><label class="form-label">Giải thưởng <span class="text-secondary">(giải ở trên được rút trước)</span></label><div id="prize-rows"></div>
+        <button class="btn btn-sm btn-outline-primary" id="add-prize" type="button"><i class="ti ti-plus me-1"></i>Thêm giải</button></div>
+    </div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn" data-bs-dismiss="modal">Hủy</button><button class="btn btn-grad" type="submit">Lưu kỳ quay số</button></div>
+</form></div></div>
+
+<!-- Cấp vé / tra vé -->
+<div class="modal modal-blur fade" id="tickets-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h3 class="modal-title" id="tickets-title">Vé của khách</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <form id="ticket-form" class="row g-2 mb-3"><input type="hidden" id="t-draw">
+      <div class="col-7"><input id="t-ref" class="form-control" placeholder="Số điện thoại / mã khách" required inputmode="tel"></div>
+      <div class="col-affix col-3"><input id="t-count" type="number" min="1" max="50" value="1" class="form-control" title="Số vé cấp thêm"></div>
+      <div class="col-2 d-grid"><button class="btn btn-grad" type="submit" title="Cấp thêm vé">Cấp</button></div>
+    </form>
+    <div class="d-flex mb-2"><button class="btn btn-sm btn-outline-secondary" id="t-lookup" type="button"><i class="ti ti-search me-1"></i>Chỉ tra vé của khách này</button></div>
+    <div id="t-result" class="text-secondary">Nhập khách rồi cấp vé hoặc tra cứu.</div>
+  </div>
+</div></div></div>
+
+<!-- Rút thăm -->
+<div class="modal modal-blur fade" id="spin-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h3 class="modal-title" id="spin-title">Rút thăm</h3><button type="button" class="btn-close d-none" data-bs-dismiss="modal" id="spin-close"></button></div>
+  <div class="modal-body text-center py-4">
+    <div class="text-secondary mb-1" id="spin-prize">Đang chuẩn bị...</div>
+    <div id="spin-number" style="font-size:5rem;font-weight:800;letter-spacing:-.03em;background:var(--brand-grad);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1">—</div>
+    <div class="fs-4 fw-bold" id="spin-who">&nbsp;</div>
+    <div id="spin-done" class="mt-3"></div>
+  </div>
+</div></div></div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('draws', 'Quay số may mắn', 'Khách nhận vé theo hóa đơn, cuối kỳ rút thăm ngẫu nhiên người trúng giải.',
+    '<button class="btn btn-grad" id="new-draw"><i class="ti ti-plus me-1"></i>Tạo kỳ quay số</button>');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const $ = id => document.getElementById(id);
+  const STATUS = { draft: ['Nháp', 'secondary'], open: ['Đang phát vé', 'success'], closed: ['Đã đóng', 'warning'], drawn: ['Đã quay', 'purple'] };
+  let draws = [];
+  const winnersByDraw = new Map();
+  const maskRef = ref => ref.length > 6 ? ref.slice(0, 3) + '•'.repeat(ref.length - 6) + ref.slice(-3) : ref;
+  const inputDate = v => v ? new Date(new Date(v).getTime() - new Date(v).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+
+  function drawCard(d) {
+    const [label, tone] = STATUS[d.status] || [d.status, 'secondary'];
+    const prizes = d.prizes.map(p => `<span class="prize-chip">🏆 ${esc(p.name)} ×${p.quantity}</span>`).join('');
+    const winners = winnersByDraw.get(d.id) || [];
+    const rule = Number(d.spend_per_ticket_minor) ? `Mỗi ${money.format(Number(d.spend_per_ticket_minor))} ₫ = 1 vé (tối đa ${d.max_tickets_per_sale}/hóa đơn)` : 'Chỉ cấp vé thủ công';
+    return `<article class="card mb-3"><div class="card-header"><div><h3 class="card-title mb-0">${esc(d.name)}</h3><div class="small text-secondary">${esc(d.description || rule)}</div></div><span class="badge bg-${tone}-lt text-${tone} ms-auto">${label}</span></div>
+      <div class="card-body">
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-md-3"><div class="stat-label">Số vé</div><div class="stat-value fs-2">${money.format(d.ticket_count)}</div></div>
+          <div class="col-6 col-md-3"><div class="stat-label">Số khách</div><div class="stat-value fs-2">${money.format(d.customer_count)}</div></div>
+          <div class="col-12 col-md-6"><div class="stat-label mb-1">Giải thưởng</div>${prizes}</div>
+        </div>
+        <div class="small text-secondary mb-2"><i class="ti ti-receipt me-1"></i>${esc(rule)} · <i class="ti ti-calendar ms-1 me-1"></i>${d.starts_at ? esc(new Date(d.starts_at).toLocaleDateString('vi-VN')) : 'ngay'} → ${d.ends_at ? esc(new Date(d.ends_at).toLocaleDateString('vi-VN')) : 'không giới hạn'}${d.one_prize_per_customer ? ' · mỗi khách tối đa 1 giải' : ''}</div>
+        ${d.status === 'drawn' ? `<div class="fw-bold mt-3 mb-1"><i class="ti ti-trophy me-1"></i>Người trúng giải</div><div data-winners="${esc(d.id)}">${winners.length ? winnersHtml(d, winners) : '<div class="text-secondary">Đang tải...</div>'}</div>` : ''}
+      </div>
+      <div class="card-footer d-flex flex-wrap gap-2">
+        ${d.status !== 'drawn' ? `<button class="btn btn-sm btn-outline-primary act-tickets" data-id="${esc(d.id)}"><i class="ti ti-ticket me-1"></i>Cấp / tra vé</button><button class="btn btn-sm btn-outline-secondary act-edit" data-id="${esc(d.id)}"><i class="ti ti-pencil me-1"></i>Sửa</button>` : ''}
+        ${d.status === 'draft' ? `<button class="btn btn-sm btn-success act-status" data-id="${esc(d.id)}" data-status="open"><i class="ti ti-player-play me-1"></i>Mở phát vé</button>` : ''}
+        ${d.status === 'open' ? `<button class="btn btn-sm btn-outline-warning act-status" data-id="${esc(d.id)}" data-status="closed"><i class="ti ti-lock me-1"></i>Đóng phát vé</button>` : ''}
+        ${['open', 'closed'].includes(d.status) ? `<button class="btn btn-sm btn-grad ms-auto act-draw" data-id="${esc(d.id)}" ${Number(d.ticket_count) ? '' : 'disabled'}><i class="ti ti-dice-5 me-1"></i>Quay số</button>` : ''}
+      </div></article>`;
+  }
+  const winnersHtml = (d, winners) => winners.map(w => `<div class="activity"><span class="avatar avatar-sm ${w.status === 'claimed' ? 'tone-green' : 'tone-amber'} rounded-circle"><i class="ti ${w.status === 'claimed' ? 'ti-circle-check' : 'ti-trophy'}"></i></span>
+      <div class="me-auto"><div class="fw-bold">${esc(w.prize_name)}</div><div class="small text-secondary">Vé #${w.ticket_no} · ${esc(w.customer_ref)}</div></div>
+      ${w.status === 'claimed' ? '<span class="pill pill-earn">Đã giao</span>' : `<button class="btn btn-sm btn-warning act-claim" data-draw="${esc(d.id)}" data-winner="${esc(w.id)}">Xác nhận đã giao</button>`}</div>`).join('');
+
+  async function loadWinners(drawId) {
+    const detail = await LoyaltyAPI.drawDetail(drawId);
+    winnersByDraw.set(drawId, detail.winners);
+    const box = document.querySelector(`[data-winners="${CSS.escape(drawId)}"]`);
+    if (box) box.innerHTML = detail.winners.length ? winnersHtml({ id: drawId }, detail.winners) : '<div class="text-secondary">Không có người trúng giải (chưa đủ khách tham gia).</div>';
+  }
+  async function load() {
+    try {
+      draws = (await LoyaltyAPI.draws()).draws;
+      $('draw-list').innerHTML = draws.map(drawCard).join('') || '<div class="card"><div class="empty-state"><i class="ti ti-ticket-off"></i>Chưa có kỳ quay số nào.<br><span class="small">Bấm "Tạo kỳ quay số" ở góc trên để bắt đầu.</span></div></div>';
+      draws.filter(d => d.status === 'drawn').forEach(d => loadWinners(d.id).catch(() => {}));
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  // ---------- Form tạo / sửa
+  function prizeRow(p = { name: '', quantity: 1 }) {
+    const row = document.createElement('div');
+    row.className = 'input-group mb-2 prize-row';
+    row.innerHTML = `<input class="form-control p-name" placeholder="Tên giải, ví dụ: Giải nhất - Tai nghe" maxlength="120" value="${esc(p.name)}" required><span class="input-group-text">SL</span><input class="form-control p-qty" type="number" min="1" max="1000" value="${p.quantity}" style="max-width:90px" required><button class="btn btn-outline-danger" type="button"><i class="ti ti-trash"></i></button>`;
+    row.querySelector('button').onclick = () => { if (document.querySelectorAll('.prize-row').length > 1) row.remove(); };
+    return row;
+  }
+  function openDrawForm(d) {
+    $('draw-modal-title').textContent = d ? 'Sửa kỳ quay số' : 'Tạo kỳ quay số';
+    $('d-id').value = d?.id || ''; $('d-name').value = d?.name || ''; $('d-desc').value = d?.description || '';
+    $('d-status').value = d?.status || 'draft'; $('d-start').value = inputDate(d?.starts_at); $('d-end').value = inputDate(d?.ends_at);
+    $('d-spend').value = d ? d.spend_per_ticket_minor : 100000; $('d-max').value = d?.max_tickets_per_sale || 3; $('d-one').checked = d ? d.one_prize_per_customer : true;
+    $('prize-rows').replaceChildren(...(d?.prizes || [{ name: 'Giải nhất', quantity: 1 }, { name: 'Giải nhì', quantity: 2 }]).map(prizeRow));
+    bootstrap.Modal.getOrCreateInstance($('draw-modal')).show();
+  }
+  $('new-draw').onclick = () => openDrawForm(null);
+  $('add-prize').onclick = () => $('prize-rows').append(prizeRow());
+  onSubmit('draw-form', async () => {
+    const body = {
+      name: $('d-name').value.trim(), description: $('d-desc').value.trim(), status: $('d-status').value,
+      starts_at: $('d-start').value ? new Date($('d-start').value).toISOString() : '', ends_at: $('d-end').value ? new Date($('d-end').value).toISOString() : '',
+      spend_per_ticket_minor: Number($('d-spend').value || 0), max_tickets_per_sale: Number($('d-max').value || 1), one_prize_per_customer: $('d-one').checked,
+      prizes: [...document.querySelectorAll('.prize-row')].map(r => ({ name: r.querySelector('.p-name').value.trim(), quantity: Number(r.querySelector('.p-qty').value) })),
+    };
+    const id = $('d-id').value;
+    if (id) await LoyaltyAPI.updateDraw(id, body); else await LoyaltyAPI.createDraw(body);
+    bootstrap.Modal.getInstance($('draw-modal'))?.hide(); showAlert('Đã lưu kỳ quay số.'); await load();
+  });
+
+  // ---------- Cấp / tra vé
+  function ticketsHtml(tickets) {
+    return tickets.length ? `<div class="mb-1 fw-bold">${tickets.length} vé</div>${tickets.map(t => `<span class="badge bg-indigo-lt text-indigo me-1 mb-1 fs-6">#${t.ticket_no}</span>`).join('')}` : '<div class="text-secondary">Khách chưa có vé nào.</div>';
+  }
+  $('ticket-form').addEventListener('submit', async e => {
+    e.preventDefault(); const btn = e.submitter; btn.disabled = true;
+    try {
+      const drawId = $('t-draw').value, ref = $('t-ref').value.trim();
+      const r = await LoyaltyAPI.grantTickets(drawId, { customer_ref: ref, count: Number($('t-count').value || 1) });
+      showAlert(`Đã cấp ${r.tickets.length} vé: ${r.tickets.map(t => '#' + t.ticket_no).join(', ')}`);
+      $('t-result').innerHTML = ticketsHtml((await LoyaltyAPI.drawDetail(drawId, ref)).tickets || []); await load();
+    } catch (err) { showAlert(err.message, 'danger'); } finally { btn.disabled = false; }
+  });
+  $('t-lookup').onclick = async () => {
+    try { const ref = $('t-ref').value.trim(); if (!ref) return; $('t-result').innerHTML = ticketsHtml((await LoyaltyAPI.drawDetail($('t-draw').value, ref)).tickets || []); }
+    catch (err) { showAlert(err.message, 'danger'); }
+  };
+
+  // ---------- Rút thăm (chạy số rồi công bố từng giải)
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function runDraw(draw) {
+    $('spin-title').textContent = draw.name; $('spin-close').classList.add('d-none'); $('spin-done').innerHTML = '';
+    $('spin-prize').textContent = 'Đang chuẩn bị...'; $('spin-number').textContent = '—'; $('spin-who').innerHTML = '&nbsp;';
+    const modal = bootstrap.Modal.getOrCreateInstance($('spin-modal'), { backdrop: 'static', keyboard: false }); modal.show();
+    let result;
+    try { result = await LoyaltyAPI.runDraw(draw.id); }
+    catch (e) { modal.hide(); showAlert(e.message, 'danger'); await load(); return; }
+    const max = Math.max(result.tickets, 2);
+    for (const w of result.winners) {
+      $('spin-prize').textContent = `🏆 ${w.prize_name}`; $('spin-who').innerHTML = '&nbsp;';
+      const end = performance.now() + 1800;
+      while (performance.now() < end) { $('spin-number').textContent = '#' + (1 + Math.floor(Math.random() * max)); await sleep(60); }
+      $('spin-number').textContent = '#' + w.ticket_no; $('spin-who').textContent = maskRef(w.customer_ref);
+      launchConfetti(1800); await sleep(2200);
+    }
+    $('spin-prize').textContent = 'Hoàn tất!'; $('spin-number').textContent = '🎉';
+    $('spin-who').textContent = result.winners.length ? `${result.winners.length} người trúng giải` : 'Chưa đủ khách để chọn người trúng';
+    $('spin-done').innerHTML = '<button class="btn btn-grad" data-bs-dismiss="modal">Xem danh sách trúng giải</button>';
+    $('spin-close').classList.remove('d-none');
+    $('spin-modal').addEventListener('hidden.bs.modal', load, { once: true });
+  }
+
+  $('draw-list').addEventListener('click', async e => {
+    const q = sel => e.target.closest(sel);
+    const find = id => draws.find(d => d.id === id);
+    try {
+      if (q('.act-edit')) openDrawForm(find(q('.act-edit').dataset.id));
+      else if (q('.act-tickets')) {
+        const d = find(q('.act-tickets').dataset.id);
+        $('tickets-title').textContent = `Vé: ${d.name}`; $('t-draw').value = d.id; $('t-ref').value = ''; $('t-result').textContent = 'Nhập khách rồi cấp vé hoặc tra cứu.';
+        bootstrap.Modal.getOrCreateInstance($('tickets-modal')).show();
+      } else if (q('.act-status')) { await LoyaltyAPI.updateDraw(q('.act-status').dataset.id, { status: q('.act-status').dataset.status }); await load(); }
+      else if (q('.act-draw')) {
+        const d = find(q('.act-draw').dataset.id);
+        const total = d.prizes.reduce((s, p) => s + p.quantity, 0);
+        if (confirm(`Quay số "${d.name}" với ${d.ticket_count} vé, ${total} giải?\nSau khi quay sẽ không thể sửa hay quay lại.`)) await runDraw(d);
+      } else if (q('.act-claim')) {
+        const b = q('.act-claim'); b.disabled = true;
+        await LoyaltyAPI.claimWinner(b.dataset.draw, b.dataset.winner); showAlert('Đã ghi nhận giao thưởng.'); await loadWinners(b.dataset.draw);
+      }
+    } catch (err) { showAlert(err.message, 'danger'); }
+  });
+
+  load();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

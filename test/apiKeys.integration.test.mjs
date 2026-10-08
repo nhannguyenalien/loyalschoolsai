@@ -13,7 +13,7 @@ const call = (path, { key, method = "GET", body } = {}) => onRequest({
 test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
   const sql = neon(url);
   t.after(async () => {
-    for (const tbl of ["reward_spin_entitlements", "loyalty_ledger", "loyalty_customers", "loyalty_programs", "api_keys"])
+    for (const tbl of ["game_draw_winners", "game_draw_tickets", "game_draws", "game_mission_claims", "game_missions", "game_streak_rewards", "game_checkins", "game_settings", "reward_spin_entitlements", "loyalty_ledger", "loyalty_customers", "loyalty_programs", "api_keys"])
       await sql.query(`DELETE FROM ${tbl} WHERE tenant = $1`, [tenant]);
   });
   // Tạo key trực tiếp ở tầng repository (tạo qua API cần phiên PocketBase).
@@ -38,6 +38,21 @@ test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
   assert.equal(r1.status, 201); assert.equal(Number((await r1.json()).entry.points_delta), 25);
   assert.equal((await call("/api/v1/loyalty/sales", { key, method: "POST", body: sale })).status, 200);
   assert.equal((await (await call("/api/v1/loyalty/account?customer_ref=0909", { key })).json()).balance, 25);
+
+  // Game qua HTTP bằng API key
+  const ci = await call("/api/v1/loyalty/games/checkin", { key, method: "POST", body: { customer_ref: "0909" } });
+  assert.equal(ci.status, 201); assert.equal((await ci.json()).streak, 1);
+  const ci2 = await call("/api/v1/loyalty/games/checkin", { key, method: "POST", body: { customer_ref: "0909" } });
+  assert.equal(ci2.status, 200); assert.equal((await ci2.json()).replayed, true);
+  assert.equal((await (await call("/api/v1/loyalty/games/checkin?customer_ref=0909", { key })).json()).checked_in_today, true);
+  assert.equal((await call("/api/v1/loyalty/games/settings", { key })).status, 200);
+  const created = await call("/api/v1/loyalty/games/draws", { key, method: "POST", body: { name: "HTTP", status: "open", spend_per_ticket_minor: 100000, prizes: [{ name: "Quà", quantity: 1 }] } });
+  assert.equal(created.status, 201);
+  const drawId = (await created.json()).id;
+  assert.equal((await call(`/api/v1/loyalty/games/draws/${drawId}/tickets`, { key, method: "POST", body: { customer_ref: "0909", count: 2 } })).status, 201);
+  assert.equal((await call("/api/v1/loyalty/games/draws", { key, method: "POST", body: { name: "x", prizes: [] } })).status, 400);
+  assert.equal((await call("/api/v1/loyalty/games/checkin", { method: "POST", body: { customer_ref: "0909" } })).status, 401);
+  assert.equal((await call("/api/v1/loyalty/games/nope", { key })).status, 404);
 
   await repo.revokeApiKey(tenant, record.id);
   assert.equal((await call("/api/v1/loyalty/program", { key })).status, 401);

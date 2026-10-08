@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Điểm danh & chuỗi - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+  <script src="assets/js/confetti.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <section class="card mb-3">
+      <div class="card-body">
+        <div class="fw-bold mb-2">Khách điểm danh</div>
+        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="Số điện thoại / mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>Xem chuỗi</button></form>
+        <div id="status"><div class="empty-state"><i class="ti ti-calendar-check"></i>Nhập số điện thoại để xem chuỗi điểm danh của khách.</div></div>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="card mb-3">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-adjustments me-2"></i>Cấu hình thưởng</h3></div>
+      <form class="card-body" id="settings-form">
+        <div class="mb-3"><label class="form-label">Điểm mỗi lần điểm danh</label><input id="checkin-points" class="form-control" type="number" min="0" max="100000" required></div>
+        <label class="form-label">Thưởng mốc chuỗi liên tiếp</label>
+        <div id="milestones" class="mb-2"></div>
+        <button class="btn btn-sm btn-outline-primary mb-3" id="add-milestone" type="button"><i class="ti ti-plus me-1"></i>Thêm mốc</button>
+        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu cấu hình</button>
+        <div class="form-hint mt-2">Mỗi mốc chỉ thưởng một lần trong một chuỗi. Bỏ lỡ một ngày thì chuỗi bắt đầu lại từ 1. "Ngày" tính theo giờ Việt Nam.</div>
+      </form>
+    </section>
+  </div>
+</div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('checkin', 'Điểm danh & chuỗi', 'Khách điểm danh mỗi ngày để nhận điểm; điểm danh liên tiếp được thưởng thêm.');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const $ = id => document.getElementById(id);
+  let customer = null;
+
+  // ---------- Cấu hình
+  function milestoneRow(m = { days: '', points: '' }) {
+    const row = document.createElement('div');
+    row.className = 'd-flex align-items-center gap-2 mb-2 milestone-row';
+    row.innerHTML = `<input class="form-control m-days" type="number" min="2" max="365" placeholder="ngày" value="${esc(m.days)}" style="width:76px" required><span class="text-secondary text-nowrap">ngày →</span><input class="form-control m-points" type="number" min="0" placeholder="điểm" value="${esc(m.points)}" style="width:88px" required><span class="text-secondary">điểm</span><button class="btn btn-icon btn-outline-danger ms-auto" type="button" title="Xóa mốc"><i class="ti ti-trash"></i></button>`;
+    row.querySelector('button').onclick = () => row.remove();
+    return row;
+  }
+  async function loadSettings() {
+    const s = await LoyaltyAPI.gameSettings();
+    $('checkin-points').value = s.checkin_points;
+    $('milestones').replaceChildren(...s.streak_milestones.map(milestoneRow));
+  }
+  $('add-milestone').onclick = () => $('milestones').append(milestoneRow());
+  onSubmit('settings-form', async () => {
+    const streak_milestones = [...document.querySelectorAll('.milestone-row')].map(r => ({ days: Number(r.querySelector('.m-days').value), points: Number(r.querySelector('.m-points').value) }));
+    await LoyaltyAPI.saveGameSettings({ checkin_points: Number($('checkin-points').value), streak_milestones });
+    showAlert('Đã lưu cấu hình điểm danh.'); await loadSettings();
+    if (customer) await show(customer);
+  });
+
+  // ---------- Trạng thái khách
+  function render(st, result) {
+    const days = new Set(st.recent_days), cells = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(st.today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10), on = days.has(key), isToday = key === st.today;
+      cells.push(`<div class="text-center" style="width:calc(100%/14)" title="${key}"><div class="mx-auto rounded-circle d-grid" style="width:26px;height:26px;place-items:center;font-size:12px;background:${on ? 'var(--brand-grad)' : '#eef0f8'};color:${on ? '#fff' : '#9aa0c3'};${isToday ? 'outline:2px solid #f59e0b;outline-offset:2px' : ''}">${on ? '✓' : ''}</div><div style="font-size:.62rem" class="text-secondary mt-1">${key.slice(8)}</div></div>`);
+    }
+    const next = st.next_milestone;
+    const progress = next ? Math.round(st.streak / next.days * 100) : 100;
+    $('status').innerHTML = `
+      ${result ? `<div class="alert alert-${result.replayed ? 'info' : 'success'}"><b>${result.replayed ? 'Khách đã điểm danh hôm nay rồi.' : `+${result.points} điểm! Chuỗi ${result.streak} ngày 🔥`}</b>${result.milestone ? `<div class="mt-1">🎉 Chạm mốc <b>${result.milestone.days} ngày</b>: thưởng thêm <b>+${result.milestone.points} điểm</b></div>` : ''}<div class="small mt-1">Số dư: ${money.format(result.balance)} điểm</div></div>` : ''}
+      <div class="balance-card mb-3 d-flex align-items-center gap-3">
+        <div style="font-size:3rem;line-height:1">🔥</div>
+        <div class="me-auto"><div style="opacity:.85">${esc(st.customer_ref)}</div><div class="big">${st.streak} <span class="fs-4 fw-bold" style="opacity:.8">ngày liên tiếp</span></div></div>
+        <div class="text-end" style="opacity:.9"><div class="fs-3 fw-bold">${st.total_checkins}</div><div class="small">lần điểm danh</div></div>
+      </div>
+      ${next ? `<div class="mb-1 d-flex justify-content-between small"><span>Còn <b>${next.remaining} ngày</b> nữa tới mốc ${next.days} ngày</span><b class="text-success">+${money.format(next.points)} điểm</b></div><div class="progress mb-3"><div class="progress-bar" style="width:${progress}%;background:var(--brand-grad)"></div></div>` : '<div class="small text-secondary mb-3">Khách đã vượt mọi mốc thưởng hiện có.</div>'}
+      <div class="d-flex mb-3">${cells.join('')}</div>
+      ${st.checked_in_today
+        ? '<button class="btn btn-success w-100 btn-lg" disabled><i class="ti ti-circle-check me-1"></i>Hôm nay đã điểm danh</button>'
+        : `<button class="btn btn-grad w-100 btn-lg" id="do-checkin"><i class="ti ti-calendar-check me-1"></i>Điểm danh hôm nay (+${st.checkin_points} điểm)</button>`}`;
+    const btn = $('do-checkin');
+    if (btn) btn.onclick = async () => {
+      btn.disabled = true;
+      try { const r = await LoyaltyAPI.checkin(customer); await show(customer, r); if (r.milestone) launchConfetti(); }
+      catch (e) { showAlert(e.message, 'danger'); btn.disabled = false; }
+    };
+  }
+  async function show(ref, result) { customer = ref; render(await LoyaltyAPI.checkinStatus(ref), result); }
+  onSubmit('customer-form', () => show($('customer-ref').value.trim()));
+
+  try { await loadSettings(); } catch (e) { showAlert(e.message, 'danger'); }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

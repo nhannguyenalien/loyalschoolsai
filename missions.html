@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhiệm vụ hằng ngày - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <section class="card mb-3">
+      <div class="card-body">
+        <div class="fw-bold mb-2">Nhiệm vụ hôm nay của khách</div>
+        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="Số điện thoại / mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>Xem</button></form>
+        <div id="board"><div class="empty-state"><i class="ti ti-target-arrow"></i>Nhập số điện thoại để xem tiến độ nhiệm vụ.</div></div>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="card mb-3">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-list-check me-2"></i>Danh sách nhiệm vụ</h3></div>
+      <div class="card-body py-2" id="mission-list"><div class="text-secondary py-3">Đang tải...</div></div>
+    </section>
+    <section class="card">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-plus me-2"></i>Thêm nhiệm vụ</h3></div>
+      <form class="card-body" id="mission-form">
+        <div class="mb-3"><label class="form-label">Tên nhiệm vụ</label><input id="m-name" class="form-control" maxlength="120" required placeholder="Ví dụ: Mua hàng hôm nay"></div>
+        <div class="row g-3 mb-3">
+          <div class="col-12"><label class="form-label">Điều kiện</label><select id="m-kind" class="form-select"><option value="checkin">Điểm danh hôm nay</option><option value="receipts">Số hóa đơn trong ngày</option><option value="spend">Tổng chi tiêu trong ngày</option></select></div>
+          <div class="col-12" id="target-wrap"><label class="form-label" id="target-label">Mục tiêu</label><input id="m-target" class="form-control" type="number" min="1" value="1"></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label">Phần thưởng</label><select id="m-reward" class="form-select"><option value="points">Điểm thưởng</option><option value="spin">Lượt quay</option></select></div>
+          <div class="col-6" id="reward-points-wrap"><label class="form-label">Số điểm</label><input id="m-points" class="form-control" type="number" min="1" value="10"></div>
+          <div class="col-6 d-none" id="reward-campaign-wrap"><label class="form-label">Chương trình quay</label><select id="m-campaign" class="form-select"></select></div>
+        </div>
+        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i>Thêm nhiệm vụ</button>
+        <div class="form-hint mt-2">Lượt quay thưởng dùng được ở trang <a href="rewards.html">Quay thưởng</a> (cửa hàng cần đã tham gia chương trình đó).</div>
+      </form>
+    </section>
+  </div>
+</div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('missions', 'Nhiệm vụ hằng ngày', 'Khách hoàn thành nhiệm vụ trong ngày để nhận điểm hoặc lượt quay.');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const $ = id => document.getElementById(id);
+  let customer = null, joinedCampaigns = [];
+  const KIND = { checkin: ['ti-calendar-check', 'Điểm danh'], receipts: ['ti-receipt-2', 'Hóa đơn'], spend: ['ti-coins', 'Chi tiêu'] };
+  const rewardText = m => m.reward_type === 'points' ? `+${money.format(m.reward_points)} điểm` : '🎁 1 lượt quay';
+  const targetText = m => m.kind === 'checkin' ? 'Điểm danh hôm nay' : m.kind === 'receipts' ? `${m.target} hóa đơn` : `Chi ${money.format(m.target)} ₫`;
+
+  // ---------- Quản lý nhiệm vụ
+  async function loadMissions() {
+    const { missions } = await LoyaltyAPI.missions();
+    $('mission-list').innerHTML = missions.map(m => `<div class="activity"><span class="avatar avatar-sm ${m.status === 'active' ? 'tone-indigo' : ''} rounded-circle"><i class="ti ${KIND[m.kind][0]}"></i></span>
+      <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(m.name)}</div><div class="small text-secondary">${esc(targetText(m))} → ${esc(rewardText(m))}${m.status === 'paused' ? ' · <b>đang tạm dừng</b>' : ''}</div></div>
+      <div class="btn-list flex-nowrap"><button class="btn btn-sm btn-outline-secondary mission-toggle" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'paused' : 'active'}">${m.status === 'active' ? 'Tạm dừng' : 'Bật lại'}</button><button class="btn btn-sm btn-outline-danger mission-delete" data-id="${esc(m.id)}" title="Xóa"><i class="ti ti-trash"></i></button></div></div>`).join('')
+      || '<div class="empty-state py-3"><i class="ti ti-target-off"></i>Chưa có nhiệm vụ nào. Thêm nhiệm vụ đầu tiên bên dưới.</div>';
+  }
+  $('mission-list').addEventListener('click', async e => {
+    const t = e.target.closest('.mission-toggle'), d = e.target.closest('.mission-delete');
+    try {
+      if (t) await LoyaltyAPI.updateMission(t.dataset.id, { status: t.dataset.status });
+      else if (d) { if (!confirm('Xóa nhiệm vụ này? Lịch sử nhận thưởng vẫn được giữ.')) return; await LoyaltyAPI.updateMission(d.dataset.id, { status: 'archived' }); }
+      else return;
+      await loadMissions(); if (customer) await showBoard(customer);
+    } catch (err) { showAlert(err.message, 'danger'); }
+  });
+
+  function syncForm() {
+    const kind = $('m-kind').value, reward = $('m-reward').value;
+    $('target-wrap').classList.toggle('d-none', kind === 'checkin');
+    $('target-label').textContent = kind === 'receipts' ? 'Số hóa đơn' : 'Số tiền (₫)';
+    if (kind === 'spend' && Number($('m-target').value) < 1000) $('m-target').value = 100000;
+    if (kind === 'receipts' && Number($('m-target').value) > 100) $('m-target').value = 1;
+    $('reward-points-wrap').classList.toggle('d-none', reward !== 'points');
+    $('reward-campaign-wrap').classList.toggle('d-none', reward !== 'spin');
+  }
+  ['m-kind', 'm-reward'].forEach(id => $(id).addEventListener('change', syncForm));
+  onSubmit('mission-form', async () => {
+    const reward = $('m-reward').value;
+    if (reward === 'spin' && !$('m-campaign').value) throw new Error('Chưa có chương trình quay nào cửa hàng đã tham gia. Hãy tham gia ở trang Quay thưởng trước.');
+    await LoyaltyAPI.createMission({
+      name: $('m-name').value.trim(), kind: $('m-kind').value, target: Number($('m-target').value || 1), reward_type: reward,
+      ...(reward === 'points' ? { reward_points: Number($('m-points').value) } : { reward_campaign_id: $('m-campaign').value }),
+    });
+    $('m-name').value = ''; showAlert('Đã thêm nhiệm vụ.'); await loadMissions(); if (customer) await showBoard(customer);
+  });
+
+  // ---------- Bảng nhiệm vụ của khách
+  function renderBoard(board) {
+    $('board').innerHTML = board.missions.map(m => {
+      const pct = Math.min(100, Math.round(m.current / m.target * 100));
+      const done = m.completed;
+      return `<div class="activity"><span class="avatar avatar-md ${m.claimed ? 'tone-green' : done ? 'tone-amber' : 'tone-indigo'} rounded-circle"><i class="ti ${m.claimed ? 'ti-circle-check' : KIND[m.kind][0]}"></i></span>
+        <div class="me-auto" style="min-width:0"><div class="fw-bold">${esc(m.name)} <span class="pill" style="background:#f3ecff;color:#6d28d9">${esc(rewardText(m))}</span></div>
+          <div class="progress progress-sm my-1" style="max-width:260px"><div class="progress-bar ${done ? 'bg-success' : ''}" style="width:${pct}%"></div></div>
+          <div class="small text-secondary">${m.kind === 'spend' ? `${money.format(m.current)} / ${money.format(m.target)} ₫` : `${m.current} / ${m.target}`}</div></div>
+        ${m.claimed ? '<span class="pill pill-earn">Đã nhận</span>' : done ? `<button class="btn btn-grad btn-sm claim" data-id="${esc(m.id)}">Nhận thưởng</button>` : '<span class="text-secondary small">Chưa xong</span>'}</div>`;
+    }).join('') || '<div class="empty-state"><i class="ti ti-target-off"></i>Chưa có nhiệm vụ nào đang bật.</div>';
+  }
+  async function showBoard(ref) { customer = ref; renderBoard(await LoyaltyAPI.missionBoard(ref)); }
+  onSubmit('customer-form', () => showBoard($('customer-ref').value.trim()));
+  $('board').addEventListener('click', async e => {
+    const b = e.target.closest('.claim'); if (!b) return;
+    b.disabled = true;
+    try {
+      const r = await LoyaltyAPI.claimMission(b.dataset.id, customer);
+      showAlert(r.replayed ? 'Khách đã nhận phần thưởng này rồi.' : r.reward.type === 'points' ? `Đã cộng ${r.reward.points} điểm. Số dư: ${money.format(r.balance)} điểm.` : 'Đã cấp 1 lượt quay cho khách 🎁');
+      await showBoard(customer);
+    } catch (err) { showAlert(err.message, 'danger'); b.disabled = false; }
+  });
+
+  try {
+    await loadMissions();
+    const world = await LoyaltyAPI.campaigns();
+    joinedCampaigns = world.campaigns.filter(c => c.joined);
+    $('m-campaign').innerHTML = joinedCampaigns.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') || '<option value="">(chưa tham gia chương trình nào)</option>';
+  } catch (e) { showAlert(e.message, 'danger'); }
+  syncForm();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>
