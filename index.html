@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập - Loyal SchoolsAI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <script src="https://unpkg.com/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body class="d-flex flex-column">
+<div class="page page-center"><div class="container container-tight py-4">
+  <div class="text-center mb-4"><h1>Loyal SchoolsAI</h1><div class="text-secondary">Tích điểm, chăm sóc khách hàng & quà tặng</div></div>
+  <form class="card card-md" id="login-form"><div class="card-body">
+    <div id="alert"></div>
+    <div class="mb-3"><label class="form-label">Email</label><input id="email" type="email" class="form-control" autocomplete="username" required></div>
+    <div class="mb-3"><label class="form-label">Mật khẩu</label><input id="password" type="password" class="form-control" autocomplete="current-password" required></div>
+    <button class="btn btn-primary w-100" type="submit">Đăng nhập</button>
+  </div></form>
+</div></div>
+<script>
+  if (PB.authStore.isValid) location.href = 'customers.html';
+  onSubmit('login-form', () => loginWithPassword(document.getElementById('email').value.trim(), document.getElementById('password').value));
+</script>
+</body>
+</html>

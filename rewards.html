@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reward World - Loyal SchoolsAI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://unpkg.com/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<section class="card mb-4">
+  <div class="card-header">
+    <div><h3 class="card-title"><i class="ti ti-world-star me-2"></i>Chương trình quay thưởng</h3><div class="text-secondary small">Chương trình chung do hệ thống vận hành — cửa hàng chỉ cần tham gia.</div></div>
+    <button class="btn btn-outline-primary btn-sm ms-auto" id="refresh-campaigns" type="button"><i class="ti ti-refresh me-1"></i>Làm mới</button>
+  </div>
+  <div class="card-body"><div class="row row-cards" id="campaign-list"><div class="text-secondary">Đang tải chương trình...</div></div></div>
+</section>
+<section class="card">
+  <div class="card-header"><h3 class="card-title"><i class="ti ti-gift me-2"></i>Tra cứu & giao thưởng</h3></div>
+  <form class="card-body border-bottom" id="reward-lookup-form"><div class="input-group"><input id="reward-customer-ref" class="form-control" placeholder="Số điện thoại / mã khách" required><button class="btn btn-outline-warning" type="submit">Tra giải</button></div></form>
+  <div class="card-body" id="reward-result"><div class="text-secondary">Nhập mã khách để xem các giải đã quay.</div></div>
+</section>
+<div class="modal modal-blur fade" id="spin-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h3 class="modal-title" id="spin-title">Vòng quay may mắn</h3><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body text-center py-4"><div class="spin-wheel-wrap"><div class="spin-pointer"></div><div id="spin-wheel" class="spin-wheel"></div></div>
+    <h2 id="spin-result" class="mt-4 mb-1">Đang xác nhận lượt quay...</h2><div id="spin-result-note" class="text-secondary">Kết quả do máy chủ quyết định và ghi nhận trước khi vòng quay dừng.</div></div>
+</div></div></div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('rewards', 'Reward World');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  let campaigns = new Map();
+
+  function campaignCard(c) {
+    const prizes = (c.prizes || []).map(p => `<span class="badge bg-purple-lt me-1 mb-1">${esc(p.name)}</span>`).join('');
+    const action = c.joined
+      ? `<div class="badge bg-green-lt mb-3">Đã tham gia</div><div class="input-group"><input class="form-control spin-customer" data-campaign="${esc(c.id)}" placeholder="SĐT / mã khách"><button class="btn btn-warning spin-btn" data-campaign="${esc(c.id)}" type="button"><i class="ti ti-refresh-dot me-1"></i>Quay</button></div>`
+      : `<button class="btn btn-primary join-campaign" data-campaign="${esc(c.id)}" type="button">Tham gia chương trình</button>`;
+    return `<div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body"><h3>${esc(c.name)}</h3><p class="text-secondary">${esc(c.description || 'Chương trình quay thưởng toàn hệ thống')}</p><div class="mb-3">${prizes || '<span class="text-secondary">Giải thưởng sẽ được công bố</span>'}</div><div class="small text-secondary mb-3">Mỗi ${money.format(Number(c.spend_per_spin_minor || 0))} ₫ nhận 1 lượt</div>${action}</div></div></div>`;
+  }
+
+  async function loadCampaigns() {
+    const box = document.getElementById('campaign-list');
+    try {
+      const world = await LoyaltyAPI.campaigns();
+      campaigns = new Map(world.campaigns.map(c => [c.id, c]));
+      box.innerHTML = world.campaigns.map(campaignCard).join('') || '<div class="empty"><p class="empty-title">Chưa có chương trình đang mở</p></div>';
+    } catch (e) { box.innerHTML = `<div class="text-danger">${esc(e.message)}</div>`; }
+  }
+
+  function renderWheel(campaign) {
+    const wheel = document.getElementById('spin-wheel');
+    const prizes = campaign.prizes || [];
+    const colors = ['#206bc4', '#f76707', '#2fb344', '#ae3ec9', '#d63939', '#0ca678', '#f59f00', '#4263eb'];
+    const size = 360 / Math.max(prizes.length, 1);
+    wheel.style.background = `conic-gradient(from -90deg, ${prizes.map((_, i) => `${colors[i % colors.length]} ${i * size}deg ${(i + 1) * size}deg`).join(',') || '#adb5bd 0 360deg'})`;
+    wheel.innerHTML = prizes.map((p, i) => { const a = (i + .5) * size; return `<span class="wheel-label" style="transform:rotate(${a}deg) translateY(-132px) rotate(${-a}deg)">${esc(p.name)}</span>`; }).join('');
+    wheel.style.transition = 'none'; wheel.style.transform = 'rotate(0deg)'; wheel.offsetHeight;
+  }
+  function openWheel(campaign) {
+    document.getElementById('spin-title').textContent = campaign.name;
+    document.getElementById('spin-result').textContent = 'Đang xác nhận lượt quay...';
+    document.getElementById('spin-result-note').textContent = 'Kết quả do máy chủ quyết định và ghi nhận trước khi vòng quay dừng.';
+    renderWheel(campaign);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('spin-modal'), { backdrop: 'static', keyboard: false }).show();
+  }
+  function animateResult(campaign, result) {
+    return new Promise(resolve => {
+      const prizes = campaign.prizes || [];
+      let i = prizes.findIndex(p => p.id === result.prize_id);
+      if (i < 0) i = Math.max(0, prizes.findIndex(p => p.name === result.prize_name));
+      const sector = 360 / Math.max(prizes.length, 1);
+      const wheel = document.getElementById('spin-wheel');
+      wheel.style.transition = 'transform 4.8s cubic-bezier(.12,.72,.08,1)';
+      wheel.style.transform = `rotate(${360 * 7 - (i + .5) * sector}deg)`;
+      setTimeout(() => {
+        const won = result.status === 'won';
+        document.getElementById('spin-result').textContent = won ? `Chúc mừng: ${result.prize_name}!` : 'Chúc khách may mắn lần sau!';
+        document.getElementById('spin-result-note').textContent = won ? 'Phần thưởng đã được ghi nhận; tra cứu bên dưới để bàn giao.' : 'Lượt quay đã được ghi nhận trên hệ thống.';
+        showAlert(won ? `Khách nhận được: ${result.prize_name}` : 'Chúc khách may mắn lần sau!', won ? 'success' : 'info');
+        resolve();
+      }, 5000);
+    });
+  }
+
+  document.getElementById('campaign-list').addEventListener('click', async event => {
+    const join = event.target.closest('.join-campaign'), spin = event.target.closest('.spin-btn');
+    const button = join || spin; if (!button) return;
+    button.disabled = true;
+    try {
+      if (join) {
+        await LoyaltyAPI.join(join.dataset.campaign);
+        showAlert('Cửa hàng đã tham gia chương trình. Hóa đơn mới đủ điều kiện sẽ tự nhận lượt quay.');
+        await loadCampaigns();
+      } else {
+        const ref = document.querySelector(`.spin-customer[data-campaign="${CSS.escape(spin.dataset.campaign)}"]`).value.trim();
+        if (!ref) throw new Error('Nhập số điện thoại hoặc mã khách trước khi quay.');
+        const campaign = campaigns.get(spin.dataset.campaign);
+        if (!campaign) throw new Error('Chương trình không còn khả dụng.');
+        openWheel(campaign);
+        const result = await LoyaltyAPI.spin({ campaign_id: campaign.id, customer_ref: ref, idempotency_key: `dashboard:${campaign.id}:${ref}:${crypto.randomUUID()}` });
+        await animateResult(campaign, result.result);
+      }
+    } catch (e) {
+      document.getElementById('spin-result').textContent = 'Chưa thể quay';
+      document.getElementById('spin-result-note').textContent = e.message;
+      showAlert(e.message, 'danger');
+    } finally { button.disabled = false; }
+  });
+  document.getElementById('refresh-campaigns').addEventListener('click', loadCampaigns);
+
+  async function loadRewards(ref) {
+    const data = await LoyaltyAPI.rewards(ref);
+    document.getElementById('reward-result').innerHTML = data.rewards.map(r => `<div class="d-flex align-items-center border-bottom py-2"><div><div class="fw-bold">${esc(r.prize_name)}</div><div class="small text-secondary">${esc(fmtDate(r.spun_at || r.created))}</div></div>${r.claim ? '<span class="badge bg-green-lt ms-auto">Đã giao</span>' : `<button class="btn btn-sm btn-warning ms-auto claim-reward" data-result="${esc(r.id)}" data-customer="${esc(ref)}">Xác nhận đã giao</button>`}</div>`).join('') || '<div class="text-secondary">Khách chưa trúng giải nào.</div>';
+  }
+  onSubmit('reward-lookup-form', () => loadRewards(document.getElementById('reward-customer-ref').value.trim()));
+  document.getElementById('reward-result').addEventListener('click', async event => {
+    const button = event.target.closest('.claim-reward'); if (!button) return;
+    if (!confirm('Xác nhận cửa hàng đã giao đúng phần thưởng cho khách?')) return;
+    button.disabled = true;
+    try { await LoyaltyAPI.claim(button.dataset.result, 'Xác nhận tại Loyal SchoolsAI'); showAlert('Đã ghi nhận giao thưởng.'); await loadRewards(button.dataset.customer); }
+    catch (e) { showAlert(e.message, 'danger'); button.disabled = false; }
+  });
+
+  loadCampaigns();
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

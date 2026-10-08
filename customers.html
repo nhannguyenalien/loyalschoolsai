@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khách hàng - Loyal SchoolsAI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://unpkg.com/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div class="row row-cards">
+  <div class="col-lg-5">
+    <section class="card mb-4">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-receipt me-2"></i>Nhập hóa đơn (cộng điểm)</h3></div>
+      <form class="card-body" id="sale-form">
+        <div class="mb-3"><label class="form-label">Số điện thoại / mã khách</label><input id="customer-ref" class="form-control" maxlength="200" required autocomplete="off"></div>
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6"><label class="form-label">Tên khách (tùy chọn)</label><input id="customer-name" class="form-control" maxlength="200"></div>
+          <div class="col-sm-6"><label class="form-label">Mã hóa đơn</label><input id="receipt-ref" class="form-control" maxlength="200" required autocomplete="off"></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Số tiền (VND)</label><input id="sale-amount" class="form-control" type="number" min="1" step="1" required></div>
+        <button class="btn btn-success" type="submit"><i class="ti ti-plus me-1"></i>Cộng điểm</button>
+        <div class="form-hint mt-2">Một mã hóa đơn chỉ cộng một lần; bấm lại do mạng chậm cũng không cộng trùng.</div>
+      </form>
+    </section>
+    <section class="card">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-gift-card me-2"></i>Dùng điểm</h3></div>
+      <form class="card-body" id="redeem-form">
+        <div class="mb-3"><label class="form-label">Số điện thoại / mã khách</label><input id="redeem-customer-ref" class="form-control" maxlength="200" required></div>
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6"><label class="form-label">Số điểm cần trừ</label><input id="redeem-points" class="form-control" type="number" min="1" step="1" required></div>
+          <div class="col-sm-6"><label class="form-label">Mã đổi thưởng</label><input id="redeem-ref" class="form-control" maxlength="200" required></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Ghi chú (tùy chọn)</label><input id="redeem-note" class="form-control" maxlength="500"></div>
+        <button class="btn btn-warning" type="submit"><i class="ti ti-minus me-1"></i>Trừ điểm</button>
+        <div class="form-hint mt-2">Hệ thống kiểm tra đủ điểm và không cho dùng trùng một mã đổi thưởng.</div>
+      </form>
+    </section>
+  </div>
+  <div class="col-lg-7">
+    <section class="card">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-user-search me-2"></i>Tra cứu khách hàng</h3></div>
+      <form class="card-body border-bottom" id="lookup-form">
+        <div class="input-group"><input id="lookup-ref" class="form-control" placeholder="Số điện thoại / mã khách" required><button class="btn btn-outline-primary" type="submit">Tra cứu</button></div>
+      </form>
+      <div class="card-body" id="account-result"><div class="empty"><p class="empty-title">Chưa chọn khách hàng</p><p class="empty-subtitle text-secondary">Nhập số điện thoại hoặc mã khách để xem điểm và lịch sử.</p></div></div>
+    </section>
+  </div>
+</div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('customers', 'Khách hàng & tích điểm');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const val = id => document.getElementById(id).value.trim();
+
+  function renderAccount(account) {
+    const rows = account.entries.slice().reverse().map(e => `<tr><td>${esc(fmtDate(e.occurred_at || e.created))}</td><td>${esc(e.source_ref)}</td><td>${money.format(Number(e.amount_minor || 0))} ₫</td><td class="fw-bold ${Number(e.points_delta) >= 0 ? 'text-success' : 'text-danger'}">${Number(e.points_delta) >= 0 ? '+' : ''}${esc(e.points_delta)}</td></tr>`).join('');
+    document.getElementById('account-result').innerHTML = `<div class="mb-4"><div class="text-secondary">${esc(account.customer.name || account.customer.customer_ref)}</div><div class="fs-1 fw-bold">${money.format(account.balance)} điểm</div></div><div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Thời gian</th><th>Hóa đơn</th><th>Giá trị</th><th>Điểm</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="text-secondary">Chưa có giao dịch</td></tr>'}</tbody></table></div>`;
+  }
+  async function loadAccount(ref) {
+    document.getElementById('lookup-ref').value = ref;
+    renderAccount(await LoyaltyAPI.getAccount(ref));
+  }
+
+  onSubmit('lookup-form', () => loadAccount(val('lookup-ref')));
+
+  onSubmit('sale-form', async () => {
+    const ref = val('customer-ref'), receipt = val('receipt-ref');
+    const result = await LoyaltyAPI.addSale({
+      idempotency_key: `manual:${receipt}`, customer_ref: ref, source_type: 'manual', source_ref: receipt,
+      amount_minor: Number(val('sale-amount')),
+      customer: { name: val('customer-name'), phone: ref }, metadata: { channel: 'loyalschoolsai' }
+    });
+    const spins = result.entitlements?.length || 0;
+    showAlert(result.replayed ? 'Hóa đơn này đã được ghi trước đó, hệ thống không cộng trùng.' : `Đã cộng ${result.entry.points_delta} điểm${spins ? ` và cấp ${spins} lượt quay` : ''}.`);
+    await loadAccount(ref);
+    if (!result.replayed) { document.getElementById('receipt-ref').value = ''; document.getElementById('sale-amount').value = ''; }
+  });
+
+  onSubmit('redeem-form', async () => {
+    const ref = val('redeem-customer-ref'), code = val('redeem-ref');
+    const result = await LoyaltyAPI.redeem({
+      idempotency_key: `redemption:${code}`, customer_ref: ref, source_ref: code,
+      points: Number(val('redeem-points')), note: val('redeem-note'), metadata: { channel: 'loyalschoolsai' }
+    });
+    showAlert(result.replayed ? 'Giao dịch đổi điểm này đã được ghi trước đó, hệ thống không trừ trùng.' : `Đã trừ ${Math.abs(Number(result.entry.points_delta))} điểm. Số dư còn ${result.balance} điểm.`);
+    await loadAccount(ref);
+    if (!result.replayed) ['redeem-points', 'redeem-ref', 'redeem-note'].forEach(id => document.getElementById(id).value = '');
+  });
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

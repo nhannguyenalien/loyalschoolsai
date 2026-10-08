@@ -1,0 +1,6 @@
+.spin-wheel-wrap{position:relative;width:min(78vw,360px);aspect-ratio:1;margin:auto}
+.spin-pointer{position:absolute;z-index:3;left:50%;top:-12px;transform:translateX(-50%);width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:38px solid #d63939;filter:drop-shadow(0 2px 2px #0004)}
+.spin-wheel{position:absolute;inset:0;border:8px solid #fff;border-radius:50%;box-shadow:0 0 0 5px #f59f00,0 8px 30px #0003;transition:transform 4.8s cubic-bezier(.12,.72,.08,1);overflow:hidden}
+.spin-wheel::after{content:'QUAY';position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#f59f00;font-weight:800;box-shadow:0 2px 8px #0004}
+.wheel-label{position:absolute;left:50%;top:50%;width:92px;margin-left:-46px;margin-top:-10px;text-align:center;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;line-height:1.15;pointer-events:none}
+.navbar-vertical .collapse{display:flex;flex-direction:column}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Luật tích điểm - Loyal SchoolsAI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://unpkg.com/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<section class="card" style="max-width:560px">
+  <div class="card-header"><h3 class="card-title"><i class="ti ti-settings me-2"></i>Luật tích điểm</h3></div>
+  <form class="card-body" id="program-form">
+    <div class="mb-3"><label class="form-label">Chi tiêu bao nhiêu VND</label><input id="spend-per-point" class="form-control" type="number" min="1" step="1" value="10000" required></div>
+    <div class="mb-3"><label class="form-label">Nhận số điểm</label><input id="points-per-step" class="form-control" type="number" min="1" step="1" value="1" required></div>
+    <button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu và kích hoạt</button>
+    <div class="form-hint mt-2" id="program-status">Đang tải luật hiện tại...</div>
+  </form>
+</section>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('settings', 'Luật tích điểm');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+
+  function renderProgram(p) {
+    const status = document.getElementById('program-status');
+    if (!p) { status.textContent = 'Chưa có luật đang hoạt động. Lưu form để tạo luật đầu tiên.'; return; }
+    document.getElementById('spend-per-point').value = p.spend_per_point_minor;
+    document.getElementById('points-per-step').value = p.points_per_step;
+    status.textContent = `Đang dùng phiên bản ${p.version}: mỗi ${money.format(Number(p.spend_per_point_minor))} ₫ nhận ${p.points_per_step} điểm. Mỗi lần lưu tạo một phiên bản mới; giao dịch cũ không bị tính lại.`;
+  }
+
+  onSubmit('program-form', async () => {
+    const program = await LoyaltyAPI.saveProgram({
+      currency: 'VND',
+      spend_per_point_minor: Number(document.getElementById('spend-per-point').value),
+      points_per_step: Number(document.getElementById('points-per-step').value)
+    });
+    showAlert(`Đã kích hoạt luật phiên bản ${program.version}.`);
+    renderProgram(program);
+  });
+
+  try { renderProgram((await LoyaltyAPI.getProgram()).program); }
+  catch (e) { showAlert(e.message, 'danger'); document.getElementById('program-status').textContent = 'Không tải được luật hiện tại.'; }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

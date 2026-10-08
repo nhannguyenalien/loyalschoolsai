@@ -1,0 +1,11 @@
+name = "loyalschoolsai"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+[vars]
+PB_URL = "https://nhannguyen123-chat.hf.space"
+
+# Secrets (không đặt ở đây):
+#   DATABASE_URL  - chuỗi kết nối Neon
+#   ADMIN_SECRET  - mật khẩu trang admin.html
+# Local: tạo .dev.vars. Production: wrangler pages secret put DATABASE_URL
