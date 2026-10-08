@@ -1,5 +1,6 @@
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
 import { checkIn, getCheckinStatus, getGameSettings, saveGameSettings } from "../workflows/games/checkin.js";
+import { deliverGift, listGifts, listTreasures, createTreasure, redeemTreasure, updateTreasure } from "../workflows/games/treasures.js";
 import { claimMission, createMission, getMissionBoard, listMissionsAdmin, updateMission } from "../workflows/games/missions.js";
 import { claimDrawWinner, createDraw, getDrawDetail, grantTickets, listDraws, runDraw, updateDraw } from "../workflows/games/draws.js";
 
@@ -31,17 +32,36 @@ export function createGamesApi({ repository }) {
           return json(result.replayed ? 200 : 201, result);
         }
       }
-      if (route === "/missions") {
-        if (method === "GET") return json(200, customerRef ? await getMissionBoard({ repository, tenant, customerRef }) : await listMissionsAdmin({ repository, tenant }));
-        if (method === "POST") return json(201, await createMission({ repository, tenant, input: await readJson(request) }));
+      // Nhiệm vụ ngày (/missions) và thử thách tuần (/challenges) dùng chung một động cơ, khác nhau ở `period`.
+      const kind = route.startsWith("/challenges") ? { prefix: "/challenges", period: "week" } : { prefix: "/missions", period: "day" };
+      if (route.startsWith(kind.prefix)) {
+        const sub = route.slice(kind.prefix.length);
+        if (sub === "") {
+          if (method === "GET") return json(200, customerRef ? await getMissionBoard({ repository, tenant, customerRef, period: kind.period }) : await listMissionsAdmin({ repository, tenant, period: kind.period }));
+          if (method === "POST") return json(201, await createMission({ repository, tenant, input: await readJson(request), period: kind.period }));
+        }
+        let mm = sub.match(/^\/([^/]+)$/);
+        if (mm && method === "PATCH") return json(200, await updateMission({ repository, tenant, missionId: decode(mm[1]), input: await readJson(request), period: kind.period }));
+        mm = sub.match(/^\/([^/]+)\/claim$/);
+        if (mm && method === "POST") {
+          const result = await claimMission({ repository, tenant, missionId: decode(mm[1]), customerRef: (await readJson(request)).customer_ref, period: kind.period });
+          return json(result.replayed ? 200 : 201, result);
+        }
       }
-      let m = route.match(/^\/missions\/([^/]+)$/);
-      if (m && method === "PATCH") return json(200, await updateMission({ repository, tenant, missionId: decode(m[1]), input: await readJson(request) }));
-      m = route.match(/^\/missions\/([^/]+)\/claim$/);
-      if (m && method === "POST") {
-        const result = await claimMission({ repository, tenant, missionId: decode(m[1]), customerRef: (await readJson(request)).customer_ref });
+      if (route === "/treasures") {
+        if (method === "GET") return json(200, await listTreasures({ repository, tenant }));
+        if (method === "POST") return json(201, await createTreasure({ repository, tenant, input: await readJson(request) }));
+      }
+      let m = route.match(/^\/treasures\/([^/]+)$/);
+      if (m && method === "PATCH") return json(200, await updateTreasure({ repository, tenant, treasureId: decode(m[1]), input: await readJson(request) }));
+      if (route === "/treasure/redeem" && method === "POST") {
+        const body = await readJson(request);
+        const result = await redeemTreasure({ repository, tenant, customerRef: body.customer_ref, code: body.code });
         return json(result.replayed ? 200 : 201, result);
       }
+      if (route === "/gifts" && method === "GET") return json(200, await listGifts({ repository, tenant, status: url.searchParams.get("status") || undefined }));
+      m = route.match(/^\/gifts\/([^/]+)\/deliver$/);
+      if (m && method === "POST") return json(200, await deliverGift({ repository, tenant, giftId: decode(m[1]) }));
       if (route === "/draws") {
         if (method === "GET") return json(200, await listDraws({ repository, tenant }));
         if (method === "POST") return json(201, await createDraw({ repository, tenant, input: await readJson(request) }));

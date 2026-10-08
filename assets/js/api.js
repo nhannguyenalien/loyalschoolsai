@@ -28,11 +28,24 @@ const LoyaltyAPI = {
   saveGameSettings: data => games('/settings', jsonBody('PUT', data)),
   checkinStatus: ref => games(`/checkin?customer_ref=${enc(ref)}`),
   checkin: ref => games('/checkin', jsonBody('POST', { customer_ref: ref })),
-  missions: () => games('/missions'),
-  missionBoard: ref => games(`/missions?customer_ref=${enc(ref)}`),
-  createMission: data => games('/missions', jsonBody('POST', data)),
-  updateMission: (id, data) => games(`/missions/${enc(id)}`, jsonBody('PATCH', data)),
-  claimMission: (id, ref) => games(`/missions/${enc(id)}/claim`, jsonBody('POST', { customer_ref: ref })),
+  // Nhiệm vụ ngày (period = 'day') và thử thách tuần (period = 'week') dùng chung một bộ hàm.
+  mission: period => {
+    const base = period === 'week' ? '/challenges' : '/missions';
+    return {
+      list: () => games(base),
+      board: ref => games(`${base}?customer_ref=${enc(ref)}`),
+      create: data => games(base, jsonBody('POST', data)),
+      update: (id, data) => games(`${base}/${enc(id)}`, jsonBody('PATCH', data)),
+      claim: (id, ref) => games(`${base}/${enc(id)}/claim`, jsonBody('POST', { customer_ref: ref })),
+    };
+  },
+  // Săn kho báu + quà hiện vật chờ giao
+  treasures: () => games('/treasures'),
+  createTreasure: data => games('/treasures', jsonBody('POST', data)),
+  updateTreasure: (id, data) => games(`/treasures/${enc(id)}`, jsonBody('PATCH', data)),
+  redeemTreasure: (ref, code) => games('/treasure/redeem', jsonBody('POST', { customer_ref: ref, code })),
+  gifts: status => games(`/gifts${status ? `?status=${enc(status)}` : ''}`),
+  deliverGift: id => games(`/gifts/${enc(id)}/deliver`, { method: 'POST' }),
   draws: () => games('/draws'),
   createDraw: data => games('/draws', jsonBody('POST', data)),
   updateDraw: (id, data) => games(`/draws/${enc(id)}`, jsonBody('PATCH', data)),

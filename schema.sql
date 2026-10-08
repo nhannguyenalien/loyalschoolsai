@@ -150,3 +150,36 @@ CREATE TABLE IF NOT EXISTS game_draw_winners (
 
 -- Mini-game dùng chung lượt quay: ghi lại cách trình bày (wheel | cards | dice | slot).
 ALTER TABLE reward_spin_results ADD COLUMN IF NOT EXISTS game text NOT NULL DEFAULT 'wheel';
+
+-- ===================== Thử thách tuần + Săn kho báu =====================
+-- Thử thách tuần dùng chung bảng nhiệm vụ với period = 'week' (thứ Hai → Chủ nhật, giờ VN).
+-- Với nhận thưởng, cột `day` trong game_mission_claims là NGÀY BẮT ĐẦU KỲ (hôm nay với nhiệm vụ ngày, thứ Hai với thử thách tuần).
+ALTER TABLE game_missions ADD COLUMN IF NOT EXISTS period text NOT NULL DEFAULT 'day';
+ALTER TABLE game_missions ADD COLUMN IF NOT EXISTS reward_label text NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_missions_period ON game_missions (tenant, period, status, sort_order);
+
+-- Quà hiện vật cần nhân viên giao (từ nhiệm vụ, thử thách, kho báu).
+CREATE TABLE IF NOT EXISTS game_gifts (
+  id text PRIMARY KEY, tenant text NOT NULL, customer_ref text NOT NULL,
+  source_type text NOT NULL, source_ref text NOT NULL, label text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',   -- pending | delivered
+  delivered_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant, source_type, source_ref)
+);
+CREATE INDEX IF NOT EXISTS idx_gifts_tenant ON game_gifts (tenant, status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS game_treasures (
+  id text PRIMARY KEY, tenant text NOT NULL, code text NOT NULL,   -- mã chuẩn hóa: chữ HOA + số, không dấu gạch
+  name text NOT NULL, hint text NOT NULL DEFAULT '',
+  reward_type text NOT NULL, reward_points int NOT NULL DEFAULT 0, reward_campaign_id text, reward_label text NOT NULL DEFAULT '',
+  max_claims int NOT NULL DEFAULT 0,       -- 0 = không giới hạn
+  claimed_count int NOT NULL DEFAULT 0,    -- tăng nguyên tử khi có người tìm thấy
+  status text NOT NULL DEFAULT 'active',   -- active | paused | archived
+  starts_at timestamptz, ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant, code)
+);
+CREATE TABLE IF NOT EXISTS game_treasure_claims (
+  id text PRIMARY KEY, tenant text NOT NULL, treasure_id text NOT NULL REFERENCES game_treasures(id),
+  customer_ref text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (treasure_id, customer_ref)
+);

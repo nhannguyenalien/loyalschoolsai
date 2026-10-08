@@ -5,6 +5,8 @@ const NAV = [
   { section: 'Trò chơi' },
   { page: 'checkin', href: 'checkin.html', icon: 'ti-calendar-check', label: 'Điểm danh & chuỗi' },
   { page: 'missions', href: 'missions.html', icon: 'ti-target-arrow', label: 'Nhiệm vụ hằng ngày' },
+  { page: 'challenges', href: 'challenges.html', icon: 'ti-trophy', label: 'Thử thách tuần' },
+  { page: 'treasures', href: 'treasures.html', icon: 'ti-diamond', label: 'Săn kho báu' },
   { page: 'draws', href: 'draws.html', icon: 'ti-ticket', label: 'Quay số may mắn' },
   { section: 'Cấu hình' },
   { page: 'settings', href: 'settings.html', icon: 'ti-adjustments', label: 'Luật tích điểm' },

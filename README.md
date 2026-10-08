@@ -16,6 +16,8 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 | `rewards.html` | Quay thưởng với 4 trò chơi dùng chung lượt chơi: Vòng quay, Thẻ bí mật (Pick a Card), Xúc xắc (Lucky Dice), Slot Machine; đếm lượt của khách, giao thưởng |
 | `checkin.html` | Điểm danh hằng ngày + chuỗi liên tiếp (7/14/30 ngày), cấu hình điểm và mốc thưởng |
 | `missions.html` | Nhiệm vụ hằng ngày (điểm danh / số hóa đơn / chi tiêu) → thưởng điểm hoặc lượt quay |
+| `challenges.html` | Thử thách tuần (thứ Hai–Chủ nhật, giờ VN): điểm danh N ngày / N hóa đơn / chi ≥ X ₫ → điểm, lượt chơi hoặc quà hiện vật |
+| `treasures.html` | Săn kho báu: tạo mã quà ẩn, giới hạn suất/thời gian, theo dõi người tìm thấy; ô nhập mã thử; bảng quà chờ giao |
 | `draws.html` | Quay số may mắn: phát vé theo hóa đơn, cấp vé thủ công, rút thăm có hiệu ứng, giao thưởng |
 | `settings.html` | Luật tích điểm (có phiên bản, xem trước) |
 | `integrations.html` | API key cho POS + hướng dẫn nhanh |
@@ -32,6 +34,8 @@ Giữ nguyên hợp đồng của API cũ để tích hợp POS sau này: `POST 
 | Daily Check-in | Mỗi khách một lần/ngày (ngày theo giờ VN), nhận điểm cấu hình được. |
 | Streak Rewards | Điểm danh liên tiếp chạm mốc (mặc định 7/14/30 ngày) được thưởng thêm, mỗi mốc một lần trong một chuỗi. Bỏ lỡ một ngày thì chuỗi về 1. |
 | Daily Mission | Nhiệm vụ trong ngày (điểm danh, N hóa đơn, chi ≥ X ₫) → nhận điểm hoặc lượt quay của Reward World. |
+| Weekly Challenge | Cùng động cơ với nhiệm vụ ngày nhưng theo tuần; tiến độ cộng dồn cả tuần, tự làm mới mỗi tuần. Thưởng: điểm, lượt chơi hoặc quà hiện vật. |
+| Treasure Hunt | Cửa hàng tạo mã (tự sinh 8 ký tự, bỏ chữ dễ nhầm) rồi giấu ở website/app/poster; khách nhập mã để nhận thưởng, mỗi khách một lần. Giới hạn suất kiểm soát nguyên tử nên không bị vượt khi nhiều người nhập cùng lúc. |
 | Lucky Draw | Hóa đơn tự sinh vé khi kỳ đang mở; cuối kỳ rút thăm ngẫu nhiên (CSPRNG), mỗi kỳ quay một lần, tuỳ chọn mỗi khách một giải. |
 
 Điểm thưởng game ghi vào cùng sổ cái điểm (`transaction_type = 'bonus'`), idempotent theo ngày/mốc/nhiệm vụ. 
@@ -41,7 +45,9 @@ Cùng chương trình Reward World, cùng bộ giải thưởng và cùng lượ
 - **Xúc xắc**: 1 viên (≤ 6 giải) hoặc 2 viên (7–11 giải); mỗi mặt/tổng ứng với một giải.
 - **Slot**: trúng = ba biểu tượng giống nhau của giải đó; không trúng = ba biểu tượng khác nhau.
 
-Chưa làm: Lucky Number, Weekly Challenge, Treasure Hunt.
+Quà hiện vật (`gift`) tạo phiếu ở bảng **Quà chờ giao** (`game_gifts`) để nhân viên bấm "Đã giao".
+
+Chưa làm: Lucky Number.
 
 ## Tích hợp POS
 Tạo key ở trang **Luật tích điểm → API key cho POS** (key chỉ hiện một lần; DB chỉ lưu hash). Key gắn với một cửa hàng, nên không cần `X-Tenant`.

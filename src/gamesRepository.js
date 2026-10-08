@@ -63,25 +63,27 @@ export function createGamesRepository({ query, one, repo }) {
        ON CONFLICT (tenant, customer_ref, streak_start, days) DO NOTHING RETURNING id`, [newId(), tenant, customer_ref, streak_start, days, points]),
 
     // ---------- Nhiệm vụ
-    listMissions: (tenant, { includeArchived = false } = {}) => query(
-      `SELECT * FROM game_missions WHERE tenant = $1 ${includeArchived ? "" : "AND status <> 'archived'"} ORDER BY sort_order, created_at`, [tenant]),
+    listMissions: (tenant, { period } = {}) => query(
+      `SELECT * FROM game_missions WHERE tenant = $1 AND status <> 'archived' ${period ? "AND period = $2" : ""} ORDER BY sort_order, created_at`,
+      period ? [tenant, period] : [tenant]),
     getMission: (tenant, id) => one("SELECT * FROM game_missions WHERE tenant = $1 AND id = $2", [tenant, id]),
     createMission: (tenant, m) => one(
-      `INSERT INTO game_missions (id, tenant, name, description, kind, target, reward_type, reward_points, reward_campaign_id, status, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [newId(), tenant, m.name, m.description || "", m.kind, m.target, m.reward_type, m.reward_points || 0, m.reward_campaign_id || null, m.status || "active", m.sort_order || 0]),
+      `INSERT INTO game_missions (id, tenant, name, description, kind, target, reward_type, reward_points, reward_campaign_id, reward_label, status, sort_order, period)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [newId(), tenant, m.name, m.description || "", m.kind, m.target, m.reward_type, m.reward_points || 0, m.reward_campaign_id || null, m.reward_label || "", m.status || "active", m.sort_order || 0, m.period || "day"]),
     async updateMission(tenant, id, patch) {
-      const built = buildUpdate("game_missions", id, tenant, patch, ["name", "description", "kind", "target", "reward_type", "reward_points", "reward_campaign_id", "status", "sort_order"]);
+      const built = buildUpdate("game_missions", id, tenant, patch, ["name", "description", "kind", "target", "reward_type", "reward_points", "reward_campaign_id", "reward_label", "status", "sort_order"]);
       return built ? one(...built) : this.getMission(tenant, id);
     },
-    /** Tiến độ trong ngày (giờ VN) của khách: số hóa đơn, tổng chi tiêu, đã điểm danh chưa. */
-    async missionProgress(tenant, ref, day) {
-      const [sales, checkin] = await Promise.all([
+    /** Tiến độ của khách trong khoảng ngày [start, end] (giờ VN): số hóa đơn, tổng chi tiêu, số ngày đã điểm danh. */
+    async missionProgress(tenant, ref, start, end) {
+      const [sales, checkins] = await Promise.all([
         one(`SELECT COUNT(*) AS receipts, COALESCE(SUM(amount_minor), 0) AS spend FROM loyalty_ledger
-             WHERE tenant = $1 AND customer_ref = $2 AND transaction_type = 'earn' AND (occurred_at AT TIME ZONE '${TZ}')::date = $3::date`, [tenant, ref, day]),
-        this.findCheckin(tenant, ref, day),
+             WHERE tenant = $1 AND customer_ref = $2 AND transaction_type = 'earn'
+               AND (occurred_at AT TIME ZONE '${TZ}')::date BETWEEN $3::date AND $4::date`, [tenant, ref, start, end]),
+        one("SELECT COUNT(*) AS n FROM game_checkins WHERE tenant = $1 AND customer_ref = $2 AND day BETWEEN $3::date AND $4::date", [tenant, ref, start, end]),
       ]);
-      return { receipts: Number(sales.receipts), spend: Number(sales.spend), checkin: checkin ? 1 : 0 };
+      return { receipts: Number(sales.receipts), spend: Number(sales.spend), checkin: Number(checkins.n) };
     },
     findMissionClaim: (tenant, missionId, ref, day) => one(
       "SELECT id, mission_id, customer_ref, to_char(day, 'YYYY-MM-DD') AS day, reward_type, reward_points, created_at FROM game_mission_claims WHERE tenant = $1 AND mission_id = $2 AND customer_ref = $3 AND day = $4::date",
@@ -97,6 +99,56 @@ export function createGamesRepository({ query, one, repo }) {
        VALUES ($1, $2, $3, $4, 'mission', $5, 'available', $6)
        ON CONFLICT (tenant, campaign_id, source_type, source_ref) DO UPDATE SET source_ref = EXCLUDED.source_ref RETURNING id`,
       [newId(), tenant, campaignId, customerRef, sourceRef, now.toISOString()]),
+
+    // ---------- Quà hiện vật chờ giao
+    /** Tạo phiếu quà (idempotent theo source). */
+    async grantGift({ tenant, customerRef, sourceType, sourceRef, label }) {
+      const row = await one(
+        `INSERT INTO game_gifts (id, tenant, customer_ref, source_type, source_ref, label) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (tenant, source_type, source_ref) DO NOTHING RETURNING id, label, status`, [newId(), tenant, customerRef, sourceType, sourceRef, label]);
+      return row || one("SELECT id, label, status FROM game_gifts WHERE tenant = $1 AND source_type = $2 AND source_ref = $3", [tenant, sourceType, sourceRef]);
+    },
+    listGifts: (tenant, status) => query(
+      `SELECT id, customer_ref, source_type, label, status, delivered_at, created_at FROM game_gifts
+       WHERE tenant = $1 ${status ? "AND status = $2" : ""} ORDER BY created_at DESC LIMIT 200`, status ? [tenant, status] : [tenant]),
+    deliverGift: (tenant, id) => one(
+      `UPDATE game_gifts SET status = 'delivered', delivered_at = COALESCE(delivered_at, now()) WHERE id = $1 AND tenant = $2
+       RETURNING id, customer_ref, label, status, delivered_at`, [id, tenant]),
+
+    // ---------- Săn kho báu
+    listTreasures: (tenant) => query("SELECT * FROM game_treasures WHERE tenant = $1 AND status <> 'archived' ORDER BY created_at DESC", [tenant]),
+    getTreasure: (tenant, id) => one("SELECT * FROM game_treasures WHERE tenant = $1 AND id = $2", [tenant, id]),
+    findTreasureByCode: (tenant, code) => one("SELECT * FROM game_treasures WHERE tenant = $1 AND code = $2", [tenant, code]),
+    /** Tạo kho báu. Trùng mã (cùng cửa hàng) → ném lỗi unique để nơi gọi sinh mã khác. */
+    createTreasure: (tenant, t) => one(
+      `INSERT INTO game_treasures (id, tenant, code, name, hint, reward_type, reward_points, reward_campaign_id, reward_label, max_claims, status, starts_at, ends_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [newId(), tenant, t.code, t.name, t.hint || "", t.reward_type, t.reward_points || 0, t.reward_campaign_id || null, t.reward_label || "", t.max_claims || 0, t.status || "active", t.starts_at || null, t.ends_at || null]),
+    async updateTreasure(tenant, id, patch) {
+      const built = buildUpdate("game_treasures", id, tenant, patch, ["name", "hint", "reward_type", "reward_points", "reward_campaign_id", "reward_label", "max_claims", "status", "starts_at", "ends_at"]);
+      return built ? one(...built) : this.getTreasure(tenant, id);
+    },
+    findTreasureClaim: (treasureId, ref) => one("SELECT id, created_at FROM game_treasure_claims WHERE treasure_id = $1 AND customer_ref = $2", [treasureId, ref]),
+    /**
+     * Ghi nhận một lượt tìm thấy kho báu trong MỘT câu lệnh: tăng bộ đếm (chỉ khi còn suất, còn hiệu lực)
+     * và thêm bản ghi nhận. Hai người nhập cùng lúc khi chỉ còn một suất → đúng một người được.
+     */
+    async claimTreasure({ tenant, treasureId, customerRef }) {
+      try {
+        return await one(
+          `WITH slot AS (
+             UPDATE game_treasures SET claimed_count = claimed_count + 1
+             WHERE id = $1 AND tenant = $2 AND status = 'active'
+               AND (max_claims = 0 OR claimed_count < max_claims)
+               AND (starts_at IS NULL OR starts_at <= now()) AND (ends_at IS NULL OR ends_at >= now())
+             RETURNING id)
+           INSERT INTO game_treasure_claims (id, tenant, treasure_id, customer_ref) SELECT $3, $2, slot.id, $4 FROM slot
+           RETURNING id, created_at`, [treasureId, tenant, newId(), customerRef]);
+      } catch (error) {
+        if (isUnique(error)) return null; // khách này đã nhận (cả câu lệnh được hoàn tác, bộ đếm không đổi)
+        throw error;
+      }
+    },
 
     // ---------- Quay số may mắn
     listDraws: (tenant) => query(

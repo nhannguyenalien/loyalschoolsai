@@ -35,6 +35,18 @@ export function validateGameSettings(input) {
   return { checkin_points: checkinPoints, streak_milestones: milestones };
 }
 
+/** Đầu tuần (thứ Hai) của một ngày YYYY-MM-DD. */
+export function weekStart(day) {
+  const dow = new Date(`${day}T00:00:00Z`).getUTCDay(); // 0 = Chủ nhật
+  return addDays(day, -((dow + 6) % 7));
+}
+
+/** Khoảng ngày [start, end] (gồm cả hai đầu) của kỳ chứa `day`: nhiệm vụ ngày → chính ngày đó; thử thách tuần → thứ Hai..Chủ nhật. */
+export function periodRange(period, day) {
+  if (period === "week") { const start = weekStart(day); return { start, end: addDays(start, 6) }; }
+  return { start: day, end: day };
+}
+
 /** Chuỗi hiện tại: còn "sống" nếu lần điểm danh cuối là hôm nay hoặc hôm qua. */
 export function currentStreak(lastCheckin, today) {
   if (!lastCheckin) return 0;
@@ -47,7 +59,8 @@ export function nextMilestone(streak, milestones) {
 }
 
 export const MISSION_KINDS = new Set(["checkin", "receipts", "spend"]);
-export const MISSION_REWARDS = new Set(["points", "spin"]);
+export const MISSION_REWARDS = new Set(["points", "spin", "gift"]);
+export const MISSION_PERIODS = new Set(["day", "week"]);
 
 export function validateMission(input, { partial = false } = {}) {
   const out = {};
@@ -69,6 +82,12 @@ export function validateMission(input, { partial = false } = {}) {
   }
   if (has("reward_points")) out.reward_points = integer(input.reward_points, "reward_points", 0, 1000000);
   if (has("reward_campaign_id")) out.reward_campaign_id = input.reward_campaign_id ? String(input.reward_campaign_id) : null;
+  if (has("reward_label")) out.reward_label = String(input.reward_label || "").trim().slice(0, 120);
+  if (!partial) {
+    const period = input.period ?? "day";
+    if (!MISSION_PERIODS.has(period)) throw new LoyaltyValidationError("period must be day or week.");
+    out.period = period; // chỉ đặt khi tạo, không đổi sau đó
+  }
   if (has("sort_order")) out.sort_order = integer(input.sort_order, "sort_order", 0, 100000);
   if (has("status")) {
     if (!["active", "paused", "archived"].includes(input.status)) throw new LoyaltyValidationError("status is invalid.");
@@ -110,6 +129,52 @@ export function validateDraw(input, { partial = false } = {}) {
       return { name, quantity: integer(p?.quantity ?? 1, "prize quantity", 1, 1000) };
     });
   }
+  return out;
+}
+
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // bỏ ký tự dễ nhầm: I, L, O, 0, 1
+
+/** Mã kho báu chuẩn hóa: chữ HOA + số, bỏ khoảng trắng và dấu gạch ("abcd-ef12" → "ABCDEF12"). */
+export const normalizeCode = (value) => String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+export function generateTreasureCode(length = 8, random = secureRandomInt) {
+  return Array.from({ length }, () => CODE_ALPHABET[random(CODE_ALPHABET.length)]).join("");
+}
+
+export function validateTreasure(input, { partial = false } = {}) {
+  const out = {};
+  const has = (k) => input[k] !== undefined;
+  if (!partial || has("name")) {
+    const name = String(input.name ?? "").trim();
+    if (!name || name.length > 120) throw new LoyaltyValidationError("name is required (max 120 characters).");
+    out.name = name;
+  }
+  if (has("hint")) out.hint = String(input.hint || "").trim().slice(0, 300);
+  if (!partial && has("code") && input.code) {
+    const code = normalizeCode(input.code);
+    if (code.length < 6 || code.length > 24) throw new LoyaltyValidationError("code must have 6 to 24 letters or digits.");
+    out.code = code;
+  }
+  if (!partial || has("reward_type")) {
+    if (!MISSION_REWARDS.has(input.reward_type)) throw new LoyaltyValidationError("reward_type must be points, spin or gift.");
+    out.reward_type = input.reward_type;
+  }
+  if (has("reward_points")) out.reward_points = integer(input.reward_points, "reward_points", 0, 1000000);
+  if (has("reward_campaign_id")) out.reward_campaign_id = input.reward_campaign_id ? String(input.reward_campaign_id) : null;
+  if (has("reward_label")) out.reward_label = String(input.reward_label || "").trim().slice(0, 120);
+  if (has("max_claims")) out.max_claims = integer(input.max_claims, "max_claims", 0, 1000000);
+  if (has("status")) {
+    if (!["active", "paused", "archived"].includes(input.status)) throw new LoyaltyValidationError("status is invalid.");
+    out.status = input.status;
+  }
+  for (const key of ["starts_at", "ends_at"]) {
+    if (!has(key)) continue;
+    if (!input[key]) { out[key] = null; continue; }
+    const date = new Date(input[key]);
+    if (Number.isNaN(date.getTime())) throw new LoyaltyValidationError(`${key} must be a valid date.`);
+    out[key] = date.toISOString();
+  }
+  if (out.starts_at && out.ends_at && new Date(out.ends_at) <= new Date(out.starts_at)) throw new LoyaltyValidationError("ends_at must be after starts_at.");
   return out;
 }
 

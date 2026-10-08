@@ -13,7 +13,7 @@ const call = (path, { key, method = "GET", body } = {}) => onRequest({
 test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
   const sql = neon(url);
   t.after(async () => {
-    for (const tbl of ["game_draw_winners", "game_draw_tickets", "game_draws", "game_mission_claims", "game_missions", "game_streak_rewards", "game_checkins", "game_settings", "reward_spin_entitlements", "loyalty_ledger", "loyalty_customers", "loyalty_programs", "api_keys"])
+    for (const tbl of ["game_treasure_claims", "game_treasures", "game_gifts", "game_draw_winners", "game_draw_tickets", "game_draws", "game_mission_claims", "game_missions", "game_streak_rewards", "game_checkins", "game_settings", "reward_spin_entitlements", "loyalty_ledger", "loyalty_customers", "loyalty_programs", "api_keys"])
       await sql.query(`DELETE FROM ${tbl} WHERE tenant = $1`, [tenant]);
   });
   // Tạo key trực tiếp ở tầng repository (tạo qua API cần phiên PocketBase).
@@ -53,6 +53,22 @@ test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
   assert.equal((await call("/api/v1/loyalty/games/draws", { key, method: "POST", body: { name: "x", prizes: [] } })).status, 400);
   assert.equal((await call("/api/v1/loyalty/games/checkin", { method: "POST", body: { customer_ref: "0909" } })).status, 401);
   assert.equal((await call("/api/v1/loyalty/games/nope", { key })).status, 404);
+
+  // Thử thách tuần + kho báu + quà qua HTTP
+  const chal = await call("/api/v1/loyalty/games/challenges", { key, method: "POST", body: { name: "Tuần vui", kind: "receipts", target: 1, reward_type: "gift", reward_label: "Quà tuần" } });
+  assert.equal(chal.status, 201); assert.equal((await chal.json()).period, "week");
+  const wboard = await (await call("/api/v1/loyalty/games/challenges?customer_ref=0909", { key })).json();
+  assert.equal(wboard.period, "week"); assert.equal(wboard.missions.length, 1); assert.equal(wboard.period_start.length, 10);
+  assert.equal((await (await call("/api/v1/loyalty/games/missions?customer_ref=0909", { key })).json()).missions.length, 0); // nhiệm vụ ngày tách biệt
+  const tre = await call("/api/v1/loyalty/games/treasures", { key, method: "POST", body: { name: "Kho báu HTTP", reward_type: "points", reward_points: 5, max_claims: 1 } });
+  assert.equal(tre.status, 201); const treasureCode = (await tre.json()).code;
+  const found = await call("/api/v1/loyalty/games/treasure/redeem", { key, method: "POST", body: { customer_ref: "0909", code: treasureCode.toLowerCase() } });
+  assert.equal(found.status, 201); assert.equal((await found.json()).reward.points, 5);
+  assert.equal((await call("/api/v1/loyalty/games/treasure/redeem", { key, method: "POST", body: { customer_ref: "0909", code: treasureCode } })).status, 200);
+  assert.equal((await call("/api/v1/loyalty/games/treasure/redeem", { key, method: "POST", body: { customer_ref: "0910", code: treasureCode } })).status, 409); // hết suất
+  assert.equal((await call("/api/v1/loyalty/games/treasure/redeem", { key, method: "POST", body: { customer_ref: "0909", code: "KHONGCO1" } })).status, 404);
+  assert.equal((await call("/api/v1/loyalty/games/gifts?status=pending", { key })).status, 200);
+  assert.equal((await call("/api/v1/loyalty/games/gifts/khong-co/deliver", { key, method: "POST" })).status, 404);
 
   await repo.revokeApiKey(tenant, record.id);
   assert.equal((await call("/api/v1/loyalty/program", { key })).status, 401);
