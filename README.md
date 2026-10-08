@@ -34,6 +34,11 @@ curl -X POST https://<domain>/api/v1/loyalty/redemptions -H "Authorization: Bear
 ```
 Key không tạo/thu hồi được key khác; việc đó chỉ làm được bằng phiên đăng nhập.
 
+## Đăng nhập Google
+Dùng OAuth2 của PocketBase (provider `google` đã cấu hình cho collection `tenants`). Mỗi origin dùng để đăng nhập phải được thêm vào
+**Authorized redirect URIs** của OAuth client trong Google Cloud Console, ví dụ `https://loyalschoolsai.pages.dev` và `http://localhost:8788`
+(đúng như origin, không có dấu `/` ở cuối).
+
 ## Chạy local
 ```
 npm install
@@ -54,4 +59,3 @@ wrangler pages secret put ADMIN_SECRET
 
 ## Chưa làm
 - Di chuyển dữ liệu cũ từ PocketBase sang Neon (`dashpoc/scripts/pb-loyalty-export.mjs` là điểm khởi đầu).
-- Đăng nhập Google.

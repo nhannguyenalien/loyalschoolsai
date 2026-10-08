@@ -51,5 +51,35 @@ async function loginWithPassword(email, password) {
   location.href = 'customers.html';
 }
 
+// Đăng nhập Google qua OAuth2 của PocketBase. redirect_uri = origin của trang này,
+// nên origin đó phải được thêm vào "Authorized redirect URIs" của OAuth client Google.
+async function loginWithGoogle() {
+  const methods = await PB.collection('tenants').listAuthMethods();
+  const providers = methods.oauth2?.providers || methods.authProviders || [];
+  const google = providers.find(p => p.name === 'google');
+  if (!google) throw new Error('Chưa cấu hình Google Auth trên PocketBase.');
+  sessionStorage.setItem('loyal.oauthProvider', JSON.stringify(google));
+  location.href = google.authUrl + location.origin;
+}
+
+// Gọi khi trang đăng nhập được Google chuyển về kèm ?code=&state=. Trả về true nếu đã xử lý.
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code'), state = params.get('state');
+  if (!code || !state) return false;
+  const saved = sessionStorage.getItem('loyal.oauthProvider');
+  sessionStorage.removeItem('loyal.oauthProvider');
+  history.replaceState(null, '', location.pathname);
+  const provider = saved ? JSON.parse(saved) : null;
+  if (!provider || provider.state !== state) throw new Error('Phiên đăng nhập Google không hợp lệ, hãy thử lại.');
+  await PB.collection('tenants').authWithOAuth2Code(provider.name, code, provider.codeVerifier, location.origin);
+  if (!(await resolveTenant(PB.authStore.model))) {
+    PB.authStore.clear();
+    throw new Error('Tài khoản Google này chưa được cấp cửa hàng (tenant).');
+  }
+  location.href = 'customers.html';
+  return true;
+}
+
 function logout() { PB.authStore.clear(); redirectToLogin(); }
 function redirectToLogin() { location.href = 'index.html'; }
