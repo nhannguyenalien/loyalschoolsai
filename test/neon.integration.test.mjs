@@ -16,8 +16,15 @@ const skip = !url && "DATABASE_URL not set";
 test("loyalty + reward world trên Neon", { skip }, async (t) => {
   const repository = createNeonRepository(url);
   const sql = neon(url);
-  let campaignId;
+  let campaignId, campaign2Id;
   t.after(async () => {
+    if (campaign2Id) {
+      await sql.query("DELETE FROM reward_spin_results WHERE campaign_id = $1", [campaign2Id]);
+      await sql.query("DELETE FROM reward_spin_entitlements WHERE campaign_id = $1", [campaign2Id]);
+      await sql.query("DELETE FROM reward_store_joins WHERE campaign_id = $1", [campaign2Id]);
+      await sql.query("DELETE FROM reward_campaign_prizes WHERE campaign_id = $1", [campaign2Id]);
+      await sql.query("DELETE FROM reward_campaigns WHERE id = $1", [campaign2Id]);
+    }
     await sql.query("DELETE FROM reward_claims WHERE tenant = $1", [tenant]);
     await sql.query("DELETE FROM reward_spin_results WHERE tenant = $1", [tenant]);
     await sql.query("DELETE FROM reward_spin_entitlements WHERE tenant = $1", [tenant]);
@@ -71,7 +78,8 @@ test("loyalty + reward world trên Neon", { skip }, async (t) => {
   assert.equal(typeof (await repository.getActiveProgram(tenant)).spend_per_point_minor, "number"); // số, không phải chuỗi
 
   const spin = await spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:1" } });
-  assert.equal(spin.result.status, "won");
+  assert.equal(spin.result.status, "won"); assert.equal(spin.result.game, "wheel"); // mặc định là vòng quay
+  await assert.rejects(spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:bad", game: "bogus" } }), /game must be/);
   assert.equal((await spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:1" } })).replayed, true);
   // Giải duy nhất (max_wins=1) đã hết: lượt thứ hai không còn giải.
   await assert.rejects(spinRewardWorld({ repository, tenant, input: { campaign_id: campaignId, customer_ref: "0901", idempotency_key: "spin:2" } }), /no available prize/);
@@ -81,9 +89,22 @@ test("loyalty + reward world trên Neon", { skip }, async (t) => {
   assert.equal(stats.spins_used, 1); assert.equal(stats.spins_available, 1); assert.equal(stats.prizes_pending, 1);
   assert.equal(stats.recent.length, 4); assert.equal(stats.daily.at(-1).day, stats.today);
 
+  // Mini-game dùng chung lượt quay: kết quả vẫn do máy chủ quyết định, chỉ ghi lại cách trình bày.
+  const c2 = await createManagedCampaign({ repository, input: { name: `T2 ${tenant}`, status: "active", spend_per_spin_minor: 1000000 } });
+  campaign2Id = c2.id;
+  await createManagedPrize({ repository, campaignId: c2.id, input: { name: "Quà tặng", prize_type: "voucher", weight: 1 } });
+  await joinRewardCampaign({ repository, tenant, campaignId: c2.id });
+  for (const game of ["cards", "dice", "slot"]) {
+    await repository.grantSpinEntitlement({ tenant, campaignId: c2.id, customerRef: "0901", sourceRef: `t:${game}` });
+    const played = await spinRewardWorld({ repository, tenant, input: { campaign_id: c2.id, customer_ref: "0901", idempotency_key: `spin:${game}`, game } });
+    assert.equal(played.result.game, game); assert.equal(played.result.status, "won");
+  }
+
   let rewards = (await listCustomerRewards({ repository, tenant, customerRef: "0901" })).rewards;
-  assert.equal(rewards.length, 1); assert.equal(rewards[0].claim, null);
+  assert.equal(rewards.length, 4); assert.ok(rewards.every((r) => r.claim === null));
   await claimReward({ repository, tenant, resultId: spin.result.id, input: { claim_note: "ok" } });
   rewards = (await listCustomerRewards({ repository, tenant, customerRef: "0901" })).rewards;
-  assert.equal(rewards[0].status, "claimed"); assert.ok(rewards[0].claim.claimed_at);
+  const claimedReward = rewards.find((r) => r.id === spin.result.id);
+  assert.equal(claimedReward.status, "claimed"); assert.ok(claimedReward.claim.claimed_at);
+  assert.equal(rewards.filter((r) => r.claim).length, 1);
 });

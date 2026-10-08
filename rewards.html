@@ -18,6 +18,7 @@
   <script src="assets/js/layout.js"></script>
   <script src="assets/js/wheel.js"></script>
   <script src="assets/js/confetti.js"></script>
+  <script src="assets/js/minigames.js"></script>
 </head>
 <body class="layout-fluid">
 <div class="page" id="layout"></div>
@@ -34,7 +35,9 @@
   </div>
 </section>
 
-<div class="d-flex align-items-center mb-3"><h2 class="m-0 fs-3 fw-bold">Chương trình đang mở</h2><button class="btn btn-outline-primary btn-sm ms-auto" id="refresh-campaigns" type="button"><i class="ti ti-refresh me-1"></i>Làm mới</button></div>
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><h2 class="m-0 fs-3 fw-bold me-auto">Chương trình đang mở</h2>
+  <div class="btn-group" id="game-picker" role="group" aria-label="Chọn trò chơi"></div>
+  <button class="btn btn-outline-primary btn-sm" id="refresh-campaigns" type="button"><i class="ti ti-refresh me-1"></i>Làm mới</button></div>
 <div class="row row-cards mb-4" id="campaign-list"><div class="text-secondary">Đang tải chương trình...</div></div>
 
 <section class="card">
@@ -43,12 +46,12 @@
 </section>
 
 <div class="modal modal-blur fade" id="spin-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-  <div class="modal-header"><h3 class="modal-title" id="spin-title">Vòng quay may mắn</h3><button type="button" class="btn-close" data-bs-dismiss="modal" id="spin-close"></button></div>
+  <div class="modal-header"><h3 class="modal-title" id="spin-title">Trò chơi may mắn</h3><button type="button" class="btn-close" data-bs-dismiss="modal" id="spin-close"></button></div>
   <div class="modal-body text-center py-4 px-4">
     <div id="wheel-mount" class="mb-4 pt-3"></div>
     <div class="result-title" id="spin-result">Đang xác nhận lượt quay...</div>
     <div class="text-secondary mt-1" id="spin-result-note">Kết quả do máy chủ quyết định trước khi vòng quay dừng.</div>
-    <button class="btn btn-grad mt-3 d-none" id="spin-again" type="button"><i class="ti ti-refresh-dot me-1"></i>Quay tiếp</button>
+    <button class="btn btn-grad mt-3 d-none" id="spin-again" type="button"><i class="ti ti-refresh-dot me-1"></i>Chơi tiếp</button>
   </div>
 </div></div></div>
 </template>
@@ -58,6 +61,9 @@
   renderLayout('rewards', 'Quay thưởng', 'Chương trình quay thưởng chung — cửa hàng tham gia và quay cho khách ngay tại quầy.');
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
   const $ = id => document.getElementById(id);
+  const GAME_KEY = 'loyal.game';
+  let mode = 'wheel';
+  try { const saved = localStorage.getItem(GAME_KEY); if (GAMES[saved]) mode = saved; } catch { /* không có localStorage: dùng mặc định */ }
   let campaigns = new Map(), customer = null, spins = { available: 0, campaigns: [] }, spinning = false, lastCampaign = null;
   const spinsFor = id => spins.campaigns.find(c => c.campaign_id === id)?.available || 0;
 
@@ -73,7 +79,7 @@
     const n = spinsFor(c.id);
     const action = !c.joined
       ? `<button class="btn btn-primary join-campaign" data-campaign="${esc(c.id)}" type="button"><i class="ti ti-circle-plus me-1"></i>Tham gia chương trình</button>`
-      : `<button class="btn btn-grad spin-btn" data-campaign="${esc(c.id)}" type="button" ${n ? '' : 'disabled'}><i class="ti ti-rotate-clockwise-2 me-1"></i>${customer ? (n ? `Quay ngay (${n} lượt)` : 'Khách hết lượt') : 'Kiểm tra khách để quay'}</button>`;
+      : `<button class="btn btn-grad spin-btn" data-campaign="${esc(c.id)}" type="button" ${n ? '' : 'disabled'}><i class="ti ${GAMES[mode].icon} me-1"></i>${customer ? (n ? `${GAMES[mode].cta} (${n} lượt)` : 'Khách hết lượt') : 'Kiểm tra khách để chơi'}</button>`;
     const until = c.ends_at ? `đến ${new Date(c.ends_at).toLocaleDateString('vi-VN')}` : 'không giới hạn thời gian';
     return `<div class="col-md-6 col-xl-4"><div class="card camp"><div class="camp-head"><h3>${esc(c.name)}</h3><div class="small">${c.joined ? '<i class="ti ti-circle-check me-1"></i>Đã tham gia · ' : ''}${until}</div></div>
       <div class="camp-body"><p class="text-secondary mb-0">${esc(c.description || 'Chương trình quay thưởng toàn hệ thống')}</p>
@@ -110,29 +116,46 @@
     catch (e) { showAlert(e.message, 'danger'); button.disabled = false; }
   });
 
+  function renderPicker() {
+    $('game-picker').innerHTML = Object.entries(GAMES).map(([key, g]) => `<button type="button" class="btn btn-sm ${key === mode ? 'btn-primary' : 'btn-outline-primary'}" data-game="${key}"><i class="ti ${g.icon} me-1"></i>${g.label}</button>`).join('');
+  }
+  $('game-picker').addEventListener('click', e => {
+    const b = e.target.closest('[data-game]'); if (!b) return;
+    mode = b.dataset.game;
+    try { localStorage.setItem(GAME_KEY, mode); } catch { /* bỏ qua */ }
+    renderPicker(); renderCampaigns();
+  });
+
   async function runSpin(campaignId) {
     if (spinning) return;
     const campaign = campaigns.get(campaignId); if (!campaign) throw new Error('Chương trình không còn khả dụng.');
+    const prizes = campaign.prizes || [], game = mode;
     spinning = true; lastCampaign = campaignId;
-    $('spin-title').textContent = campaign.name;
-    $('spin-result').textContent = 'Đang quay...'; $('spin-result-note').textContent = ''; $('spin-again').classList.add('d-none');
-    mountWheel($('wheel-mount'), campaign.prizes || []);
-    bootstrap.Modal.getOrCreateInstance($('spin-modal'), { backdrop: 'static', keyboard: false }).show();
-    $('spin-close').classList.add('d-none');
+    $('spin-title').textContent = `${campaign.name} · ${GAMES[game].label}`;
+    $('spin-result-note').textContent = ''; $('spin-again').classList.add('d-none');
+    const controller = createGame(game, $('wheel-mount'), prizes);
+    $('spin-result').textContent = controller.hint || 'Đang quay...';
+    const modal = bootstrap.Modal.getOrCreateInstance($('spin-modal'), { backdrop: 'static', keyboard: false });
+    $('spin-close').classList.remove('d-none'); // còn chờ khách thao tác thì cho phép đóng (hủy)
+    const onHidden = () => controller.cancel();
+    $('spin-modal').addEventListener('hidden.bs.modal', onHidden, { once: true });
+    modal.show();
     try {
-      const { result } = await LoyaltyAPI.spin({ campaign_id: campaignId, customer_ref: customer, idempotency_key: `spin:${campaignId}:${customer}:${crypto.randomUUID()}` });
-      const prizes = campaign.prizes || [];
+      await controller.start();                         // chờ khách chọn thẻ / bấm tung / kéo cần
+      $('spin-modal').removeEventListener('hidden.bs.modal', onHidden);
+      $('spin-close').classList.add('d-none'); $('spin-result').textContent = 'Đang quay...';
+      const { result } = await LoyaltyAPI.spin({ campaign_id: campaignId, customer_ref: customer, game, idempotency_key: `spin:${campaignId}:${customer}:${crypto.randomUUID()}` });
       let index = prizes.findIndex(p => p.id === result.prize_id);
       if (index < 0) index = Math.max(0, prizes.findIndex(p => p.name === result.prize_name));
-      await spinWheelTo($('wheel-mount'), prizes, index);
+      await controller.reveal(index, result);
       const won = result.status === 'won';
       $('spin-result').textContent = won ? `🎉 ${result.prize_name}` : 'Chúc may mắn lần sau! 🍀';
-      $('spin-result-note').textContent = won ? 'Phần thưởng đã được ghi nhận — nhớ bàn giao cho khách.' : 'Lượt quay đã được ghi nhận.';
+      $('spin-result-note').textContent = won ? 'Phần thưởng đã được ghi nhận — nhớ bàn giao cho khách.' : 'Lượt chơi đã được ghi nhận.';
       if (won) launchConfetti();
       spins = await LoyaltyAPI.spinsFor(customer); statusLine(); renderCampaigns(); await loadRewards();
       if (spinsFor(campaignId) > 0) $('spin-again').classList.remove('d-none');
     } catch (e) {
-      $('spin-result').textContent = 'Chưa thể quay'; $('spin-result-note').textContent = e.message;
+      if (!e.cancelled) { $('spin-result').textContent = 'Chưa thể chơi'; $('spin-result-note').textContent = e.message; }
     } finally { spinning = false; $('spin-close').classList.remove('d-none'); }
   }
   $('spin-again').addEventListener('click', () => runSpin(lastCampaign).catch(e => showAlert(e.message, 'danger')));
@@ -147,6 +170,7 @@
     } catch (e) { showAlert(e.message, 'danger'); button.disabled = false; }
   });
   $('refresh-campaigns').addEventListener('click', loadCampaigns);
+  renderPicker();
   loadCampaigns();
 })();
 </script>

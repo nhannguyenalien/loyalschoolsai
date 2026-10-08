@@ -26,3 +26,12 @@ export function pickWeightedPrize(prizes, random = secureRandom) {
   }
   return eligible[eligible.length - 1];
 }
+
+export const SPIN_GAMES = new Set(["wheel", "cards", "dice", "slot"]);
+
+/** Cách trình bày lượt chơi. Kết quả luôn do máy chủ quyết định, game chỉ khác về hiệu ứng. */
+export function normalizeGame(value) {
+  const game = String(value || "wheel").trim().toLowerCase();
+  if (!SPIN_GAMES.has(game)) throw new LoyaltyValidationError("game must be wheel, cards, dice or slot.");
+  return game;
+}

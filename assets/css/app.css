@@ -117,3 +117,41 @@ pre.code code { background: none; color: inherit; padding: 0; }
 .method { display: inline-block; min-width: 56px; text-align: center; font-weight: 800; font-size: .72rem; padding: .22rem .5rem; border-radius: 6px; margin-right: .6rem; letter-spacing: .03em; }
 .m-get { background: #dbeafe; color: #1d4ed8; } .m-post { background: #d1fae5; color: #047857; } .m-put { background: #fef3c7; color: #b45309; } .m-patch { background: #ede9fe; color: #6d28d9; } .m-delete { background: #fee2e2; color: #b91c1c; }
 .ep-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: .95rem; }
+
+/* ---- Mini-game: thẻ bí mật ---- */
+.cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 380px; margin: 0 auto; }
+.pcard { border: 0; background: none; padding: 0; perspective: 800px; aspect-ratio: 3 / 4; cursor: pointer; transition: transform .2s; }
+.pcard:not(.picked):not(.locked):hover { transform: translateY(-6px) scale(1.03); }
+.pcard.locked { cursor: default; opacity: .55; }
+.pcard-inner { position: relative; display: block; width: 100%; height: 100%; transition: transform .7s cubic-bezier(.3, .7, .2, 1); transform-style: preserve-3d; }
+.pcard.flipped .pcard-inner { transform: rotateY(180deg); }
+.pcard-face { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; backface-visibility: hidden; padding: 6px; font-weight: 800; font-size: .8rem; line-height: 1.2; box-shadow: 0 6px 16px rgba(28, 32, 64, .2); }
+.pcard-back { background: var(--brand-grad); color: #fff; font-size: 2rem; border: 3px solid rgba(255, 255, 255, .5); }
+.pcard-front { transform: rotateY(180deg); background: #fff; color: var(--ink); border: 3px solid #e5e7f5; }
+.pcard.picked:not(.flipped) .pcard-back { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.pcard.win .pcard-front { background: linear-gradient(160deg, #fff7d6, #ffe08a); border-color: #f59e0b; color: #7c4a03; }
+.pcard.lose .pcard-front { background: #eaf7ef; border-color: #86d9a8; color: #14683a; }
+.pcard.dim .pcard-front { opacity: .6; filter: grayscale(.4); }
+
+/* ---- Mini-game: xúc xắc ---- */
+.dice-stage { display: flex; justify-content: center; gap: 18px; min-height: 96px; align-items: center; }
+.die { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 78px; height: 78px; padding: 10px; background: #fff; border-radius: 16px; box-shadow: 0 8px 20px rgba(28, 32, 64, .25), inset 0 -4px 0 #e6e8f5; }
+.die .pip { border-radius: 50%; margin: auto; width: 14px; height: 14px; }
+.die .pip.on { background: #1c2040; }
+.dice-stage.rolling .die { animation: dice-shake .18s infinite; }
+@keyframes dice-shake { 0% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(8deg) translateY(-8px); } 100% { transform: rotate(-8deg) translateY(0); } }
+.dice-legends { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 18px; }
+.dice-legend { font-size: .76rem; background: #f3ecff; color: #6d28d9; border-radius: 999px; padding: .15rem .6rem; transition: all .3s; }
+.dice-legend b { color: #4c1d95; }
+.dice-legend.hit { background: #f59e0b; color: #fff; transform: scale(1.12); box-shadow: 0 4px 12px rgba(245, 158, 11, .5); }
+.dice-legend.hit b { color: #fff; }
+
+/* ---- Mini-game: slot ---- */
+.slot-machine { background: linear-gradient(180deg, #4f46e5, #7c3aed); border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(79, 70, 229, .4), inset 0 0 0 4px #fcd34d; max-width: 360px; margin: 0 auto; }
+.slot-reels { display: flex; gap: 10px; background: #0f1330; border-radius: 14px; padding: 10px; }
+.slot-reel { flex: 1; height: 96px; display: grid; place-items: center; font-size: 3rem; background: #fff; border-radius: 10px; overflow: hidden; }
+.slot-reel.spinning { filter: blur(1.5px); background: #f1f2fb; }
+.slot-reel.landed { animation: slot-land .35s ease-out; }
+@keyframes slot-land { 0% { transform: translateY(-30px); } 60% { transform: translateY(6px); } 100% { transform: translateY(0); } }
+.slot-machine.jackpot { animation: slot-glow .6s ease-in-out 3; }
+@keyframes slot-glow { 50% { box-shadow: 0 0 40px 10px rgba(252, 211, 77, .9), inset 0 0 0 4px #fcd34d; } }

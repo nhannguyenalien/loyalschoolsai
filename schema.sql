@@ -147,3 +147,6 @@ CREATE TABLE IF NOT EXISTS game_draw_winners (
   claimed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (draw_id, ticket_id)
 );
+
+-- Mini-game dùng chung lượt quay: ghi lại cách trình bày (wheel | cards | dice | slot).
+ALTER TABLE reward_spin_results ADD COLUMN IF NOT EXISTS game text NOT NULL DEFAULT 'wheel';

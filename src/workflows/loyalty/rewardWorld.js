@@ -1,5 +1,5 @@
 import { requireNonEmpty } from "../../domain/loyalty/points.js";
-import { assertCampaignOpen, pickWeightedPrize, secureRandom } from "../../domain/loyalty/rewardWorld.js";
+import { assertCampaignOpen, normalizeGame, pickWeightedPrize, secureRandom } from "../../domain/loyalty/rewardWorld.js";
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../../domain/loyalty/errors.js";
 
 export async function listRewardWorld({ repository, tenant, now = () => new Date() }) {
@@ -27,6 +27,7 @@ export async function spinRewardWorld({ repository, tenant, input, now = () => n
   const campaignId = requireNonEmpty(input.campaign_id, "campaign_id", 200);
   const customerRef = requireNonEmpty(input.customer_ref, "customer_ref", 200);
   const idempotencyKey = requireNonEmpty(input.idempotency_key, "idempotency_key", 200);
+  const game = normalizeGame(input.game);
   const replay = await repository.findSpinResultByIdempotency(tenant, idempotencyKey);
   if (replay) return { result: replay, replayed: true };
   const campaign = await repository.getRewardCampaign(campaignId);
@@ -44,7 +45,7 @@ export async function spinRewardWorld({ repository, tenant, input, now = () => n
     tenant, campaign_id: campaignId, customer_ref: customerRef, entitlement_id: entitlement.id,
     prize_id: prize.id, prize_name: prize.name, prize_type: prize.prize_type,
     prize_value_json: prize.value_json || "{}", prize_slot_key: prizeSlotKey, idempotency_key: idempotencyKey,
-    status: prize.prize_type === "none" ? "no_win" : "won", spun_at: now().toISOString(),
+    status: prize.prize_type === "none" ? "no_win" : "won", game, spun_at: now().toISOString(),
   });
 }
 

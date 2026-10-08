@@ -13,7 +13,7 @@ Hệ thống tích điểm, chăm sóc khách hàng và quà tặng — tách ra
 | `index.html` | Đăng nhập / đăng ký (email, Google) |
 | `overview.html` | Tổng quan: số liệu, biểu đồ 14 ngày, giao dịch gần đây, bắt đầu nhanh |
 | `customers.html` | Cộng điểm theo hóa đơn, trừ điểm, tra cứu khách |
-| `rewards.html` | Quay thưởng: vòng quay, đếm lượt quay của khách, giao thưởng |
+| `rewards.html` | Quay thưởng với 4 trò chơi dùng chung lượt chơi: Vòng quay, Thẻ bí mật (Pick a Card), Xúc xắc (Lucky Dice), Slot Machine; đếm lượt của khách, giao thưởng |
 | `checkin.html` | Điểm danh hằng ngày + chuỗi liên tiếp (7/14/30 ngày), cấu hình điểm và mốc thưởng |
 | `missions.html` | Nhiệm vụ hằng ngày (điểm danh / số hóa đơn / chi tiêu) → thưởng điểm hoặc lượt quay |
 | `draws.html` | Quay số may mắn: phát vé theo hóa đơn, cấp vé thủ công, rút thăm có hiệu ứng, giao thưởng |
@@ -34,7 +34,14 @@ Giữ nguyên hợp đồng của API cũ để tích hợp POS sau này: `POST 
 | Daily Mission | Nhiệm vụ trong ngày (điểm danh, N hóa đơn, chi ≥ X ₫) → nhận điểm hoặc lượt quay của Reward World. |
 | Lucky Draw | Hóa đơn tự sinh vé khi kỳ đang mở; cuối kỳ rút thăm ngẫu nhiên (CSPRNG), mỗi kỳ quay một lần, tuỳ chọn mỗi khách một giải. |
 
-Điểm thưởng game ghi vào cùng sổ cái điểm (`transaction_type = 'bonus'`), idempotent theo ngày/mốc/nhiệm vụ. Chưa làm: Pick a Card, Lucky Dice, Slot Machine, Lucky Number, Weekly Challenge, Treasure Hunt.
+Điểm thưởng game ghi vào cùng sổ cái điểm (`transaction_type = 'bonus'`), idempotent theo ngày/mốc/nhiệm vụ. 
+### Mini-game dùng chung lượt quay (Pick a Card · Lucky Dice · Slot Machine)
+Cùng chương trình Reward World, cùng bộ giải thưởng và cùng lượt chơi với vòng quay. **Kết quả luôn do máy chủ quyết định** (`POST /reward-world/spins`, tham số `game`: `wheel|cards|dice|slot`); game chỉ là cách trình bày (`assets/js/minigames.js`), và được lưu ở `reward_spin_results.game`.
+- **Thẻ bí mật**: khách chọn 1 trong 6 thẻ, thẻ đó lật ra giải; các thẻ còn lại lật mờ cho khách xem.
+- **Xúc xắc**: 1 viên (≤ 6 giải) hoặc 2 viên (7–11 giải); mỗi mặt/tổng ứng với một giải.
+- **Slot**: trúng = ba biểu tượng giống nhau của giải đó; không trúng = ba biểu tượng khác nhau.
+
+Chưa làm: Lucky Number, Weekly Challenge, Treasure Hunt.
 
 ## Tích hợp POS
 Tạo key ở trang **Luật tích điểm → API key cho POS** (key chỉ hiện một lần; DB chỉ lưu hash). Key gắn với một cửa hàng, nên không cần `X-Tenant`.

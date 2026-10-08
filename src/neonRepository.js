@@ -14,7 +14,7 @@ const COLUMNS = {
   reward_store_joins: ["tenant", "campaign_id", "status", "joined_at"],
   reward_spin_entitlements: ["tenant", "campaign_id", "customer_ref", "source_type", "source_ref", "status", "issued_at"],
   reward_spin_results: ["tenant", "campaign_id", "customer_ref", "entitlement_id", "prize_id", "prize_name", "prize_type",
-    "prize_value_json", "prize_slot_key", "idempotency_key", "status", "spun_at"],
+    "prize_value_json", "prize_slot_key", "idempotency_key", "status", "game", "spun_at"],
   reward_claims: ["tenant", "campaign_id", "result_id", "customer_ref", "prize_id", "prize_name", "prize_type",
     "prize_value_json", "claim_note", "claimed_at"],
 };
