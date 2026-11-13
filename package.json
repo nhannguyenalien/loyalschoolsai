@@ -7,7 +7,8 @@
     "dev": "npm run build && wrangler pages dev dist --compatibility-date=2024-09-23",
     "deploy": "npm run build && wrangler pages deploy dist --project-name loyalschoolsai --branch main",
     "db:init": "psql \"$DATABASE_URL\" -f schema.sql",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "test:e2e": "node test/e2e.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",

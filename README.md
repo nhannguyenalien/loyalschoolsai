@@ -77,6 +77,7 @@ npm install
 export DATABASE_URL=...; npm run db:init   # tạo bảng
 npm run dev                                # http://localhost:8788
 npm test                                   # test tích hợp trên DB (dùng tenant tạm, tự dọn)
+npm run test:e2e                           # E2E qua HTTP (cần `npm run dev` đang chạy ở terminal khác + ADMIN_SECRET)
 ```
 
 ## Deploy (Cloudflare Pages)
