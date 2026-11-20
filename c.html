@@ -49,7 +49,7 @@
   const $ = id => document.getElementById(id);
   const slug = new URLSearchParams(location.search).get('s') || '';
   const API = `/api/v1/public/${encodeURIComponent(slug)}`;
-  let store = null, phone = '';
+  let store = null, phone = '', current = null;
   const save = v => { try { localStorage.setItem('ls_phone_' + slug, v); } catch {} };
   const load = () => { try { return localStorage.getItem('ls_phone_' + slug) || ''; } catch { return ''; } };
 
@@ -72,6 +72,7 @@
   }
 
   function render(me) {
+    current = me;
     const checkin = me.checkin, next = checkin.next_milestone;
     const spinTotal = me.spins.reduce((s, c) => s + c.available, 0);
     const campaigns = Object.fromEntries(store.campaigns.map(c => [c.id, c]));
@@ -96,7 +97,7 @@
 
   $('phone-form').addEventListener('submit', async event => {
     event.preventDefault();
-    const btn = event.submitter; btn.disabled = true;
+    const btn = event.submitter || event.target.querySelector('button[type=submit]'); btn.disabled = true; // requestSubmit() (tự nạp số đã lưu) không có submitter
     phone = $('phone').value.trim();
     try { await refresh(); save(phone); $('alert').innerHTML = ''; }
     catch (e) { $('me').classList.add('d-none'); showAlert(e.message, 'danger'); }
@@ -115,7 +116,11 @@
       } else if (claimBtn) {
         claimBtn.disabled = true;
         await api(`/missions/${encodeURIComponent(claimBtn.dataset.id)}/claim`, { phone });
-        showAlert('Đã nhận thưởng 🎉 Quà hiện vật sẽ được nhân viên trao tại quầy.'); launchConfetti();
+        const mission = [...current.missions, ...current.challenges].find(m => m.id === claimBtn.dataset.id) || {};
+        showAlert(mission.reward_type === 'points' ? `Đã nhận +${money.format(mission.reward_points)} điểm 🎉`
+          : mission.reward_type === 'spin' ? 'Bạn nhận thêm 1 lượt quay 🎉'
+          : 'Đã nhận thưởng 🎉 Hãy đưa số điện thoại cho nhân viên để nhận quà tại quầy.');
+        launchConfetti();
         await refresh();
       } else if (spinBtn) {
         await spin(store.campaigns.find(c => c.id === spinBtn.dataset.id));

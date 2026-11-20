@@ -8,7 +8,7 @@ export function createWebhooksRepository({ query, one }) {
     listWebhookEndpoints: (tenant) => query(
       "SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE tenant = $1 ORDER BY created_at DESC", [tenant]),
     listActiveWebhookEndpoints: (tenant) => query(
-      "SELECT id, url, secret, events FROM webhook_endpoints WHERE tenant = $1 AND active", [tenant]),
+      "SELECT id, url, secret, events, active FROM webhook_endpoints WHERE tenant = $1 AND active", [tenant]),
     getWebhookEndpoint: (tenant, id) => one("SELECT id, url, secret, events, active FROM webhook_endpoints WHERE tenant = $1 AND id = $2", [tenant, id]),
     getWebhookEndpointById: (id) => one("SELECT id, url, secret, events, active FROM webhook_endpoints WHERE id = $1", [id]),
     setWebhookActive: (tenant, id, active) => one(

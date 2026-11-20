@@ -34,6 +34,12 @@ export function createNeonRepository(databaseUrl) {
   };
   const query = async (text, params = []) => (await sql.query(text, params)).map(toNumber);
   const one = async (text, params) => (await query(text, params))[0] || null;
+  // Chạy một câu lệnh sau khi khoá advisory theo khóa `lockKey` trong cùng transaction. Mỗi câu trong transaction READ COMMITTED
+  // có snapshot mới, nên người giữ khoá sau thấy kết quả đã commit của người trước → kiểm tra số dư không bị đua.
+  const lockedOne = async (lockKey, text, params) => {
+    const [, rows] = await sql.transaction([sql.query("SELECT pg_advisory_xact_lock(hashtext($1))", [lockKey]), sql.query(text, params)]);
+    return rows.map(toNumber)[0] || null;
+  };
 
   const clean = (column, value) => (value === "" && NULLABLE_DATES.has(column) ? null : value);
 
@@ -158,16 +164,18 @@ export function createNeonRepository(databaseUrl) {
       const customerIdx = cols.indexOf("customer_id") + 2;
       // Với giao dịch trừ điểm, kiểm tra số dư ngay trong câu INSERT để hai lần đổi
       // thưởng đồng thời không làm số dư âm.
-      const row = await one(
-        `INSERT INTO loyalty_ledger (id, ${cols.join(", ")})
+      const insertSql = `INSERT INTO loyalty_ledger (id, ${cols.join(", ")})
          SELECT $1, ${marks.join(", ")}
          WHERE $${deltaIdx}::bigint >= 0 OR (
            SELECT COALESCE(SUM(points_delta), 0) FROM loyalty_ledger WHERE tenant = $${tenantIdx} AND customer_id = $${customerIdx}
          ) + $${deltaIdx}::bigint >= 0
          ON CONFLICT DO NOTHING
-         RETURNING ${SELECT}`,
-        [crypto.randomUUID(), ...params],
-      );
+         RETURNING ${SELECT}`;
+      const insertParams = [crypto.randomUUID(), ...params];
+      // Trừ điểm phải tuần tự theo khách (kiểm tra số dư + ghi trong cùng khoá); cộng điểm không cần khoá.
+      const row = Number(entry.points_delta) < 0
+        ? await lockedOne(`ledger:${entry.tenant}:${entry.customer_id}`, insertSql, insertParams)
+        : await one(insertSql, insertParams);
       if (row) return { entry: row, replayed: false };
       const winner = await this.findLedgerByIdempotencyKey(entry.tenant, entry.idempotency_key);
       if (winner) return { entry: winner, replayed: true };

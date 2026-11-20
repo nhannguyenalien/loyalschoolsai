@@ -8,7 +8,8 @@ function memoryRepo(endpoints) {
   const deliveries = [];
   return {
     deliveries,
-    listActiveWebhookEndpoints: async () => endpoints,
+    // Giống kho thật: truy vấn endpoint đang bật trả đủ id, url, secret, events, active.
+    listActiveWebhookEndpoints: async () => endpoints.filter((e) => e.active).map(({ id, url, secret, events, active }) => ({ id, url, secret, events, active })),
     insertWebhookDelivery: async (d) => {
       if (deliveries.some((x) => x.endpoint_id === d.endpointId && x.event_id === d.eventId)) return null;
       const row = { id: crypto.randomUUID(), endpoint_id: d.endpointId, event_id: d.eventId, event_type: d.eventType, payload: d.payload, attempts: 0, status: "pending" };

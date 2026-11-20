@@ -1,9 +1,10 @@
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
+import { createNotifier } from "../webhookNotifier.js";
 import { checkIn, getCheckinStatus } from "../workflows/games/checkin.js";
 import { claimMission, getMissionBoard } from "../workflows/games/missions.js";
 import { listRewardWorld, spinRewardWorld } from "../workflows/loyalty/rewardWorld.js";
 
-const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
+const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
 // Khách tự nhập số: bỏ dấu phân cách, giữ chữ số và dấu + đầu.
 function normalizePhone(raw) {
@@ -19,13 +20,14 @@ const maskName = (name) => (String(name || "").trim().split(/\s+/).pop() || "Qu�
  * chỉ lộ tên gọi (không họ) + số dư.
  */
 export function createPublicApi({ repository }) {
-  return async (request) => {
+  return async (request, { waitUntil } = {}) => {
     const url = new URL(request.url);
     const m = url.pathname.replace(/\/$/, "").match(/^\/api\/v1\/public\/([a-z0-9-]{3,30})((?:\/[a-z0-9-]+)*)$/);
     if (!m) return null;
     const page = await repository.getEnabledStorePageBySlug(m[1]);
     if (!page) return json(404, { error: "Không tìm thấy cửa hàng." });
     const tenant = page.tenant, route = m[2], method = request.method;
+    const notify = createNotifier({ repository, tenant, waitUntil });
     const body = async () => request.json().catch(() => { throw new LoyaltyValidationError("Request body must be valid JSON."); });
     const customerOf = async (phone) => {
       const customer = await repository.findCustomerByRef(tenant, phone);
@@ -63,6 +65,7 @@ export function createPublicApi({ repository }) {
         const phone = normalizePhone((await body()).phone);
         await customerOf(phone);
         const r = await checkIn({ repository, tenant, customerRef: phone });
+        if (!r.replayed) await notify([["checkin.completed", { customer_ref: phone, points: r.points, streak: r.streak, milestone: r.milestone, balance: r.balance }]]);
         return json(r.replayed ? 200 : 201, { replayed: r.replayed, points: r.points, streak: r.streak, milestone: r.milestone, balance: r.balance });
       }
       const claim = route.match(/^\/missions\/([^/]+)\/claim$/);
@@ -79,6 +82,7 @@ export function createPublicApi({ repository }) {
         const requestId = String(input.request_id || "");
         if (!/^[A-Za-z0-9-]{8,64}$/.test(requestId)) throw new LoyaltyValidationError("request_id không hợp lệ.");
         const r = await spinRewardWorld({ repository, tenant, input: { campaign_id: input.campaign_id, customer_ref: phone, idempotency_key: `public:${requestId}`, game: "wheel" } });
+        if (!r.replayed) await notify([["reward.won", { customer_ref: phone, prize: { id: r.result.prize_id, name: r.result.prize_name, type: r.result.prize_type }, result_id: r.result.id }]]);
         const left = await repository.countAvailableSpins(tenant, phone);
         return json(r.replayed ? 200 : 201, { replayed: r.replayed, prize: { id: r.result.prize_id, name: r.result.prize_name, prize_type: r.result.prize_type }, spins_left: left.campaigns });
       }

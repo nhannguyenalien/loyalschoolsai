@@ -42,7 +42,7 @@ export async function signWebhook(secret, timestamp, body) {
 /** Gọi tới endpoint một lần và ghi kết quả. Không bao giờ ném lỗi. */
 export async function attemptDelivery({ repository, delivery, endpoint, fetchImpl = fetch }) {
   const attempts = Number(delivery.attempts) + 1;
-  if (!endpoint || !endpoint.active) {
+  if (!endpoint || endpoint.active === false) {
     return repository.finishWebhookDelivery(delivery.id, { status: "failed", attempts, lastError: "Endpoint was removed or disabled." });
   }
   const ts = Math.floor(Date.now() / 1000);

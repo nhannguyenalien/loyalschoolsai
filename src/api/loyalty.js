@@ -5,7 +5,7 @@ import { getLoyaltyAccount } from "../workflows/loyalty/getAccount.js";
 import { redeemLoyaltyPoints } from "../workflows/loyalty/redeemPoints.js";
 import { requireNonEmpty } from "../domain/loyalty/points.js";
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
-import { emitWebhookEvent, processDueWebhooks } from "../webhooks.js";
+import { createNotifier } from "../webhookNotifier.js";
 import { claimReward, joinRewardCampaign, listCustomerRewards, listRewardWorld, spinRewardWorld } from "../workflows/loyalty/rewardWorld.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
@@ -36,16 +36,7 @@ export function createLoyaltyApi({ repository, fulfillmentService }) {
   return async function handleLoyalty(request, context) {
     const tenant = context?.tenant;
     const responseHeaders = context?.responseHeaders;
-    // Webhook chạy nền (waitUntil) để không làm chậm phản hồi; khi không có waitUntil (test) thì chờ xong.
-    const notify = async (events) => {
-      const work = (async () => {
-        try {
-          for (const [type, data] of events) await emitWebhookEvent({ repository, tenant, type, data });
-          await processDueWebhooks({ repository, tenant });
-        } catch (error) { console.error("webhook dispatch failed", error); }
-      })();
-      if (context?.waitUntil) context.waitUntil(work); else await work;
-    };
+    const notify = createNotifier({ repository, tenant, waitUntil: context?.waitUntil });
     if (!tenant) return json(401, { error: "Authentication is required." }, responseHeaders);
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/$/, "");

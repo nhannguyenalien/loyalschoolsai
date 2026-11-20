@@ -1,4 +1,5 @@
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
+import { createNotifier } from "../webhookNotifier.js";
 import { checkIn, getCheckinStatus, getGameSettings, saveGameSettings } from "../workflows/games/checkin.js";
 import { deliverGift, listGifts, listTreasures, createTreasure, redeemTreasure, updateTreasure } from "../workflows/games/treasures.js";
 import { claimMission, createMission, getMissionBoard, listMissionsAdmin, updateMission } from "../workflows/games/missions.js";
@@ -12,7 +13,8 @@ const decode = decodeURIComponent;
 
 /** API game: điểm danh, chuỗi, nhiệm vụ ngày, quay số may mắn. Mọi thao tác theo tenant của người gọi. */
 export function createGamesApi({ repository }) {
-  return async function handleGames(request, { tenant }) {
+  return async function handleGames(request, { tenant, waitUntil }) {
+    const notify = createNotifier({ repository, tenant, waitUntil });
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/$/, "");
     const base = "/api/v1/loyalty/games";
@@ -28,7 +30,9 @@ export function createGamesApi({ repository }) {
       if (route === "/checkin") {
         if (method === "GET") return json(200, await getCheckinStatus({ repository, tenant, customerRef }));
         if (method === "POST") {
-          const result = await checkIn({ repository, tenant, customerRef: (await readJson(request)).customer_ref });
+          const customerRef = (await readJson(request)).customer_ref;
+          const result = await checkIn({ repository, tenant, customerRef });
+          if (!result.replayed) await notify([["checkin.completed", { customer_ref: customerRef, points: result.points, streak: result.streak, milestone: result.milestone, balance: result.balance }]]);
           return json(result.replayed ? 200 : 201, result);
         }
       }
