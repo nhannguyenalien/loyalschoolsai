@@ -3,6 +3,8 @@ import { createLoyaltyApi } from "../../../src/api/loyalty.js";
 import { createRewardWorldAdminApi } from "../../../src/api/rewardWorldAdmin.js";
 import { createGamesApi } from "../../../src/api/games.js";
 import { createApiKeysApi } from "../../../src/api/apiKeys.js";
+import { createStorePageApi } from "../../../src/api/storePage.js";
+import { createPublicApi } from "../../../src/api/public.js";
 import { createWebhooksApi } from "../../../src/api/webhooks.js";
 import { authenticateApiKey, authenticateTenant, HttpError, requireAdmin } from "../../../src/auth.js";
 
@@ -17,9 +19,12 @@ export async function onRequest({ request, env, waitUntil }) {
     if (path.startsWith("/api/v1/admin/")) {
       requireAdmin(request, env);
       response = await createRewardWorldAdminApi({ repository })(request, {});
+    } else if (path.startsWith("/api/v1/public/")) {
+      response = await createPublicApi({ repository })(request);
     } else if (path.startsWith("/api/v1/loyalty")) {
       const auth = (await authenticateApiKey(request, repository)) || (await authenticateTenant(request, env));
       if (path.startsWith("/api/v1/loyalty/api-keys")) response = await createApiKeysApi({ repository })(request, auth);
+      else if (path.startsWith("/api/v1/loyalty/store-page")) response = await createStorePageApi({ repository })(request, auth);
       else if (path.startsWith("/api/v1/loyalty/webhooks")) response = await createWebhooksApi({ repository })(request, auth);
       else if (path.startsWith("/api/v1/loyalty/games/")) response = await createGamesApi({ repository })(request, { tenant: auth.tenant });
       else response = await createLoyaltyApi({ repository })(request, { tenant: auth.tenant, waitUntil });

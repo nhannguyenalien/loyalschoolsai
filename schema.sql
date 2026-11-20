@@ -204,3 +204,10 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
 );
 CREATE INDEX IF NOT EXISTS idx_webhook_due ON webhook_deliveries (tenant, status, next_attempt_at);
 CREATE INDEX IF NOT EXISTS idx_webhook_recent ON webhook_deliveries (tenant, created_at DESC);
+
+-- ===================== Trang công khai cho khách (link / mã QR) =====================
+-- Mỗi cửa hàng một slug công khai (/c?s=<slug>); tenant (uid) không bao giờ lộ ra ngoài.
+CREATE TABLE IF NOT EXISTS store_pages (
+  tenant text PRIMARY KEY, slug text NOT NULL UNIQUE, name text NOT NULL DEFAULT '',
+  enabled boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+);
