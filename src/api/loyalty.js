@@ -1,9 +1,11 @@
 import { configureLoyaltyProgram } from "../workflows/loyalty/configureProgram.js";
 import { recordLoyaltySale } from "../workflows/loyalty/recordSale.js";
+import { recordLoyaltyEvent } from "../workflows/loyalty/recordEvent.js";
 import { getLoyaltyAccount } from "../workflows/loyalty/getAccount.js";
 import { redeemLoyaltyPoints } from "../workflows/loyalty/redeemPoints.js";
 import { requireNonEmpty } from "../domain/loyalty/points.js";
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../domain/loyalty/errors.js";
+import { emitWebhookEvent, processDueWebhooks } from "../webhooks.js";
 import { claimReward, joinRewardCampaign, listCustomerRewards, listRewardWorld, spinRewardWorld } from "../workflows/loyalty/rewardWorld.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
@@ -19,11 +21,31 @@ function positivePage(value, fallback, max = Number.MAX_SAFE_INTEGER) {
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
 }
 
+const earnedEvents = (customerRef, result) => [
+  ["points.earned", { customer_ref: customerRef, points: Number(result.entry.points_delta), amount_minor: Number(result.entry.amount_minor), source_ref: result.entry.source_ref }],
+  ...(result.entitlements?.length ? [["spin.issued", { customer_ref: customerRef, spins: result.entitlements.length, source_ref: result.entry.source_ref }]] : []),
+];
+const eventEvents = (r) => {
+  if (r.type === "purchase") return earnedEvents(r.customer_ref, r.detail);
+  if (r.type === "redeem") return [["points.redeemed", { customer_ref: r.customer_ref, points: Math.abs(r.points_delta), balance: r.balance }]];
+  return [["checkin.completed", { customer_ref: r.customer_ref, points: r.points_delta, streak: r.detail.streak, milestone: r.detail.milestone, balance: r.balance }]];
+};
+
 export function createLoyaltyApi({ repository, fulfillmentService }) {
   if (!repository) throw new Error("Loyalty API requires a repository.");
   return async function handleLoyalty(request, context) {
     const tenant = context?.tenant;
     const responseHeaders = context?.responseHeaders;
+    // Webhook chạy nền (waitUntil) để không làm chậm phản hồi; khi không có waitUntil (test) thì chờ xong.
+    const notify = async (events) => {
+      const work = (async () => {
+        try {
+          for (const [type, data] of events) await emitWebhookEvent({ repository, tenant, type, data });
+          await processDueWebhooks({ repository, tenant });
+        } catch (error) { console.error("webhook dispatch failed", error); }
+      })();
+      if (context?.waitUntil) context.waitUntil(work); else await work;
+    };
     if (!tenant) return json(401, { error: "Authentication is required." }, responseHeaders);
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/$/, "");
@@ -35,11 +57,19 @@ export function createLoyaltyApi({ repository, fulfillmentService }) {
         return json(200, await configureLoyaltyProgram({ repository, tenant, input: await readJson(request) }), responseHeaders);
       }
       if (request.method === "POST" && path === "/api/v1/loyalty/sales") {
-        const result = await recordLoyaltySale({ repository, tenant, input: await readJson(request) });
+        const input = await readJson(request);
+        const result = await recordLoyaltySale({ repository, tenant, input });
+        if (!result.replayed) await notify(earnedEvents(input.customer_ref, result));
+        return json(result.replayed ? 200 : 201, result, responseHeaders);
+      }
+      if (request.method === "POST" && path === "/api/v1/loyalty/events") {
+        const result = await recordLoyaltyEvent({ repository, tenant, input: await readJson(request), idempotencyKey: request.headers.get("idempotency-key") });
+        if (!result.replayed) await notify(eventEvents(result));
         return json(result.replayed ? 200 : 201, result, responseHeaders);
       }
       if (request.method === "POST" && path === "/api/v1/loyalty/redemptions") {
         const result = await redeemLoyaltyPoints({ repository, tenant, input: await readJson(request) });
+        if (!result.replayed) await notify([["points.redeemed", { customer_ref: result.entry.customer_ref, points: Math.abs(Number(result.entry.points_delta)), balance: result.balance, source_ref: result.entry.source_ref }]]);
         return json(result.replayed ? 200 : 201, result, responseHeaders);
       }
       if (request.method === "GET" && path === "/api/v1/loyalty/account") {
@@ -66,6 +96,7 @@ export function createLoyaltyApi({ repository, fulfillmentService }) {
       }
       if (request.method === "POST" && path === "/api/v1/loyalty/reward-world/spins") {
         const result = await spinRewardWorld({ repository, tenant, input: await readJson(request) });
+        if (!result.replayed && result.result) await notify([["reward.won", { customer_ref: result.result.customer_ref, prize: { id: result.result.prize_id, name: result.result.prize_name, type: result.result.prize_type }, result_id: result.result.id }]]);
         return json(result.replayed ? 200 : 201, result, responseHeaders);
       }
       if (request.method === "GET" && path === "/api/v1/loyalty/reward-world/rewards") {

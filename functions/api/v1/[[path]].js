@@ -3,11 +3,12 @@ import { createLoyaltyApi } from "../../../src/api/loyalty.js";
 import { createRewardWorldAdminApi } from "../../../src/api/rewardWorldAdmin.js";
 import { createGamesApi } from "../../../src/api/games.js";
 import { createApiKeysApi } from "../../../src/api/apiKeys.js";
+import { createWebhooksApi } from "../../../src/api/webhooks.js";
 import { authenticateApiKey, authenticateTenant, HttpError, requireAdmin } from "../../../src/auth.js";
 
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
-export async function onRequest({ request, env }) {
+export async function onRequest({ request, env, waitUntil }) {
   try {
     if (!env.DATABASE_URL) throw new HttpError(500, "DATABASE_URL is not configured.");
     const repository = createNeonRepository(env.DATABASE_URL);
@@ -19,8 +20,9 @@ export async function onRequest({ request, env }) {
     } else if (path.startsWith("/api/v1/loyalty")) {
       const auth = (await authenticateApiKey(request, repository)) || (await authenticateTenant(request, env));
       if (path.startsWith("/api/v1/loyalty/api-keys")) response = await createApiKeysApi({ repository })(request, auth);
+      else if (path.startsWith("/api/v1/loyalty/webhooks")) response = await createWebhooksApi({ repository })(request, auth);
       else if (path.startsWith("/api/v1/loyalty/games/")) response = await createGamesApi({ repository })(request, { tenant: auth.tenant });
-      else response = await createLoyaltyApi({ repository })(request, { tenant: auth.tenant });
+      else response = await createLoyaltyApi({ repository })(request, { tenant: auth.tenant, waitUntil });
     }
     return response || json(404, { error: "Not found." });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { LoyaltyConflictError } from "./domain/loyalty/errors.js";
 import { createGamesRepository } from "./gamesRepository.js";
+import { createWebhooksRepository } from "./webhooksRepository.js";
 
 // Cột được phép ghi cho từng bảng (id tự sinh). Giữ tên cột trùng với field PocketBase cũ
 // để workflow/domain dùng lại nguyên vẹn.
@@ -283,5 +284,6 @@ export function createNeonRepository(databaseUrl) {
     },
   };
   Object.assign(repo, createGamesRepository({ query, one, repo }));
+  Object.assign(repo, createWebhooksRepository({ query, one }));
   return repo;
 }

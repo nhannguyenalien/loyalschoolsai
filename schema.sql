@@ -183,3 +183,24 @@ CREATE TABLE IF NOT EXISTS game_treasure_claims (
   customer_ref text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (treasure_id, customer_ref)
 );
+
+-- ===================== Webhook gửi ra hệ thống của cửa hàng =====================
+-- Secret dùng để ký HMAC-SHA256 mỗi lần gửi (cần giữ nguyên văn để ký); chỉ trả về một lần khi tạo.
+CREATE TABLE IF NOT EXISTS webhook_endpoints (
+  id text PRIMARY KEY, tenant text NOT NULL, url text NOT NULL, secret text NOT NULL,
+  events jsonb NOT NULL DEFAULT '[]',     -- [] = nhận mọi sự kiện
+  active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_endpoints_tenant ON webhook_endpoints (tenant, active);
+-- Mỗi sự kiện × endpoint là một lần giao; thử lại với backoff, tối đa 6 lần.
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  id text PRIMARY KEY, tenant text NOT NULL, endpoint_id text NOT NULL REFERENCES webhook_endpoints(id) ON DELETE CASCADE,
+  event_id text NOT NULL, event_type text NOT NULL, payload text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',  -- pending | success | failed
+  attempts int NOT NULL DEFAULT 0, next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  last_status int, last_error text NOT NULL DEFAULT '', delivered_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (endpoint_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_due ON webhook_deliveries (tenant, status, next_attempt_at);
+CREATE INDEX IF NOT EXISTS idx_webhook_recent ON webhook_deliveries (tenant, created_at DESC);

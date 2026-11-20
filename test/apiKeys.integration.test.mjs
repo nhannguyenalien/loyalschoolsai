@@ -6,8 +6,8 @@ import { onRequest } from "../functions/api/v1/[[path]].js";
 const url = process.env.DATABASE_URL;
 const tenant = `test-${crypto.randomUUID().slice(0, 8)}`;
 const env = { DATABASE_URL: url, FIREBASE_PROJECT_ID: "test-project", ADMIN_SECRET: "x" };
-const call = (path, { key, method = "GET", body } = {}) => onRequest({
-  env, request: new Request(`http://t${path}`, { method, body: body && JSON.stringify(body), headers: { ...(key ? { authorization: `Bearer ${key}` } : {}) } }),
+const call = (path, { key, method = "GET", body, headers = {} } = {}) => onRequest({
+  env, request: new Request(`http://t${path}`, { method, body: body && JSON.stringify(body), headers: { ...headers, ...(key ? { authorization: `Bearer ${key}` } : {}) } }),
 });
 
 test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
@@ -38,6 +38,13 @@ test("API key cho POS", { skip: !url && "DATABASE_URL not set" }, async (t) => {
   assert.equal(r1.status, 201); assert.equal(Number((await r1.json()).entry.points_delta), 25);
   assert.equal((await call("/api/v1/loyalty/sales", { key, method: "POST", body: sale })).status, 200);
   assert.equal((await (await call("/api/v1/loyalty/account?customer_ref=0909", { key })).json()).balance, 25);
+
+  // Cổng /events: idempotent theo header, balance hợp nhất
+  const ev = { type: "purchase", customer_ref: "0909", order_id: "HD2", source_type: "pos", amount_minor: 100000 };
+  const e1 = await call("/api/v1/loyalty/events", { key, method: "POST", body: ev, headers: { "idempotency-key": "pos:HD2" } });
+  assert.equal(e1.status, 201); const e1j = await e1.json(); assert.equal(e1j.points_delta, 10); assert.equal(e1j.balance, 35);
+  assert.equal((await call("/api/v1/loyalty/events", { key, method: "POST", body: ev, headers: { "idempotency-key": "pos:HD2" } })).status, 200);
+  assert.equal((await call("/api/v1/loyalty/events", { key, method: "POST", body: { type: "nope", customer_ref: "0909" } })).status, 400);
 
   // Game qua HTTP bằng API key
   const ci = await call("/api/v1/loyalty/games/checkin", { key, method: "POST", body: { customer_ref: "0909" } });

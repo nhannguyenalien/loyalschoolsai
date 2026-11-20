@@ -31,6 +31,17 @@
         <div id="key-list"><div class="text-secondary">Đang tải...</div></div>
       </div>
     </section>
+    <section class="card mb-3">
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-webhook me-2"></i>Webhook</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">Hệ thống tự gọi URL của bạn khi có <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. Mỗi lần gọi có chữ ký <code>X-Loyalty-Signature</code>; lỗi sẽ được thử lại tối đa 6 lần.</p>
+        <form class="input-group mb-3" id="hook-form"><input id="hook-url" type="url" class="form-control" placeholder="https://cua-hang.vn/loyalty-webhook" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i>Thêm</button></form>
+        <div id="new-hook"></div>
+        <div id="hook-list"><div class="text-secondary">Đang tải...</div></div>
+        <div class="fw-bold mt-3 mb-1">Lần gửi gần đây</div>
+        <div id="hook-deliveries" class="small"></div>
+      </div>
+    </section>
     <section class="card">
       <div class="card-header"><h3 class="card-title"><i class="ti ti-code me-2"></i>Bắt đầu nhanh</h3><a class="ms-auto btn btn-sm btn-outline-primary" href="docs.html" target="_blank">Xem tài liệu đầy đủ <i class="ti ti-arrow-right ms-1"></i></a></div>
       <div class="card-body">
@@ -132,6 +143,32 @@ def add_points(receipt, phone, amount):
     catch (e) { showAlert(e.message, 'danger'); }
   });
   loadKeys().catch(e => showAlert(e.message, 'danger'));
+
+  async function loadHooks() {
+    const [{ endpoints }, { deliveries }] = await Promise.all([LoyaltyAPI.listWebhooks(), LoyaltyAPI.webhookDeliveries()]);
+    document.getElementById('hook-list').innerHTML = endpoints.length
+      ? `<div class="list-group list-group-flush">${endpoints.map(h => `<div class="list-group-item d-flex align-items-center px-0"><div class="text-truncate me-2"><div class="fw-bold text-truncate">${esc(h.url)}</div><div class="small text-secondary">${h.active ? 'Đang bật' : 'Đã tắt'} · ${h.events.length ? esc(h.events.join(', ')) : 'mọi sự kiện'}</div></div><div class="ms-auto btn-list flex-nowrap"><button class="btn btn-sm hook-act" data-act="test" data-id="${esc(h.id)}">Gửi thử</button><button class="btn btn-sm hook-act" data-act="toggle" data-active="${h.active}" data-id="${esc(h.id)}">${h.active ? 'Tắt' : 'Bật'}</button><button class="btn btn-sm btn-outline-danger hook-act" data-act="delete" data-id="${esc(h.id)}">Xoá</button></div></div>`).join('')}</div>`
+      : '<div class="empty-state py-3"><i class="ti ti-webhook-off"></i>Chưa có webhook nào.</div>';
+    document.getElementById('hook-deliveries').innerHTML = deliveries.length
+      ? deliveries.slice(0, 8).map(d => `<div><span class="badge ${d.status === 'success' ? 'bg-green-lt' : d.status === 'failed' ? 'bg-red-lt' : 'bg-yellow-lt'}">${esc(d.status)}</span> <code>${esc(d.event_type)}</code> · ${esc(fmtDate(d.created_at))}${d.last_error ? ` · ${esc(d.last_error)}` : ''}</div>`).join('')
+      : '<span class="text-secondary">Chưa có.</span>';
+  }
+  onSubmit('hook-form', async () => {
+    const { secret } = await LoyaltyAPI.createWebhook(document.getElementById('hook-url').value.trim());
+    document.getElementById('hook-url').value = '';
+    document.getElementById('new-hook').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>Sao chép secret ngay — dùng để kiểm tra chữ ký, sẽ không hiện lại.</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(secret)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">Sao chép</button></div></div>`;
+    await loadHooks();
+  });
+  document.getElementById('hook-list').addEventListener('click', async event => {
+    const b = event.target.closest('.hook-act'); if (!b) return;
+    try {
+      if (b.dataset.act === 'delete') { if (!confirm('Xoá webhook này?')) return; await LoyaltyAPI.deleteWebhook(b.dataset.id); }
+      else if (b.dataset.act === 'toggle') await LoyaltyAPI.toggleWebhook(b.dataset.id, b.dataset.active !== 'true');
+      else { const r = await LoyaltyAPI.testWebhook(b.dataset.id); showAlert(r.status === 'success' ? 'Endpoint trả 2xx — hoạt động tốt.' : `Chưa thành công: ${r.error || r.http_status}`, r.status === 'success' ? 'success' : 'danger'); }
+      await loadHooks();
+    } catch (e) { showAlert(e.message, 'danger'); }
+  });
+  loadHooks().catch(e => showAlert(e.message, 'danger'));
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>

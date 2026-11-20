@@ -109,13 +109,13 @@
 
   onSubmit('tab-earn', async () => {
     const ref = val('customer-ref'), receipt = val('receipt-ref');
-    const result = await LoyaltyAPI.addSale({
-      idempotency_key: `manual:${receipt}`, customer_ref: ref, source_type: 'manual', source_ref: receipt,
+    const result = await LoyaltyAPI.sendEvent({
+      type: 'purchase', customer_ref: ref, order_id: receipt, source_type: 'manual',
       amount_minor: Number(val('sale-amount')),
       customer: { name: val('customer-name'), phone: ref }, metadata: { channel: 'loyalschoolsai' }
-    });
-    const spins = result.entitlements?.length || 0;
-    showAlert(result.replayed ? 'Hóa đơn này đã được ghi trước đó, hệ thống không cộng trùng.' : `Đã cộng ${result.entry.points_delta} điểm${spins ? ` và cấp ${spins} lượt quay 🎁` : ''}.`);
+    }, `manual:${receipt}`);
+    const spins = result.spins_earned || 0;
+    showAlert(result.replayed ? 'Hóa đơn này đã được ghi trước đó, hệ thống không cộng trùng.' : `Đã cộng ${result.points_delta} điểm${spins ? ` và cấp ${spins} lượt quay 🎁` : ''}.`);
     await loadAccount(ref);
     if (!result.replayed) { document.getElementById('receipt-ref').value = ''; document.getElementById('sale-amount').value = ''; updatePreview(); }
   });
