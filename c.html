@@ -34,9 +34,19 @@
   <div class="cmain">
     <div id="alert"></div>
     <section class="card mb-3"><div class="card-body">
-      <form id="phone-form" class="input-group input-group-lg">
-        <input id="phone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" placeholder="Số điện thoại" required>
-        <button class="btn btn-grad" type="submit">Xem điểm</button>
+      <form id="phone-form">
+        <div class="input-group input-group-lg">
+          <input id="phone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" placeholder="Số điện thoại" required>
+          <button class="btn btn-grad" type="submit">Xem điểm</button>
+        </div>
+        <input id="pin" class="form-control form-control-lg mt-2 d-none" type="password" inputmode="numeric" autocomplete="current-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="Mã PIN (4–6 số)">
+      </form>
+      <form id="pin-setup" class="d-none mt-3 p-3 rounded" style="background:#f4f5fb">
+        <div class="fw-bold mb-1">Tạo mã PIN để bảo vệ điểm của bạn</div>
+        <div class="small text-secondary mb-2">Chỉ cần làm một lần. Hãy nhớ PIN, cửa hàng không xem được PIN của bạn.</div>
+        <input id="pin-new" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="PIN mới (4–6 số)" required>
+        <input id="pin-new2" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="Nhập lại PIN" required>
+        <button class="btn btn-grad w-100" type="submit">Lưu PIN và xem điểm</button>
       </form>
       <div class="form-hint mt-2 small text-secondary">Dùng đúng số điện thoại bạn đã đưa cho cửa hàng khi mua hàng.</div>
     </div></section>
@@ -49,14 +59,17 @@
   const $ = id => document.getElementById(id);
   const slug = new URLSearchParams(location.search).get('s') || '';
   const API = `/api/v1/public/${encodeURIComponent(slug)}`;
-  let store = null, phone = '', current = null;
+  let store = null, phone = '', pin = '', current = null;
+  const savePin = v => { try { sessionStorage.setItem('ls_pin_' + slug, v); } catch {} };
+  const loadPin = () => { try { return sessionStorage.getItem('ls_pin_' + slug) || ''; } catch { return ''; } };
   const save = v => { try { localStorage.setItem('ls_phone_' + slug, v); } catch {} };
   const load = () => { try { return localStorage.getItem('ls_phone_' + slug) || ''; } catch { return ''; } };
 
   async function api(path, body) {
+    if (body && body.phone !== undefined && pin && body.pin === undefined) body = { ...body, pin };
     const res = await fetch(API + path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Có lỗi xảy ra, vui lòng thử lại.');
+    if (!res.ok) throw Object.assign(new Error(data.error || 'Có lỗi xảy ra, vui lòng thử lại.'), { code: data.code });
     return data;
   }
   const rewardText = m => m.reward_label || (m.reward_type === 'points' ? `+${money.format(m.reward_points)} điểm` : m.reward_type === 'spin' ? '1 lượt quay' : 'Quà tặng');
@@ -89,22 +102,42 @@
       </div></section>
       ${spinTotal ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">🎁 Lượt quay của bạn</h3></div><div class="card-body py-1" id="spin-list">${spinRows}</div><div class="card-body d-none" id="spin-stage"><div id="wheel-mount" class="mb-3"></div><div class="result-title" id="spin-result"></div><button class="btn btn-grad mt-3 d-none" id="spin-done">Xong</button></div></section>` : ''}
       ${me.missions.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">Nhiệm vụ hôm nay</h3></div><div class="card-body py-1">${missionRows(me.missions)}</div></section>` : ''}
-      ${me.challenges.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">Thử thách tuần</h3></div><div class="card-body py-1">${missionRows(me.challenges)}</div></section>` : ''}`;
+      ${me.challenges.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">Thử thách tuần</h3></div><div class="card-body py-1">${missionRows(me.challenges)}</div></section>` : ''}
+      ${store.pin_required ? '<div class="text-center"><a href="#" id="change-pin" class="small text-secondary">Đổi mã PIN</a></div>' : ''}`;
     $('me').classList.remove('d-none');
   }
 
+
   async function refresh() { render(await api('/me', { phone })); }
 
+  const setupForm = $('pin-setup');
+  function onPinError(e) {
+    $('me').classList.add('d-none');
+    if (e.code === 'pin_setup') { setupForm.classList.remove('d-none'); $('pin').classList.add('d-none'); $('alert').innerHTML = ''; $('pin-new').focus(); return; }
+    setupForm.classList.add('d-none'); if (store.pin_required) $('pin').classList.remove('d-none');
+    if (e.code === 'pin_wrong' || e.code === 'pin_required') { pin = ''; savePin(''); $('pin').value = ''; $('pin').focus(); }
+    showAlert(e.message, 'danger');
+  }
   $('phone-form').addEventListener('submit', async event => {
     event.preventDefault();
     const btn = event.submitter || event.target.querySelector('button[type=submit]'); btn.disabled = true; // requestSubmit() (tự nạp số đã lưu) không có submitter
-    phone = $('phone').value.trim();
-    try { await refresh(); save(phone); $('alert').innerHTML = ''; }
-    catch (e) { $('me').classList.add('d-none'); showAlert(e.message, 'danger'); }
+    phone = $('phone').value.trim(); pin = $('pin').value.trim(); setupForm.classList.add('d-none');
+    try { await refresh(); save(phone); savePin(pin); $('alert').innerHTML = ''; $('pin').classList.add('d-none'); }
+    catch (e) { onPinError(e); }
     finally { btn.disabled = false; }
+  });
+  setupForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const a = $('pin-new').value.trim(), b = $('pin-new2').value.trim();
+    if (a !== b) return showAlert('Hai lần nhập PIN chưa giống nhau.', 'danger');
+    const btn = event.submitter; if (btn) btn.disabled = true;
+    try { await api('/pin', { phone, new_pin: a }); pin = a; $('pin').value = a; setupForm.classList.add('d-none'); $('pin-new').value = $('pin-new2').value = ''; await refresh(); save(phone); savePin(pin); $('alert').innerHTML = ''; showAlert('Đã tạo PIN. Lần sau bạn nhập PIN này để xem điểm.'); }
+    catch (e) { showAlert(e.message, 'danger'); }
+    finally { if (btn) btn.disabled = false; }
   });
 
   $('me').addEventListener('click', async event => {
+    if (event.target.closest('#change-pin')) { event.preventDefault(); const next = prompt('Nhập PIN mới (4–6 số):'); if (next === null) return; try { await api('/pin', { phone, pin, new_pin: next.trim() }); pin = next.trim(); savePin(pin); showAlert('Đã đổi PIN.'); } catch (e) { showAlert(e.message, 'danger'); } return; }
     const checkinBtn = event.target.closest('#checkin-btn'), claimBtn = event.target.closest('.claim'), spinBtn = event.target.closest('.spin');
     try {
       if (checkinBtn) {
@@ -153,8 +186,9 @@
         $('how').classList.remove('d-none');
         $('how-text').innerHTML = `<b>Cách tích điểm:</b> mỗi ${money.format(store.program.spend_per_point_minor)} ${esc(store.program.currency)} bạn chi tiêu nhận ${store.program.points_per_step} điểm. Điểm danh mỗi ngày +${store.checkin_points} điểm, điểm danh liên tiếp còn có thưởng thêm.`;
       }
-      const saved = load();
-      if (saved) { $('phone').value = saved; $('phone-form').requestSubmit(); }
+      if (store.pin_required) $('pin').classList.remove('d-none');
+      const saved = load(); pin = loadPin();
+      if (saved) { $('phone').value = saved; if (store.pin_required) $('pin').value = pin; if (!store.pin_required || pin) $('phone-form').requestSubmit(); else $('pin').focus(); }
     } catch (e) {
       $('store-name').textContent = 'Không tìm thấy cửa hàng';
       $('store-sub').textContent = 'Vui lòng quét lại mã QR tại quầy.';

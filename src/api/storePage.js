@@ -1,7 +1,8 @@
 import { HttpError } from "../auth.js";
+import { PinError, resetCustomerPin } from "../pin.js";
 
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8" } });
-const view = ({ slug, name, enabled, created_at }) => ({ slug, name, enabled, created_at }); // không lộ tenant (uid)
+const view = ({ slug, name, enabled, require_pin, created_at }) => ({ slug, name, enabled, require_pin, created_at }); // không lộ tenant (uid)
 const SLUG = /^[a-z0-9][a-z0-9-]{2,29}$/;
 const randomSlug = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
 
@@ -9,6 +10,15 @@ const randomSlug = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) 
 export function createStorePageApi({ repository }) {
   return async (request, { tenant, user }) => {
     const path = new URL(request.url).pathname.replace(/\/$/, "");
+    if (path === "/api/v1/loyalty/store-page/pin-reset" && request.method === "POST") {
+      // Chủ cửa hàng đặt lại PIN của một khách (body: customer_ref, pin? — bỏ trống = xóa để khách tự tạo lại).
+      const body = await request.json().catch(() => ({}));
+      const ref = String(body.customer_ref || "").replace(/[\s.\-()]/g, "");
+      if (!ref) throw new HttpError(400, "customer_ref là bắt buộc.");
+      if (!(await repository.findCustomerByRef(tenant, ref))) throw new HttpError(404, "Không tìm thấy khách này.");
+      try { return json(200, await resetCustomerPin({ repository, tenant, ref, pin: body.pin })); }
+      catch (error) { if (error instanceof PinError) throw new HttpError(400, error.message); throw error; }
+    }
     if (path !== "/api/v1/loyalty/store-page") return null;
     if (request.method === "GET") {
       const page = (await repository.getStorePage(tenant))
@@ -29,6 +39,10 @@ export function createStorePageApi({ repository }) {
       if (body.enabled !== undefined) {
         if (typeof body.enabled !== "boolean") throw new HttpError(400, "enabled phải là true hoặc false.");
         patch.enabled = body.enabled;
+      }
+      if (body.require_pin !== undefined) {
+        if (typeof body.require_pin !== "boolean") throw new HttpError(400, "require_pin phải là true hoặc false.");
+        patch.require_pin = body.require_pin;
       }
       if (!(await repository.getStorePage(tenant))) throw new HttpError(404, "Hãy mở trang trước (GET).");
       try {

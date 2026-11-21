@@ -2,6 +2,7 @@ import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } fr
 import { createNotifier } from "../webhookNotifier.js";
 import { checkIn, getCheckinStatus } from "../workflows/games/checkin.js";
 import { claimMission, getMissionBoard } from "../workflows/games/missions.js";
+import { changePin, createInitialPin, PinError, validatePin, verifyCustomerPin } from "../pin.js";
 import { listRewardWorld, spinRewardWorld } from "../workflows/loyalty/rewardWorld.js";
 
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
@@ -34,11 +35,18 @@ export function createPublicApi({ repository }) {
       if (!customer || customer.status !== "active") throw new LoyaltyNotFoundError("Chưa tìm thấy số này. Hãy mua hàng lần đầu để nhận điểm nhé!");
       return customer;
     };
+    // Chứng thực khách: phải có hồ sơ; nếu cửa hàng bật PIN thì phải nhập đúng PIN.
+    const authed = async (input) => {
+      const phone = normalizePhone(input?.phone);
+      const customer = await customerOf(phone);
+      if (page.require_pin) await verifyCustomerPin({ repository, tenant, ref: phone, pin: input?.pin });
+      return { phone, customer };
+    };
     try {
       if (method === "GET" && route === "") {
         const [program, settings, world] = await Promise.all([repository.getActiveProgram(tenant), repository.getGameSettings(tenant), listRewardWorld({ repository, tenant })]);
         return json(200, {
-          store: { name: page.name },
+          store: { name: page.name }, pin_required: Boolean(page.require_pin),
           program: program ? { spend_per_point_minor: Number(program.spend_per_point_minor), points_per_step: Number(program.points_per_step), currency: program.currency } : null,
           checkin_points: settings.checkin_points, milestones: settings.streak_milestones,
           campaigns: world.campaigns.filter((c) => c.joined).map((c) => ({
@@ -48,8 +56,7 @@ export function createPublicApi({ repository }) {
         });
       }
       if (method === "POST" && route === "/me") { // POST để số điện thoại không nằm trên URL/log
-        const phone = normalizePhone((await body()).phone);
-        const customer = await customerOf(phone);
+        const { phone, customer } = await authed(await body());
         const [balance, spins, checkin, day, week] = await Promise.all([
           repository.getBalance(tenant, phone), repository.countAvailableSpins(tenant, phone), getCheckinStatus({ repository, tenant, customerRef: phone }),
           getMissionBoard({ repository, tenant, customerRef: phone, period: "day" }), getMissionBoard({ repository, tenant, customerRef: phone, period: "week" }),
@@ -61,24 +68,30 @@ export function createPublicApi({ repository }) {
           missions: day.missions.map(slim), challenges: week.missions.map(slim),
         });
       }
-      if (method === "POST" && route === "/checkin") {
-        const phone = normalizePhone((await body()).phone);
+      if (method === "POST" && route === "/pin") { // tạo PIN lần đầu, hoặc đổi PIN (phải có PIN hiện tại)
+        if (!page.require_pin) throw new LoyaltyConflictError("Cửa hàng này không dùng PIN.");
+        const input = await body(), phone = normalizePhone(input.phone);
         await customerOf(phone);
+        validatePin(input.new_pin, "new_pin");
+        if (await repository.getCustomerPin(tenant, phone)) { await verifyCustomerPin({ repository, tenant, ref: phone, pin: input.pin }); await changePin({ repository, tenant, ref: phone, newPin: input.new_pin }); }
+        else await createInitialPin({ repository, tenant, ref: phone, pin: input.new_pin });
+        return json(200, { ok: true });
+      }
+      if (method === "POST" && route === "/checkin") {
+        const { phone } = await authed(await body());
         const r = await checkIn({ repository, tenant, customerRef: phone });
         if (!r.replayed) await notify([["checkin.completed", { customer_ref: phone, points: r.points, streak: r.streak, milestone: r.milestone, balance: r.balance }]]);
         return json(r.replayed ? 200 : 201, { replayed: r.replayed, points: r.points, streak: r.streak, milestone: r.milestone, balance: r.balance });
       }
       const claim = route.match(/^\/missions\/([^/]+)\/claim$/);
       if (method === "POST" && claim) {
-        const phone = normalizePhone((await body()).phone);
-        await customerOf(phone);
+        const { phone } = await authed(await body());
         const r = await claimMission({ repository, tenant, missionId: decodeURIComponent(claim[1]), customerRef: phone });
         return json(r.replayed ? 200 : 201, { replayed: r.replayed, reward: r.reward, balance: r.balance });
       }
       if (method === "POST" && route === "/spin") {
         const input = await body();
-        const phone = normalizePhone(input.phone);
-        await customerOf(phone);
+        const { phone } = await authed(input);
         const requestId = String(input.request_id || "");
         if (!/^[A-Za-z0-9-]{8,64}$/.test(requestId)) throw new LoyaltyValidationError("request_id không hợp lệ.");
         const r = await spinRewardWorld({ repository, tenant, input: { campaign_id: input.campaign_id, customer_ref: phone, idempotency_key: `public:${requestId}`, game: "wheel" } });
@@ -88,6 +101,7 @@ export function createPublicApi({ repository }) {
       }
       return null;
     } catch (error) {
+      if (error instanceof PinError) return json(error.status, { error: error.message, code: error.code, ...error.extra });
       if (error instanceof LoyaltyValidationError) return json(400, { error: error.message });
       if (error instanceof LoyaltyNotFoundError) return json(404, { error: error.message });
       if (error instanceof LoyaltyConflictError) return json(409, { error: error.message });

@@ -211,3 +211,13 @@ CREATE TABLE IF NOT EXISTS store_pages (
   tenant text PRIMARY KEY, slug text NOT NULL UNIQUE, name text NOT NULL DEFAULT '',
   enabled boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- ===================== PIN cho trang khách =====================
+-- Cửa hàng bật `require_pin` → khách phải tạo PIN 4–6 số (lần đầu) rồi nhập PIN mỗi lần xem điểm / chơi.
+-- Sai 5 lần khóa 15 phút; số lần thử được tính TRƯỚC khi so khớp (nguyên tử) nên gửi song song cũng không vượt giới hạn.
+ALTER TABLE store_pages ADD COLUMN IF NOT EXISTS require_pin boolean NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS customer_pins (
+  tenant text NOT NULL, customer_ref text NOT NULL, pin_hash text NOT NULL, salt text NOT NULL,
+  failed_attempts int NOT NULL DEFAULT 0, locked_until timestamptz, updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant, customer_ref)
+);

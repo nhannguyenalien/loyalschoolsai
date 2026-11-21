@@ -66,6 +66,7 @@ const LoyaltyAPI = {
   webhookDeliveries: () => loyaltyFetch('/webhooks/deliveries'),
   storePage: () => loyaltyFetch('/store-page'),
   saveStorePage: data => loyaltyFetch('/store-page', jsonBody('PUT', data)),
+  resetCustomerPin: (customer_ref, pin) => loyaltyFetch('/store-page/pin-reset', jsonBody('POST', pin ? { customer_ref, pin } : { customer_ref })),
   addSale: data => loyaltyFetch('/sales', jsonBody('POST', data)),
   redeem: data => loyaltyFetch('/redemptions', jsonBody('POST', data)),
   stats: () => loyaltyFetch('/stats'),

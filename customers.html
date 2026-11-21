@@ -88,9 +88,16 @@
       <div class="balance-card mb-4 d-flex align-items-center gap-3">
         <span class="avatar avatar-lg rounded-circle" style="background:rgba(255,255,255,.22);color:#fff">${esc(initials(name))}</span>
         <div class="me-auto"><div style="opacity:.85">${esc(name)}${account.customer.name ? ` · ${esc(account.customer.customer_ref)}` : ''}</div><div class="big">${money.format(account.balance)} <span class="fs-4 fw-bold" style="opacity:.8">điểm</span></div></div>
+        <button class="btn btn-sm btn-light" id="reset-pin" title="Xóa hoặc đặt PIN mới cho khách (dùng khi khách quên PIN)"><i class="ti ti-lock-open me-1"></i>Đặt lại PIN</button>
         <button class="btn btn-sm btn-light" id="use-points"><i class="ti ti-gift-card me-1"></i>Dùng điểm</button>
       </div>
       <div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Thời gian</th><th>Hóa đơn / mã</th><th class="text-end">Giá trị</th><th class="text-end">Điểm</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="text-secondary text-center py-4">Chưa có giao dịch</td></tr>'}</tbody></table></div>`;
+    document.getElementById('reset-pin').onclick = async () => {
+      const pin = prompt('PIN mới cho khách (4–6 số).\nĐể trống = xóa PIN, khách sẽ tự tạo lại khi vào trang khách:');
+      if (pin === null) return;
+      try { const r = await LoyaltyAPI.resetCustomerPin(account.customer.customer_ref, pin.trim()); showAlert(r.cleared ? 'Đã xóa PIN. Khách sẽ tự tạo PIN mới ở lần vào tiếp theo.' : 'Đã đặt PIN mới cho khách.'); }
+      catch (e) { showAlert(e.message, 'danger'); }
+    };
     document.getElementById('use-points').onclick = () => {
       document.getElementById('redeem-customer-ref').value = account.customer.customer_ref;
       bootstrap.Tab.getOrCreateInstance(document.querySelector('[href="#tab-redeem"]')).show();
