@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bắt đầu nhanh - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/layout.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/js/qr.js"></script>
+  <style>
+    .wz { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .wz .s { flex: 1; display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem; border-radius: 12px; background: #fff; border: 1px solid #e6e8f3; color: var(--muted); font-weight: 600; font-size: 14px; }
+    .wz .s .n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #eef0f8; font-weight: 800; }
+    .wz .s.on { border-color: #6366f1; color: #1c2040; }
+    .wz .s.on .n { background: #6366f1; color: #fff; }
+    .wz .s.ok .n { background: #d1fae5; color: #059669; }
+    @media (max-width: 576px) { .wz .s span:last-child { display: none; } .wz .s { justify-content: center; } }
+    .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .chips button { border: 1px solid #d9dcec; background: #fff; border-radius: 999px; padding: .35rem .9rem; font-weight: 600; }
+    .chips button.on { background: #6366f1; border-color: #6366f1; color: #fff; }
+    #poster { display: none; }
+    #poster .qr svg { width: 100%; height: auto; display: block; }
+    @media print {
+      body * { visibility: hidden; }
+      #poster, #poster * { visibility: visible; }
+      #poster { display: block; position: absolute; left: 0; top: 0; width: 100%; text-align: center; padding: 24mm 16mm; }
+      #poster h1 { font-size: 34pt; font-weight: 800; margin: 0 0 6mm; }
+      #poster p { font-size: 16pt; margin: 0 0 10mm; }
+      #poster .qr { width: 110mm; margin: 0 auto 8mm; }
+      #poster .url { font-size: 12pt; color: #555; word-break: break-all; }
+    }
+  </style>
+</head>
+<body class="layout-fluid">
+<div class="page" id="layout"></div>
+<template id="tpl">
+<div class="wz" id="wz">
+  <div class="s" data-s="1"><span class="n">1</span><span>Luật tích điểm</span></div>
+  <div class="s" data-s="2"><span class="n">2</span><span>Mã QR cho khách</span></div>
+  <div class="s" data-s="3"><span class="n">3</span><span>Thử đơn đầu tiên</span></div>
+</div>
+
+<section class="card" id="p1"><form class="card-body" id="f1">
+  <h3 class="mb-1">Cửa hàng của bạn tích điểm thế nào?</h3>
+  <p class="text-secondary">Chọn nhanh một mức, sau này vẫn đổi được ở mục Luật tích điểm.</p>
+  <div class="mb-3"><label class="form-label">Tên cửa hàng (khách sẽ thấy)</label><input id="name" class="form-control form-control-lg" maxlength="80" required></div>
+  <div class="mb-2"><label class="form-label">Khách chi bao nhiêu thì được 1 điểm?</label></div>
+  <div class="chips mb-3" id="chips"><button type="button" data-v="10000">10.000 ₫</button><button type="button" data-v="20000">20.000 ₫</button><button type="button" data-v="50000">50.000 ₫</button><button type="button" data-v="100000">100.000 ₫</button></div>
+  <div class="input-group mb-2" style="max-width:320px"><input id="spend" class="form-control" type="number" min="1" step="1" required><span class="input-group-text">₫ = 1 điểm</span></div>
+  <div class="form-hint mb-4" id="hint"></div>
+  <button class="btn btn-grad btn-lg" type="submit">Lưu và tiếp tục <i class="ti ti-arrow-right ms-1"></i></button>
+</form></section>
+
+<section class="card d-none" id="p2"><div class="card-body">
+  <h3 class="mb-1">In mã QR đặt ở quầy</h3>
+  <p class="text-secondary">Khách quét mã, nhập số điện thoại là xem được điểm, điểm danh, quay thưởng — không cần cài app.</p>
+  <div class="row align-items-center">
+    <div class="col-md-5 text-center mb-3"><div id="qr" class="mx-auto" style="max-width:240px"></div></div>
+    <div class="col-md-7">
+      <div class="input-group mb-3"><input id="link" class="form-control" readonly onclick="this.select()"><button class="btn" id="copy" type="button">Sao chép</button></div>
+      <div class="btn-list mb-3">
+        <button class="btn btn-grad" id="print" type="button"><i class="ti ti-printer me-1"></i>In poster</button>
+        <button class="btn btn-outline-primary" id="png" type="button"><i class="ti ti-download me-1"></i>Tải PNG</button>
+        <a class="btn btn-outline-primary" id="open" target="_blank" rel="noopener"><i class="ti ti-external-link me-1"></i>Xem thử</a>
+      </div>
+      <div class="small text-secondary">Đổi đường dẫn hoặc tắt trang ở mục <a href="qr.html">Trang khách &amp; QR</a>.</div>
+    </div>
+  </div>
+  <div class="d-flex justify-content-between mt-4"><button class="btn" id="b2" type="button"><i class="ti ti-arrow-left me-1"></i>Quay lại</button><button class="btn btn-grad btn-lg" id="n2" type="button">Tiếp tục <i class="ti ti-arrow-right ms-1"></i></button></div>
+</div></section>
+
+<section class="card d-none" id="p3"><div class="card-body">
+  <form id="f3">
+    <h3 class="mb-1">Thử cộng điểm cho một khách</h3>
+    <p class="text-secondary">Nhập số điện thoại của chính bạn và một hóa đơn mẫu để thấy khách nhận điểm ra sao.</p>
+    <div class="row g-3 mb-3" style="max-width:560px">
+      <div class="col-sm-6"><label class="form-label">Số điện thoại khách</label><input id="phone" class="form-control form-control-lg" inputmode="tel" placeholder="0901234567" required></div>
+      <div class="col-sm-6"><label class="form-label">Hóa đơn (₫)</label><input id="amount" class="form-control form-control-lg" type="number" min="1" step="1" required></div>
+    </div>
+    <label class="form-check mb-4"><input class="form-check-input" type="checkbox" id="join" checked><span class="form-check-label">Tặng khách lượt quay thưởng theo hóa đơn (tham gia các chương trình quay đang mở)</span></label>
+    <div><button class="btn btn-grad btn-lg" type="submit"><i class="ti ti-bolt me-1"></i>Cộng điểm thử</button></div>
+  </form>
+  <div id="done" class="d-none">
+    <div class="text-center py-3"><div style="font-size:48px">🎉</div><h3 id="done-title"></h3><p class="text-secondary" id="done-text"></p>
+      <div class="btn-list justify-content-center"><a class="btn btn-outline-primary" id="open2" target="_blank" rel="noopener"><i class="ti ti-device-mobile me-1"></i>Xem như khách</a><a class="btn btn-grad" id="finish" href="overview.html">Vào trang Tổng quan</a></div>
+      <div class="small text-secondary mt-3">Tiếp theo: nối máy POS ở mục <a href="integrations.html">Tích hợp POS</a>.</div></div>
+  </div>
+  <div class="mt-3"><button class="btn" id="b3" type="button"><i class="ti ti-arrow-left me-1"></i>Quay lại</button></div>
+</div></section>
+<div id="poster"><h1 id="poster-name"></h1><p>Quét mã – tích điểm – điểm danh – quay thưởng mỗi ngày!</p><div class="qr" id="poster-qr"></div><div class="url" id="poster-url"></div></div>
+</template>
+<script>
+(async () => {
+  await requireAuth();
+  renderLayout('welcome', 'Bắt đầu nhanh', 'Ba bước để cửa hàng của bạn chạy chương trình khách hàng thân thiết.',
+    '<button class="btn btn-sm btn-outline-secondary" id="skip" type="button">Để sau</button>');
+  document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  const $ = id => document.getElementById(id);
+  const safe = fn => { try { return fn(); } catch { return null; } };
+  const finish = () => { safe(() => localStorage.setItem('welcome_done', '1')); };
+  $('skip').addEventListener('click', () => { finish(); location.href = 'overview.html'; });
+  $('finish').addEventListener('click', finish);
+
+  let page = null, spend = 10000;
+  const url = () => `${location.origin}/c?s=${page.slug}`;
+  function go(n) {
+    [1, 2, 3].forEach(i => { $('p' + i).classList.toggle('d-none', i !== n); const s = document.querySelector(`#wz [data-s="${i}"]`); s.classList.toggle('on', i === n); s.classList.toggle('ok', i < n); });
+    if (n === 2) paintQr();
+    if (n === 3 && !$('amount').value) $('amount').value = spend * 3;
+    $('alert').innerHTML = '';
+  }
+
+  // Bước 1
+  function pickChip() { document.querySelectorAll('#chips button').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number($('spend').value))); const v = Number($('spend').value); $('hint').textContent = v ? `Ví dụ: hóa đơn ${money.format(v * 5)} ₫ → khách nhận 5 điểm.` : ''; }
+  $('chips').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('spend').value = b.dataset.v; pickChip(); } });
+  $('spend').addEventListener('input', pickChip);
+  const slugify = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  onSubmit('f1', async () => {
+    spend = Number($('spend').value);
+    await LoyaltyAPI.saveProgram({ currency: 'VND', spend_per_point_minor: spend, points_per_step: 1 });
+    const name = $('name').value.trim();
+    ({ page } = await LoyaltyAPI.saveStorePage({ name, enabled: true }));
+    // Đường dẫn đẹp theo tên cửa hàng (chỉ khi slug còn là mã ngẫu nhiên 8 ký tự do hệ thống tạo); trùng thì giữ nguyên.
+    const wanted = slugify(name);
+    if (wanted.length >= 3 && /^[abcdefghjkmnpqrstuvwxyz23456789]{8}$/.test(page.slug)) { try { ({ page } = await LoyaltyAPI.saveStorePage({ slug: wanted })); } catch { /* giữ slug cũ */ } }
+    go(2);
+  });
+
+  // Bước 2
+  function paintQr() {
+    const svg = qrSvg(url());
+    $('qr').innerHTML = svg; $('poster-qr').innerHTML = svg;
+    $('link').value = url(); $('open').href = url(); $('open2').href = url(); $('poster-url').textContent = url(); $('poster-name').textContent = page.name;
+  }
+  $('copy').addEventListener('click', () => copyText($('link').value, $('copy')));
+  $('print').addEventListener('click', () => window.print());
+  $('png').addEventListener('click', () => downloadQrPng(url(), `qr-${page.slug}.png`));
+  $('n2').addEventListener('click', () => go(3)); $('b2').addEventListener('click', () => go(1)); $('b3').addEventListener('click', () => go(2));
+
+  // Bước 3
+  const normalizePhone = v => String(v).replace(/[\s.\-()]/g, '');
+  onSubmit('f3', async () => {
+    const phone = normalizePhone($('phone').value), amount = Number($('amount').value);
+    if (!/^\+?\d{6,15}$/.test(phone)) throw new Error('Số điện thoại chưa đúng (6–15 chữ số).');
+    if ($('join').checked) {
+      const { campaigns } = await LoyaltyAPI.campaigns();
+      for (const c of campaigns.filter(c => !c.joined)) { try { await LoyaltyAPI.join(c.id); } catch { /* bỏ qua chương trình không tham gia được */ } }
+    }
+    const r = await LoyaltyAPI.sendEvent({ type: 'purchase', customer_ref: phone, order_id: `welcome-${phone}`, amount_minor: amount, source_type: 'onboarding' });
+    $('f3').classList.add('d-none'); $('done').classList.remove('d-none');
+    $('done-title').textContent = r.replayed ? 'Số này đã được cộng thử trước đó' : `Khách nhận +${money.format(r.points_delta)} điểm`;
+    $('done-text').textContent = `Số dư hiện tại: ${money.format(r.balance)} điểm${r.spins_earned ? ` · ${r.spins_earned} lượt quay` : ''}. Chương trình đã sẵn sàng!`;
+    finish();
+  });
+
+  // Nạp dữ liệu hiện có
+  try {
+    const [{ program }, sp] = await Promise.all([LoyaltyAPI.getProgram(), LoyaltyAPI.storePage()]);
+    page = sp.page;
+    $('name').value = page.name;
+    $('spend').value = program ? Number(program.spend_per_point_minor) : 10000;
+    spend = Number($('spend').value);
+  } catch (e) { showAlert(e.message, 'danger'); }
+  pickChip(); go(1);
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>

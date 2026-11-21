@@ -1,4 +1,5 @@
 const NAV = [
+  { page: 'welcome', href: 'welcome.html', icon: 'ti-rocket', label: 'Bắt đầu nhanh' },
   { page: 'overview', href: 'overview.html', icon: 'ti-layout-dashboard', label: 'Tổng quan' },
   { page: 'customers', href: 'customers.html', icon: 'ti-users', label: 'Khách hàng & điểm' },
   { page: 'qr', href: 'qr.html', icon: 'ti-qrcode', label: 'Trang khách & QR' },

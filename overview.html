@@ -114,6 +114,9 @@
 
   try {
     stats = await LoyaltyAPI.stats();
+    // Cửa hàng mới tinh (chưa có luật, chưa có khách) → dẫn vào trang bắt đầu nhanh một lần.
+    let skipped = false; try { skipped = !!localStorage.getItem('welcome_done'); } catch {}
+    if (!skipped && !stats.customers && !stats.points_issued && !(await LoyaltyAPI.getProgram()).program) { location.replace('welcome.html'); return; }
     renderStats(); renderChart(); renderRecent();
     await renderSteps();
   } catch (e) { showAlert(e.message, 'danger'); }
