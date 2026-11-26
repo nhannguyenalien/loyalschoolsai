@@ -1,4 +1,4 @@
-// Tạo mã QR dạng SVG từ thư viện qrcode-generator (cần nạp qrcode.min.js trước file này).
+// QR code as SVG using qrcode-generator (load qrcode.min.js before this file).
 function qrSvg(text) {
   const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
   const n = qr.getModuleCount(), margin = 2, size = n + margin * 2;
@@ -7,7 +7,7 @@ function qrSvg(text) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="#fff"/><path d="${path}" fill="#1c2040"/></svg>`;
 }
 
-// Tải mã QR về dạng PNG 1024px.
+// Download the QR code as a 1024px PNG.
 function downloadQrPng(text, filename) {
   const img = new Image(), src = URL.createObjectURL(new Blob([qrSvg(text)], { type: 'image/svg+xml' }));
   img.onload = () => {

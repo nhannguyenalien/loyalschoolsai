@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Điểm danh & chuỗi - Loyal SchoolsAI</title>
+  <title>Check-in & streaks - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -25,22 +25,22 @@
   <div class="col-lg-7">
     <section class="card mb-3">
       <div class="card-body">
-        <div class="fw-bold mb-2">Khách điểm danh</div>
-        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="Số điện thoại / mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>Xem chuỗi</button></form>
-        <div id="status"><div class="empty-state"><i class="ti ti-calendar-check"></i>Nhập số điện thoại để xem chuỗi điểm danh của khách.</div></div>
+        <div class="fw-bold mb-2" data-vi="Khách điểm danh">Customer check-in</div>
+        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="Phone number / customer code" data-vi-placeholder="Số điện thoại / mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i><span data-vi="Xem chuỗi">View streak</span></button></form>
+        <div id="status"><div class="empty-state"><i class="ti ti-calendar-check"></i><span data-vi="Nhập số điện thoại để xem chuỗi điểm danh của khách.">Enter a phone number to see the customer's streak.</span></div></div>
       </div>
     </section>
   </div>
   <div class="col-lg-5">
     <section class="card mb-3">
-      <div class="card-header"><h3 class="card-title"><i class="ti ti-adjustments me-2"></i>Cấu hình thưởng</h3></div>
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-adjustments me-2"></i><span data-vi="Cấu hình thưởng">Rewards setup</span></h3></div>
       <form class="card-body" id="settings-form">
-        <div class="mb-3"><label class="form-label">Điểm mỗi lần điểm danh</label><input id="checkin-points" class="form-control" type="number" min="0" max="100000" required></div>
-        <label class="form-label">Thưởng mốc chuỗi liên tiếp</label>
+        <div class="mb-3"><label class="form-label" data-vi="Điểm mỗi lần điểm danh">Points per check-in</label><input id="checkin-points" class="form-control" type="number" min="0" max="100000" required></div>
+        <label class="form-label" data-vi="Thưởng mốc chuỗi liên tiếp">Streak milestone bonuses</label>
         <div id="milestones" class="mb-2"></div>
-        <button class="btn btn-sm btn-outline-primary mb-3" id="add-milestone" type="button"><i class="ti ti-plus me-1"></i>Thêm mốc</button>
-        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu cấu hình</button>
-        <div class="form-hint mt-2">Mỗi mốc chỉ thưởng một lần trong một chuỗi. Bỏ lỡ một ngày thì chuỗi bắt đầu lại từ 1. "Ngày" tính theo giờ Việt Nam.</div>
+        <button class="btn btn-sm btn-outline-primary mb-3" id="add-milestone" type="button"><i class="ti ti-plus me-1"></i><span data-vi="Thêm mốc">Add milestone</span></button>
+        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-device-floppy me-1"></i><span data-vi="Lưu cấu hình">Save settings</span></button>
+        <div class="form-hint mt-2" data-vi="Mỗi mốc chỉ thưởng một lần trong một chuỗi. Bỏ lỡ một ngày thì chuỗi bắt đầu lại từ 1. &quot;Ngày&quot; tính theo giờ Việt Nam.">Each milestone pays once per streak. Missing a day restarts the streak at 1. Days follow Vietnam time.</div>
       </form>
     </section>
   </div>
@@ -49,8 +49,9 @@
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('checkin', 'Điểm danh & chuỗi', 'Khách điểm danh mỗi ngày để nhận điểm; điểm danh liên tiếp được thưởng thêm.');
+  renderLayout('checkin', T('Check-in & streaks', 'Điểm danh & chuỗi'), T('Customers check in daily for points; streaks earn bonuses.', 'Khách điểm danh mỗi ngày để nhận điểm; điểm danh liên tiếp được thưởng thêm.'));
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  applyI18n(); applyCurrency();
   const $ = id => document.getElementById(id);
   let customer = null;
 
@@ -58,7 +59,7 @@
   function milestoneRow(m = { days: '', points: '' }) {
     const row = document.createElement('div');
     row.className = 'd-flex align-items-center gap-2 mb-2 milestone-row';
-    row.innerHTML = `<input class="form-control m-days" type="number" min="2" max="365" placeholder="ngày" value="${esc(m.days)}" style="width:76px" required><span class="text-secondary text-nowrap">ngày →</span><input class="form-control m-points" type="number" min="0" placeholder="điểm" value="${esc(m.points)}" style="width:88px" required><span class="text-secondary">điểm</span><button class="btn btn-icon btn-outline-danger ms-auto" type="button" title="Xóa mốc"><i class="ti ti-trash"></i></button>`;
+    row.innerHTML = `<input class="form-control m-days" type="number" min="2" max="365" placeholder="${T('days', 'ngày')}" value="${esc(m.days)}" style="width:76px" required><span class="text-secondary text-nowrap">${T('days', 'ngày')} →</span><input class="form-control m-points" type="number" min="0" placeholder="${T('points', 'điểm')}" value="${esc(m.points)}" style="width:88px" required><span class="text-secondary">${T('points', 'điểm')}</span><button class="btn btn-icon btn-outline-danger ms-auto" type="button" title="${T('Remove milestone', 'Xóa mốc')}"><i class="ti ti-trash"></i></button>`;
     row.querySelector('button').onclick = () => row.remove();
     return row;
   }
@@ -71,7 +72,7 @@
   onSubmit('settings-form', async () => {
     const streak_milestones = [...document.querySelectorAll('.milestone-row')].map(r => ({ days: Number(r.querySelector('.m-days').value), points: Number(r.querySelector('.m-points').value) }));
     await LoyaltyAPI.saveGameSettings({ checkin_points: Number($('checkin-points').value), streak_milestones });
-    showAlert('Đã lưu cấu hình điểm danh.'); await loadSettings();
+    showAlert(T('Check-in settings saved.', 'Đã lưu cấu hình điểm danh.')); await loadSettings();
     if (customer) await show(customer);
   });
 
@@ -86,17 +87,17 @@
     const next = st.next_milestone;
     const progress = next ? Math.round(st.streak / next.days * 100) : 100;
     $('status').innerHTML = `
-      ${result ? `<div class="alert alert-${result.replayed ? 'info' : 'success'}"><b>${result.replayed ? 'Khách đã điểm danh hôm nay rồi.' : `+${result.points} điểm! Chuỗi ${result.streak} ngày 🔥`}</b>${result.milestone ? `<div class="mt-1">🎉 Chạm mốc <b>${result.milestone.days} ngày</b>: thưởng thêm <b>+${result.milestone.points} điểm</b></div>` : ''}<div class="small mt-1">Số dư: ${money.format(result.balance)} điểm</div></div>` : ''}
+      ${result ? `<div class="alert alert-${result.replayed ? 'info' : 'success'}"><b>${result.replayed ? T('Already checked in today.', 'Khách đã điểm danh hôm nay rồi.') : T(`+${pts(result.points)}! ${result.streak}-day streak 🔥`, `+${result.points} điểm! Chuỗi ${result.streak} ngày 🔥`)}</b>${result.milestone ? `<div class="mt-1">${T(`🎉 <b>${result.milestone.days}-day</b> milestone: bonus <b>+${pts(result.milestone.points)}</b>`, `🎉 Chạm mốc <b>${result.milestone.days} ngày</b>: thưởng thêm <b>+${result.milestone.points} điểm</b>`)}</div>` : ''}<div class="small mt-1">${T('Balance', 'Số dư')}: ${pts(result.balance)}</div></div>` : ''}
       <div class="balance-card mb-3 d-flex align-items-center gap-3">
         <div style="font-size:3rem;line-height:1">🔥</div>
-        <div class="me-auto"><div style="opacity:.85">${esc(st.customer_ref)}</div><div class="big">${st.streak} <span class="fs-4 fw-bold" style="opacity:.8">ngày liên tiếp</span></div></div>
-        <div class="text-end" style="opacity:.9"><div class="fs-3 fw-bold">${st.total_checkins}</div><div class="small">lần điểm danh</div></div>
+        <div class="me-auto"><div style="opacity:.85">${esc(st.customer_ref)}</div><div class="big">${st.streak} <span class="fs-4 fw-bold" style="opacity:.8">${T('day streak', 'ngày liên tiếp')}</span></div></div>
+        <div class="text-end" style="opacity:.9"><div class="fs-3 fw-bold">${st.total_checkins}</div><div class="small">${T('check-ins', 'lần điểm danh')}</div></div>
       </div>
-      ${next ? `<div class="mb-1 d-flex justify-content-between small"><span>Còn <b>${next.remaining} ngày</b> nữa tới mốc ${next.days} ngày</span><b class="text-success">+${money.format(next.points)} điểm</b></div><div class="progress mb-3"><div class="progress-bar" style="width:${progress}%;background:var(--brand-grad)"></div></div>` : '<div class="small text-secondary mb-3">Khách đã vượt mọi mốc thưởng hiện có.</div>'}
+      ${next ? `<div class="mb-1 d-flex justify-content-between small"><span>${T(`<b>${next.remaining}</b> more ${plural(next.remaining, 'day', 'days')} to the ${next.days}-day milestone`, `Còn <b>${next.remaining} ngày</b> nữa tới mốc ${next.days} ngày`)}</span><b class="text-success">+${pts(next.points)}</b></div><div class="progress mb-3"><div class="progress-bar" style="width:${progress}%;background:var(--brand-grad)"></div></div>` : `<div class="small text-secondary mb-3">${T('This customer has passed every milestone.', 'Khách đã vượt mọi mốc thưởng hiện có.')}</div>`}
       <div class="d-flex mb-3">${cells.join('')}</div>
       ${st.checked_in_today
-        ? '<button class="btn btn-success w-100 btn-lg" disabled><i class="ti ti-circle-check me-1"></i>Hôm nay đã điểm danh</button>'
-        : `<button class="btn btn-grad w-100 btn-lg" id="do-checkin"><i class="ti ti-calendar-check me-1"></i>Điểm danh hôm nay (+${st.checkin_points} điểm)</button>`}`;
+        ? `<button class="btn btn-success w-100 btn-lg" disabled><i class="ti ti-circle-check me-1"></i>${T('Checked in today', 'Hôm nay đã điểm danh')}</button>`
+        : `<button class="btn btn-grad w-100 btn-lg" id="do-checkin"><i class="ti ti-calendar-check me-1"></i>${T('Check in today', 'Điểm danh hôm nay')} (+${pts(st.checkin_points)})</button>`}`;
     const btn = $('do-checkin');
     if (btn) btn.onclick = async () => {
       btn.disabled = true;

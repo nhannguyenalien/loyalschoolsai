@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tích hợp POS - Loyal SchoolsAI</title>
+  <title>POS integration - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -25,25 +25,25 @@
     <section class="card mb-3">
       <div class="card-header"><h3 class="card-title"><i class="ti ti-key me-2"></i>API key</h3></div>
       <div class="card-body">
-        <p class="text-secondary">POS gọi API loyalty bằng key này. Key chỉ hiện đầy đủ <b>một lần</b> khi tạo; hệ thống chỉ lưu bản băm.</p>
-        <form class="input-group mb-3" id="key-form"><input id="key-name" class="form-control" maxlength="100" placeholder="Tên key, ví dụ: POS quầy 1" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i>Tạo key</button></form>
+        <p class="text-secondary" data-vi="POS gọi API loyalty bằng key này. Key chỉ hiện đầy đủ <b>một lần</b> khi tạo; hệ thống chỉ lưu bản băm.">Your POS calls the loyalty API with this key. The full key is shown <b>only once</b>; only its hash is stored.</p>
+        <form class="input-group mb-3" id="key-form"><input id="key-name" class="form-control" maxlength="100" placeholder="Key name, e.g. Counter 1 POS" data-vi-placeholder="Tên key, ví dụ: POS quầy 1" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i><span data-vi="Tạo key">Create key</span></button></form>
         <div id="new-key"></div>
-        <div id="key-list"><div class="text-secondary">Đang tải...</div></div>
+        <div id="key-list"><div class="text-secondary" data-vi="Đang tải...">Loading...</div></div>
       </div>
     </section>
     <section class="card mb-3">
       <div class="card-header"><h3 class="card-title"><i class="ti ti-webhook me-2"></i>Webhook</h3></div>
       <div class="card-body">
-        <p class="text-secondary">Hệ thống tự gọi URL của bạn khi có <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. Mỗi lần gọi có chữ ký <code>X-Loyalty-Signature</code>; lỗi sẽ được thử lại tối đa 6 lần.</p>
-        <form class="input-group mb-3" id="hook-form"><input id="hook-url" type="url" class="form-control" placeholder="https://cua-hang.vn/loyalty-webhook" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i>Thêm</button></form>
+        <p class="text-secondary"><span data-vi="Hệ thống tự gọi URL của bạn khi có">We call your URL on</span> <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <span data-vi="Mỗi lần gọi có chữ ký">Each call is signed with</span> <code>X-Loyalty-Signature</code>; <span data-vi="lỗi sẽ được thử lại tối đa 6 lần.">failures are retried up to 6 times.</span></p>
+        <form class="input-group mb-3" id="hook-form"><input id="hook-url" type="url" class="form-control" placeholder="https://your-store.com/loyalty-webhook" required><button class="btn btn-grad" type="submit"><i class="ti ti-plus me-1"></i><span data-vi="Thêm">Add</span></button></form>
         <div id="new-hook"></div>
-        <div id="hook-list"><div class="text-secondary">Đang tải...</div></div>
-        <div class="fw-bold mt-3 mb-1">Lần gửi gần đây</div>
+        <div id="hook-list"><div class="text-secondary" data-vi="Đang tải...">Loading...</div></div>
+        <div class="fw-bold mt-3 mb-1" data-vi="Lần gửi gần đây">Recent deliveries</div>
         <div id="hook-deliveries" class="small"></div>
       </div>
     </section>
     <section class="card">
-      <div class="card-header"><h3 class="card-title"><i class="ti ti-code me-2"></i>Bắt đầu nhanh</h3><a class="ms-auto btn btn-sm btn-outline-primary" href="docs.html" target="_blank">Xem tài liệu đầy đủ <i class="ti ti-arrow-right ms-1"></i></a></div>
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-code me-2"></i><span data-vi="Bắt đầu nhanh">Quick start</span></h3><a class="ms-auto btn btn-sm btn-outline-primary" href="docs.html" target="_blank"><span data-vi="Xem tài liệu đầy đủ">Full documentation</span> <i class="ti ti-arrow-right ms-1"></i></a></div>
       <div class="card-body">
         <ul class="nav nav-pills tabs-pill mb-3" data-bs-toggle="tabs">
           <li class="nav-item"><a class="nav-link active" href="#q-curl" data-bs-toggle="tab">curl</a></li>
@@ -58,19 +58,19 @@
   </div>
   <div class="col-lg-5">
     <section class="card mb-3"><div class="card-body">
-      <div class="fw-bold mb-2">Luồng tích hợp POS</div>
-      <div class="step"><span class="dot">1</span><div><b>Khi khách đưa SĐT</b><div class="small text-secondary"><code>GET /account</code> để hiện số dư điểm.</div></div></div>
-      <div class="step"><span class="dot">2</span><div><b>Khi chốt đơn</b><div class="small text-secondary"><code>POST /sales</code> với <code>idempotency_key</code> = <code>pos:&lt;mã hóa đơn&gt;</code>.</div></div></div>
-      <div class="step"><span class="dot">3</span><div><b>Khi khách đổi điểm</b><div class="small text-secondary"><code>POST /redemptions</code>, trừ điểm tại quầy.</div></div></div>
-      <div class="step"><span class="dot">4</span><div><b>Quà tặng</b><div class="small text-secondary">Hóa đơn đủ điều kiện tự sinh lượt quay, mở ở trang <a href="rewards.html">Quay thưởng</a>.</div></div></div>
+      <div class="fw-bold mb-2" data-vi="Luồng tích hợp POS">POS flow</div>
+      <div class="step"><span class="dot">1</span><div><b data-vi="Khi khách đưa SĐT">When the customer gives a phone number</b><div class="small text-secondary"><code>GET /account</code> <span data-vi="để hiện số dư điểm.">to show the balance.</span></div></div></div>
+      <div class="step"><span class="dot">2</span><div><b data-vi="Khi chốt đơn">At checkout</b><div class="small text-secondary"><code>POST /sales</code> <span data-vi="với">with</span> <code>idempotency_key</code> = <code>pos:&lt;receipt&gt;</code>.</div></div></div>
+      <div class="step"><span class="dot">3</span><div><b data-vi="Khi khách đổi điểm">When the customer redeems</b><div class="small text-secondary"><code>POST /redemptions</code> <span data-vi="trừ điểm tại quầy.">to deduct points at the counter.</span></div></div></div>
+      <div class="step"><span class="dot">4</span><div><b data-vi="Quà tặng">Rewards</b><div class="small text-secondary"><span data-vi="Hóa đơn đủ điều kiện tự sinh lượt quay, mở ở trang">Qualifying receipts earn spins; play them on</span> <a href="rewards.html" data-vi="Quay thưởng">Reward spins</a>.</div></div></div>
     </div></section>
     <section class="card"><div class="card-body">
-      <div class="fw-bold mb-2"><i class="ti ti-shield-lock me-1 text-success"></i>An toàn</div>
+      <div class="fw-bold mb-2"><i class="ti ti-shield-lock me-1 text-success"></i><span data-vi="An toàn">Security</span></div>
       <ul class="text-secondary ps-3 mb-0">
-        <li>Mỗi key chỉ truy cập dữ liệu của <b>cửa hàng này</b>.</li>
-        <li>Gửi lại cùng <code>idempotency_key</code> khi mạng lỗi sẽ không cộng/trừ trùng.</li>
-        <li>Key không tạo hay thu hồi được key khác.</li>
-        <li>Nghi ngờ lộ key? Thu hồi ngay và tạo key mới.</li>
+        <li data-vi="Mỗi key chỉ truy cập dữ liệu của <b>cửa hàng này</b>.">A key only reaches <b>this store's</b> data.</li>
+        <li><span data-vi="Gửi lại cùng">Retrying with the same</span> <code>idempotency_key</code> <span data-vi="khi mạng lỗi sẽ không cộng/trừ trùng.">never double-counts.</span></li>
+        <li data-vi="Key không tạo hay thu hồi được key khác.">A key cannot create or revoke other keys.</li>
+        <li data-vi="Nghi ngờ lộ key? Thu hồi ngay và tạo key mới.">Suspect a leak? Revoke it now and create a new one.</li>
       </ul>
     </div></section>
   </div>
@@ -79,21 +79,27 @@
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('integrations', 'Tích hợp POS', 'Kết nối POS của cửa hàng với hệ thống tích điểm bằng API key.', '<a class="btn btn-outline-primary" href="docs.html" target="_blank"><i class="ti ti-book-2 me-1"></i>Tài liệu API</a>');
+  renderLayout('integrations', T('POS integration', 'Tích hợp POS'), T('Connect your POS to the loyalty system with an API key.', 'Kết nối POS của cửa hàng với hệ thống tích điểm bằng API key.'), `<a class="btn btn-outline-primary" href="${T('docs.html', 'docs-vi.html')}" target="_blank"><i class="ti ti-book-2 me-1"></i>${T('API docs', 'Tài liệu API')}</a>`);
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
-  const base = location.origin + '/api/v1/loyalty';
+  applyI18n(); applyCurrency();
+  const base = publicOrigin() + '/api/v1/loyalty';
+  await loadProgram().catch(() => {});
+  // amount_minor is in the smallest unit: cents for USD, đồng for VND.
+  const sampleAmount = STORE_CURRENCY === 'USD' ? 2500 : 250000;
+  const unitNote = `amount_minor ${sampleAmount} = ${fmtMoney(sampleAmount)}`;
 
   const samples = {
-    'q-curl': `# Cộng điểm khi chốt đơn
+    'q-curl': `# ${T('Add points at checkout', 'Cộng điểm khi chốt đơn')} (${unitNote})
 curl -X POST ${base}/sales \\
   -H "Authorization: Bearer lsk_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000,"customer":{"name":"An","phone":"0901234567"}}'
+  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":${sampleAmount},"customer":{"name":"An","phone":"0901234567"}}'
 
-# Xem điểm của khách
+# ${T("Read a customer's points", 'Xem điểm của khách')}
 curl "${base}/account?customer_ref=0901234567" -H "Authorization: Bearer lsk_YOUR_KEY"`,
     'q-js': `const API = "${base}", KEY = "lsk_YOUR_KEY";
 
+// ${unitNote}
 async function addPoints(receipt, phone, amount) {
   const res = await fetch(\`\${API}/sales\`, {
     method: "POST",
@@ -111,6 +117,7 @@ async function addPoints(receipt, phone, amount) {
 API, KEY = "${base}", "lsk_YOUR_KEY"
 HEADERS = {"Authorization": f"Bearer {KEY}"}
 
+# ${unitNote}
 def add_points(receipt, phone, amount):
     r = requests.post(f"{API}/sales", headers=HEADERS, json={
         "idempotency_key": f"pos:{receipt}", "customer_ref": phone,
@@ -120,26 +127,26 @@ def add_points(receipt, phone, amount):
     return r.json()  # {"entry": {"points_delta": ...}, "replayed": False, ...}`,
   };
   for (const [id, code] of Object.entries(samples)) {
-    document.getElementById(id).innerHTML = `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">Sao chép</button><code>${esc(code)}</code></pre>`;
+    document.getElementById(id).innerHTML = `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">${T('Copy', 'Sao chép')}</button><code>${esc(code)}</code></pre>`;
   }
   document.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', () => copyText(b.parentElement.querySelector('code').textContent, b)));
 
   async function loadKeys() {
     const { keys } = await LoyaltyAPI.listKeys();
     document.getElementById('key-list').innerHTML = keys.length
-      ? `<div class="list-group list-group-flush">${keys.map(k => `<div class="list-group-item d-flex align-items-center px-0"><span class="avatar avatar-sm tone-indigo me-3"><i class="ti ti-key"></i></span><div><div class="fw-bold">${esc(k.name)}</div><div class="small text-secondary"><code>${esc(k.key_prefix)}…</code> · tạo ${esc(fmtDate(k.created_at))} · ${k.last_used_at ? `dùng gần nhất ${esc(fmtDate(k.last_used_at))}` : 'chưa dùng'}</div></div><button class="btn btn-sm btn-outline-danger ms-auto revoke-key" data-id="${esc(k.id)}">Thu hồi</button></div>`).join('')}</div>`
-      : '<div class="empty-state py-3"><i class="ti ti-key-off"></i>Chưa có key nào. Tạo key đầu tiên để kết nối POS.</div>';
+      ? `<div class="list-group list-group-flush">${keys.map(k => `<div class="list-group-item d-flex align-items-center px-0"><span class="avatar avatar-sm tone-indigo me-3"><i class="ti ti-key"></i></span><div><div class="fw-bold">${esc(k.name)}</div><div class="small text-secondary"><code>${esc(k.key_prefix)}…</code> · ${T('created', 'tạo')} ${esc(fmtDate(k.created_at))} · ${k.last_used_at ? `${T('last used', 'dùng gần nhất')} ${esc(fmtDate(k.last_used_at))}` : T('never used', 'chưa dùng')}</div></div><button class="btn btn-sm btn-outline-danger ms-auto revoke-key" data-id="${esc(k.id)}">${T('Revoke', 'Thu hồi')}</button></div>`).join('')}</div>`
+      : `<div class="empty-state py-3"><i class="ti ti-key-off"></i>${T('No keys yet. Create one to connect your POS.', 'Chưa có key nào. Tạo key đầu tiên để kết nối POS.')}</div>`;
   }
   onSubmit('key-form', async () => {
     const { key } = await LoyaltyAPI.createKey(document.getElementById('key-name').value.trim());
     document.getElementById('key-name').value = '';
-    document.getElementById('new-key').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>Sao chép key ngay — sẽ không hiện lại.</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(key)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">Sao chép</button></div></div>`;
+    document.getElementById('new-key').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>${T('Copy the key now — it will not be shown again.', 'Sao chép key ngay — sẽ không hiện lại.')}</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(key)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">${T('Copy', 'Sao chép')}</button></div></div>`;
     await loadKeys();
   });
   document.getElementById('key-list').addEventListener('click', async event => {
     const button = event.target.closest('.revoke-key'); if (!button) return;
-    if (!confirm('Thu hồi key này? POS đang dùng key sẽ ngừng hoạt động ngay.')) return;
-    try { await LoyaltyAPI.revokeKey(button.dataset.id); showAlert('Đã thu hồi key.'); await loadKeys(); }
+    if (!confirm(T('Revoke this key? The POS using it stops working immediately.', 'Thu hồi key này? POS đang dùng key sẽ ngừng hoạt động ngay.'))) return;
+    try { await LoyaltyAPI.revokeKey(button.dataset.id); showAlert(T('Key revoked.', 'Đã thu hồi key.')); await loadKeys(); }
     catch (e) { showAlert(e.message, 'danger'); }
   });
   loadKeys().catch(e => showAlert(e.message, 'danger'));
@@ -147,24 +154,24 @@ def add_points(receipt, phone, amount):
   async function loadHooks() {
     const [{ endpoints }, { deliveries }] = await Promise.all([LoyaltyAPI.listWebhooks(), LoyaltyAPI.webhookDeliveries()]);
     document.getElementById('hook-list').innerHTML = endpoints.length
-      ? `<div class="list-group list-group-flush">${endpoints.map(h => `<div class="list-group-item d-flex align-items-center px-0"><div class="text-truncate me-2"><div class="fw-bold text-truncate">${esc(h.url)}</div><div class="small text-secondary">${h.active ? 'Đang bật' : 'Đã tắt'} · ${h.events.length ? esc(h.events.join(', ')) : 'mọi sự kiện'}</div></div><div class="ms-auto btn-list flex-nowrap"><button class="btn btn-sm hook-act" data-act="test" data-id="${esc(h.id)}">Gửi thử</button><button class="btn btn-sm hook-act" data-act="toggle" data-active="${h.active}" data-id="${esc(h.id)}">${h.active ? 'Tắt' : 'Bật'}</button><button class="btn btn-sm btn-outline-danger hook-act" data-act="delete" data-id="${esc(h.id)}">Xoá</button></div></div>`).join('')}</div>`
-      : '<div class="empty-state py-3"><i class="ti ti-webhook-off"></i>Chưa có webhook nào.</div>';
+      ? `<div class="list-group list-group-flush">${endpoints.map(h => `<div class="list-group-item d-flex align-items-center px-0"><div class="text-truncate me-2"><div class="fw-bold text-truncate">${esc(h.url)}</div><div class="small text-secondary">${h.active ? T('Enabled', 'Đang bật') : T('Disabled', 'Đã tắt')} · ${h.events.length ? esc(h.events.join(', ')) : T('all events', 'mọi sự kiện')}</div></div><div class="ms-auto btn-list flex-nowrap"><button class="btn btn-sm hook-act" data-act="test" data-id="${esc(h.id)}">${T('Send test', 'Gửi thử')}</button><button class="btn btn-sm hook-act" data-act="toggle" data-active="${h.active}" data-id="${esc(h.id)}">${h.active ? T('Disable', 'Tắt') : T('Enable', 'Bật')}</button><button class="btn btn-sm btn-outline-danger hook-act" data-act="delete" data-id="${esc(h.id)}">${T('Delete', 'Xoá')}</button></div></div>`).join('')}</div>`
+      : `<div class="empty-state py-3"><i class="ti ti-webhook-off"></i>${T('No webhooks yet.', 'Chưa có webhook nào.')}</div>`;
     document.getElementById('hook-deliveries').innerHTML = deliveries.length
       ? deliveries.slice(0, 8).map(d => `<div><span class="badge ${d.status === 'success' ? 'bg-green-lt' : d.status === 'failed' ? 'bg-red-lt' : 'bg-yellow-lt'}">${esc(d.status)}</span> <code>${esc(d.event_type)}</code> · ${esc(fmtDate(d.created_at))}${d.last_error ? ` · ${esc(d.last_error)}` : ''}</div>`).join('')
-      : '<span class="text-secondary">Chưa có.</span>';
+      : `<span class="text-secondary">${T('Nothing yet.', 'Chưa có.')}</span>`;
   }
   onSubmit('hook-form', async () => {
     const { secret } = await LoyaltyAPI.createWebhook(document.getElementById('hook-url').value.trim());
     document.getElementById('hook-url').value = '';
-    document.getElementById('new-hook').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>Sao chép secret ngay — dùng để kiểm tra chữ ký, sẽ không hiện lại.</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(secret)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">Sao chép</button></div></div>`;
+    document.getElementById('new-hook').innerHTML = `<div class="alert alert-warning"><div class="fw-bold mb-2"><i class="ti ti-alert-triangle me-1"></i>${T('Copy the secret now — it verifies signatures and will not be shown again.', 'Sao chép secret ngay — dùng để kiểm tra chữ ký, sẽ không hiện lại.')}</div><div class="input-group"><input class="form-control font-monospace" readonly value="${esc(secret)}" onclick="this.select()"><button class="btn" type="button" onclick="copyText(this.previousElementSibling.value, this)">${T('Copy', 'Sao chép')}</button></div></div>`;
     await loadHooks();
   });
   document.getElementById('hook-list').addEventListener('click', async event => {
     const b = event.target.closest('.hook-act'); if (!b) return;
     try {
-      if (b.dataset.act === 'delete') { if (!confirm('Xoá webhook này?')) return; await LoyaltyAPI.deleteWebhook(b.dataset.id); }
+      if (b.dataset.act === 'delete') { if (!confirm(T('Delete this webhook?', 'Xoá webhook này?'))) return; await LoyaltyAPI.deleteWebhook(b.dataset.id); }
       else if (b.dataset.act === 'toggle') await LoyaltyAPI.toggleWebhook(b.dataset.id, b.dataset.active !== 'true');
-      else { const r = await LoyaltyAPI.testWebhook(b.dataset.id); showAlert(r.status === 'success' ? 'Endpoint trả 2xx — hoạt động tốt.' : `Chưa thành công: ${r.error || r.http_status}`, r.status === 'success' ? 'success' : 'danger'); }
+      else { const r = await LoyaltyAPI.testWebhook(b.dataset.id); showAlert(r.status === 'success' ? T('Endpoint returned 2xx — working.', 'Endpoint trả 2xx — hoạt động tốt.') : `${T('Not successful', 'Chưa thành công')}: ${r.error || r.http_status}`, r.status === 'success' ? 'success' : 'danger'); }
       await loadHooks();
     } catch (e) { showAlert(e.message, 'danger'); }
   });

@@ -22,7 +22,7 @@ function positivePage(value, fallback, max = Number.MAX_SAFE_INTEGER) {
 }
 
 const earnedEvents = (customerRef, result) => [
-  ["points.earned", { customer_ref: customerRef, points: Number(result.entry.points_delta), amount_minor: Number(result.entry.amount_minor), source_ref: result.entry.source_ref }],
+  ["points.earned", { customer_ref: customerRef, points: Number(result.entry.points_delta), amount_minor: Number(result.entry.amount_minor), currency: result.entry.currency, source_ref: result.entry.source_ref }],
   ...(result.entitlements?.length ? [["spin.issued", { customer_ref: customerRef, spins: result.entitlements.length, source_ref: result.entry.source_ref }]] : []),
 ];
 const eventEvents = (r) => {

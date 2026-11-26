@@ -11,7 +11,7 @@ const COLUMNS = {
   loyalty_customers: ["tenant", "customer_ref", "name", "phone", "status", "metadata_json"],
   loyalty_ledger: ["tenant", "customer_id", "customer_ref", "transaction_type", "points_delta", "amount_minor", "currency",
     "source_type", "source_ref", "rule_version", "idempotency_key", "occurred_at", "reverses_entry_id", "metadata_json"],
-  reward_campaigns: ["name", "description", "status", "starts_at", "ends_at", "spend_per_spin_minor", "max_spins_per_sale", "theme_json"],
+  reward_campaigns: ["name", "description", "status", "starts_at", "ends_at", "spend_per_spin_minor", "max_spins_per_sale", "theme_json", "currency"],
   reward_campaign_prizes: ["campaign_id", "name", "prize_type", "weight", "max_wins", "sort_order", "status", "value_json"],
   reward_store_joins: ["tenant", "campaign_id", "status", "joined_at"],
   reward_spin_entitlements: ["tenant", "campaign_id", "customer_ref", "source_type", "source_ref", "status", "issued_at"],
@@ -83,7 +83,7 @@ export function createNeonRepository(databaseUrl) {
         one(`SELECT (SELECT COUNT(*) FROM loyalty_customers WHERE tenant = $1) AS customers,
                COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points_issued,
                COALESCE(-SUM(points_delta) FILTER (WHERE points_delta < 0), 0) AS points_redeemed,
-               COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND occurred_at >= now() - interval '30 days'), 0) AS sales_30d,
+               COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND occurred_at >= now() - interval '30 days' AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS sales_30d,
                COUNT(*) FILTER (WHERE transaction_type = 'earn' AND (occurred_at AT TIME ZONE '${tz}')::date = (now() AT TIME ZONE '${tz}')::date) AS receipts_today
              FROM loyalty_ledger WHERE tenant = $1`, [tenant]),
         one(`SELECT
@@ -92,12 +92,12 @@ export function createNeonRepository(databaseUrl) {
                (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1) AS spins_used,
                (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1 AND status = 'won') AS prizes_pending`, [tenant]),
         query(`SELECT to_char((occurred_at AT TIME ZONE '${tz}')::date, 'YYYY-MM-DD') AS day,
-                 COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn'), 0) AS amount,
+                 COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS amount,
                  COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points,
                  COUNT(*) FILTER (WHERE transaction_type = 'earn') AS receipts
                FROM loyalty_ledger WHERE tenant = $1 AND occurred_at >= now() - interval '15 days'
                GROUP BY 1 ORDER BY 1`, [tenant]),
-        query(`SELECT l.id, l.transaction_type, l.points_delta, l.amount_minor, l.source_ref, l.occurred_at, l.customer_ref, c.name
+        query(`SELECT l.id, l.transaction_type, l.points_delta, l.amount_minor, l.currency, l.source_ref, l.occurred_at, l.customer_ref, c.name
                FROM loyalty_ledger l JOIN loyalty_customers c ON c.id = l.customer_id
                WHERE l.tenant = $1 ORDER BY l.occurred_at DESC, l.created_at DESC LIMIT 8`, [tenant]),
         one(`SELECT to_char(now() AT TIME ZONE '${tz}', 'YYYY-MM-DD') AS today`),
@@ -235,11 +235,12 @@ export function createNeonRepository(databaseUrl) {
         throw cause;
       }
     },
-    async issueRewardEntitlementsForSale({ tenant, customerRef, sourceRef, amountMinor, occurredAt }) {
+    async issueRewardEntitlementsForSale({ tenant, customerRef, sourceRef, amountMinor, occurredAt, currency }) {
       const issued = [];
       for (const join of await this.listStoreCampaignJoins(tenant)) {
         const campaign = await this.getRewardCampaign(join.campaign_id);
         if (!campaign || campaign.status !== "active") continue;
+        if (currency && (campaign.currency || "VND") !== currency) continue; // ngưỡng chi tiêu tính theo tiền tệ của chiến dịch
         const threshold = Math.max(1, Number(campaign.spend_per_spin_minor || 1));
         const count = Math.min(Math.floor(amountMinor / threshold), Math.max(1, Number(campaign.max_spins_per_sale || 1)));
         for (let ordinal = 1; ordinal <= count; ordinal += 1) {

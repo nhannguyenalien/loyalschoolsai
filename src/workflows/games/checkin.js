@@ -44,7 +44,7 @@ export async function checkIn({ repository, tenant, customerRef, now = () => new
   }
 
   // Điểm điểm danh (idempotent theo ngày).
-  await repository.grantBonusPoints({ tenant, customerRef: ref, points: Number(checkin.points), key: `checkin:${ref}:${today}`, note: `Điểm danh ${today}`, now: at });
+  await repository.grantBonusPoints({ tenant, customerRef: ref, points: Number(checkin.points), key: `checkin:${ref}:${today}`, note: `Check-in ${today}`, now: at });
 
   // Thưởng mốc chuỗi: chỉ khi chạm đúng mốc, mỗi mốc một lần trong một chuỗi.
   const streak = Number(checkin.streak);
@@ -53,7 +53,7 @@ export async function checkIn({ repository, tenant, customerRef, now = () => new
   if (milestone) {
     const start = addDays(today, -(streak - 1));
     const created = await repository.insertStreakReward({ tenant, customer_ref: ref, streak_start: start, days: milestone.days, points: milestone.points });
-    await repository.grantBonusPoints({ tenant, customerRef: ref, points: milestone.points, key: `streak:${ref}:${start}:${milestone.days}`, note: `Chuỗi ${milestone.days} ngày`, now: at });
+    await repository.grantBonusPoints({ tenant, customerRef: ref, points: milestone.points, key: `streak:${ref}:${start}:${milestone.days}`, note: `${milestone.days}-day streak`, now: at });
     if (created) milestoneAwarded = milestone;
   }
 

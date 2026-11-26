@@ -1,7 +1,8 @@
-import { requireNonEmpty, requirePositiveInteger } from "../../domain/loyalty/points.js";
+import { requirePositiveInteger } from "../../domain/loyalty/points.js";
+import { requireCurrency } from "../../domain/loyalty/currency.js";
 
 export async function configureLoyaltyProgram({ repository, tenant, input }) {
-  const currency = requireNonEmpty(input.currency || "VND", "currency", 3).toUpperCase();
+  const currency = requireCurrency(input.currency || "VND");
   const spendPerPointMinor = requirePositiveInteger(input.spend_per_point_minor, "spend_per_point_minor");
   const pointsPerStep = requirePositiveInteger(input.points_per_step || 1, "points_per_step");
   const version = await repository.nextProgramVersion(tenant);

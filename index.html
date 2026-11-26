@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Đăng nhập - Loyal SchoolsAI</title>
+  <title>Loyal SchoolsAI - Loyalty program</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -20,25 +20,26 @@
   <section class="auth-hero">
     <div class="d-flex align-items-center"><span class="brand-mark" style="background:rgba(255,255,255,.2)"><i class="ti ti-gift"></i></span><span class="brand-text">Loyal SchoolsAI</span></div>
     <div>
-      <h2>Giữ khách quay lại,<br>thưởng đúng người.</h2>
-      <p class="mb-4" style="opacity:.85;max-width:420px">Tích điểm theo hóa đơn, quay thưởng tại quầy và kết nối thẳng với POS của cửa hàng.</p>
-      <div class="auth-feature"><i class="ti ti-coins"></i><div><b>Tích điểm tự động</b><div class="small" style="opacity:.8">Cộng điểm khi chốt đơn, không bao giờ cộng trùng.</div></div></div>
-      <div class="auth-feature"><i class="ti ti-gift"></i><div><b>Vòng quay may mắn</b><div class="small" style="opacity:.8">Chương trình chung, cửa hàng chỉ cần tham gia.</div></div></div>
-      <div class="auth-feature"><i class="ti ti-plug-connected"></i><div><b>API cho POS</b><div class="small" style="opacity:.8">Một API key là tích hợp xong.</div></div></div>
+      <h2 data-vi="Giữ khách quay lại,<br>thưởng đúng người.">Bring customers back,<br>reward the right ones.</h2>
+      <p class="mb-4" style="opacity:.85;max-width:420px" data-vi="Tích điểm theo hóa đơn, quay thưởng tại quầy và kết nối thẳng với POS của cửa hàng.">Points per receipt, reward spins at the counter and a direct connection to your POS.</p>
+      <div class="auth-feature"><i class="ti ti-coins"></i><div><b data-vi="Tích điểm tự động">Automatic points</b><div class="small" style="opacity:.8" data-vi="Cộng điểm khi chốt đơn, không bao giờ cộng trùng.">Added at checkout, never counted twice.</div></div></div>
+      <div class="auth-feature"><i class="ti ti-gift"></i><div><b data-vi="Vòng quay may mắn">Lucky wheel</b><div class="small" style="opacity:.8" data-vi="Chương trình chung, cửa hàng chỉ cần tham gia.">Shared campaigns — just join.</div></div></div>
+      <div class="auth-feature"><i class="ti ti-plug-connected"></i><div><b data-vi="API cho POS">POS API</b><div class="small" style="opacity:.8" data-vi="Một API key là tích hợp xong.">One API key and you are integrated.</div></div></div>
     </div>
-    <div class="small" style="opacity:.7"><a href="docs.html" style="color:#fff;text-decoration:underline">Tài liệu API</a></div>
+    <div class="small" style="opacity:.7"><a href="docs.html" style="color:#fff;text-decoration:underline" data-vi="Tài liệu API">API docs</a></div>
   </section>
   <section class="auth-panel">
     <form id="login-form" style="width:100%;max-width:380px">
-      <h2 class="mb-1 fw-bold" id="form-title">Chào mừng trở lại</h2>
-      <p class="text-secondary mb-4" id="form-sub">Đăng nhập để quản lý chương trình khách hàng thân thiết.</p>
+      <div class="text-end mb-2 small" id="lang-switch"></div>
+      <h2 class="mb-1 fw-bold" id="form-title" data-vi="Chào mừng trở lại">Welcome back</h2>
+      <p class="text-secondary mb-4" id="form-sub" data-vi="Đăng nhập để quản lý chương trình khách hàng thân thiết.">Sign in to manage your loyalty program.</p>
       <div id="alert"></div>
       <div class="mb-3"><label class="form-label">Email</label><input id="email" type="email" class="form-control form-control-lg" autocomplete="username" required></div>
-      <div class="mb-3"><label class="form-label">Mật khẩu <a href="#" id="forgot" class="float-end small">Quên mật khẩu?</a></label><input id="password" type="password" class="form-control form-control-lg" autocomplete="current-password" minlength="6" required></div>
-      <button class="btn btn-grad btn-lg w-100" type="submit" id="submit-btn">Đăng nhập</button>
-      <div class="hr-text">hoặc</div>
-      <button class="btn btn-lg w-100" type="button" id="google-btn"><img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" class="me-2" alt="">Tiếp tục với Google</button>
-      <div class="text-center text-secondary mt-4"><span id="switch-text">Chưa có tài khoản?</span> <a href="#" id="switch-mode" class="fw-bold">Đăng ký</a></div>
+      <div class="mb-3"><label class="form-label"><span data-vi="Mật khẩu">Password</span> <a href="#" id="forgot" class="float-end small" data-vi="Quên mật khẩu?">Forgot password?</a></label><input id="password" type="password" class="form-control form-control-lg" autocomplete="current-password" minlength="6" required></div>
+      <button class="btn btn-grad btn-lg w-100" type="submit" id="submit-btn" data-vi="Đăng nhập">Sign in</button>
+      <div class="hr-text" data-vi="hoặc">or</div>
+      <button class="btn btn-lg w-100" type="button" id="google-btn"><img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" class="me-2" alt=""><span data-vi="Tiếp tục với Google">Continue with Google</span></button>
+      <div class="text-center text-secondary mt-4"><span id="switch-text" data-vi="Chưa có tài khoản?">No account yet?</span> <a href="#" id="switch-mode" class="fw-bold" data-vi="Đăng ký">Sign up</a></div>
     </form>
   </section>
 </div>
@@ -46,24 +47,26 @@
   let mode = 'login';
   const $ = id => document.getElementById(id);
   const value = id => $(id).value.trim();
+  applyI18n();
+  $('lang-switch').innerHTML = langSwitchHtml();
   $('switch-mode').addEventListener('click', event => {
     event.preventDefault();
     mode = mode === 'login' ? 'register' : 'login';
     const register = mode === 'register';
-    $('form-title').textContent = register ? 'Tạo tài khoản' : 'Chào mừng trở lại';
-    $('form-sub').textContent = register ? 'Mỗi tài khoản là một cửa hàng với dữ liệu riêng.' : 'Đăng nhập để quản lý chương trình khách hàng thân thiết.';
-    $('submit-btn').textContent = register ? 'Đăng ký' : 'Đăng nhập';
-    $('switch-text').textContent = register ? 'Đã có tài khoản?' : 'Chưa có tài khoản?';
-    $('switch-mode').textContent = register ? 'Đăng nhập' : 'Đăng ký';
+    $('form-title').textContent = register ? T('Create your account', 'Tạo tài khoản') : T('Welcome back', 'Chào mừng trở lại');
+    $('form-sub').textContent = register ? T('Each account is one store with its own data.', 'Mỗi tài khoản là một cửa hàng với dữ liệu riêng.') : T('Sign in to manage your loyalty program.', 'Đăng nhập để quản lý chương trình khách hàng thân thiết.');
+    $('submit-btn').textContent = register ? T('Sign up', 'Đăng ký') : T('Sign in', 'Đăng nhập');
+    $('switch-text').textContent = register ? T('Already have an account?', 'Đã có tài khoản?') : T('No account yet?', 'Chưa có tài khoản?');
+    $('switch-mode').textContent = register ? T('Sign in', 'Đăng nhập') : T('Sign up', 'Đăng ký');
     $('forgot').classList.toggle('d-none', register);
     $('password').autocomplete = register ? 'new-password' : 'current-password';
   });
   $('forgot').addEventListener('click', async event => {
     event.preventDefault();
     try {
-      if (!value('email')) throw new Error('Nhập email trước, rồi bấm "Quên mật khẩu".');
+      if (!value('email')) throw new Error(T('Enter your email first, then tap "Forgot password".', 'Nhập email trước, rồi bấm "Quên mật khẩu".'));
       await resetPassword(value('email'));
-      showAlert('Đã gửi email đặt lại mật khẩu (nếu email có tài khoản).');
+      showAlert(T('Password reset email sent (if the email has an account).', 'Đã gửi email đặt lại mật khẩu (nếu email có tài khoản).'));
     } catch (error) { showAlert(error.message, 'danger'); }
   });
   onSubmit('login-form', () => (mode === 'login' ? loginWithPassword : registerWithPassword)(value('email'), $('password').value));

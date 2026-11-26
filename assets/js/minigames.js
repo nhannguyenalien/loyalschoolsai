@@ -7,10 +7,10 @@
  *   reveal() : chạy hiệu ứng dừng đúng giải mà máy chủ đã chọn.
  */
 const GAMES = {
-  wheel: { label: 'Vòng quay', icon: 'ti-rotate-clockwise-2', cta: 'Quay ngay' },
-  cards: { label: 'Thẻ bí mật', icon: 'ti-cards', cta: 'Chọn thẻ' },
-  dice:  { label: 'Xúc xắc', icon: 'ti-dice-5', cta: 'Tung xúc xắc' },
-  slot:  { label: 'Slot', icon: 'ti-slot-machine', cta: 'Quay slot' },
+  wheel: { label: T('Wheel', 'Vòng quay'), icon: 'ti-rotate-clockwise-2', cta: T('Spin now', 'Quay ngay') },
+  cards: { label: T('Mystery cards', 'Thẻ bí mật'), icon: 'ti-cards', cta: T('Pick a card', 'Chọn thẻ') },
+  dice:  { label: T('Dice', 'Xúc xắc'), icon: 'ti-dice-5', cta: T('Roll dice', 'Tung xúc xắc') },
+  slot:  { label: 'Slot', icon: 'ti-slot-machine', cta: T('Play slot', 'Quay slot') },
 };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -43,7 +43,7 @@ function cardsGame(container, prizes) {
   })));
   const fill = (card, text, cls) => { card.querySelector('.pcard-front').innerHTML = `<span>${esc(text)}</span>`; card.classList.add(cls); };
   return {
-    hint: 'Chọn một thẻ bí mật',
+    hint: T('Pick a mystery card', 'Chọn một thẻ bí mật'),
     start: () => Promise.race([started, gate.promise]),
     cancel: gate.cancel,
     async reveal(index) {
@@ -53,7 +53,7 @@ function cardsGame(container, prizes) {
       await sleep(350); chosen.classList.add('flipped'); await sleep(1000);
       cards.filter(c => c !== chosen).forEach((card, i) => { // các thẻ còn lại lật mờ để khách xem "đáng lẽ có gì"
         const p = rest.length ? rest[i % rest.length] : null;
-        fill(card, p ? prizeLabel(p) : '🍀 Chúc may mắn', 'dim');
+        fill(card, p ? prizeLabel(p) : T('🍀 Good luck', '🍀 Chúc may mắn'), 'dim');
         setTimeout(() => card.classList.add('flipped'), i * 120);
       });
       await sleep(count * 120 + 500);
@@ -68,19 +68,19 @@ const dieHtml = value => `<span class="die" data-v="${value}">${Array.from({ len
 function diceGame(container, prizes) {
   const n = prizes.length, two = n > 6;
   if (n > 11) {
-    container.innerHTML = '<div class="alert alert-warning">Xúc xắc hỗ trợ tối đa 11 giải. Chương trình này có nhiều giải hơn, hãy chọn game khác.</div>';
-    return { hint: '', start: () => Promise.reject(Object.assign(new Error('Xúc xắc hỗ trợ tối đa 11 giải; hãy chọn game khác.'), { unsupported: true })), reveal: async () => {}, cancel() {} };
+    container.innerHTML = `<div class="alert alert-warning">${T('Dice supports up to 11 prizes. This campaign has more, please pick another game.', 'Xúc xắc hỗ trợ tối đa 11 giải. Chương trình này có nhiều giải hơn, hãy chọn game khác.')}</div>`;
+    return { hint: '', start: () => Promise.reject(Object.assign(new Error(T('Dice supports up to 11 prizes; please pick another game.', 'Xúc xắc hỗ trợ tối đa 11 giải; hãy chọn game khác.')), { unsupported: true })), reveal: async () => {}, cancel() {} };
   }
   const values = two ? Array.from({ length: 11 }, (_, i) => i + 2) : [1, 2, 3, 4, 5, 6];
   const prizeOf = v => (two ? v - 2 : v - 1) % n;            // mặt/tổng → giải
   const legend = values.map(v => `<span class="dice-legend"><b>${v}</b> ${esc(prizes[prizeOf(v)]?.name || '')}</span>`).join('');
-  container.innerHTML = `<div class="dice-stage">${dieHtml(1)}${two ? dieHtml(1) : ''}</div><div class="dice-legends">${legend}</div><button class="btn btn-grad btn-lg mt-3" id="dice-go" type="button"><i class="ti ti-dice-5 me-1"></i>Tung xúc xắc</button>`;
+  container.innerHTML = `<div class="dice-stage">${dieHtml(1)}${two ? dieHtml(1) : ''}</div><div class="dice-legends">${legend}</div><button class="btn btn-grad btn-lg mt-3" id="dice-go" type="button"><i class="ti ti-dice-5 me-1"></i>${T('Roll dice', 'Tung xúc xắc')}</button>`;
   const gate = cancellable();
   const started = new Promise(resolve => container.querySelector('#dice-go').addEventListener('click', e => { e.currentTarget.disabled = true; resolve(); }));
   const stage = container.querySelector('.dice-stage');
   const setDice = vals => { stage.innerHTML = vals.map(dieHtml).join(''); };
   return {
-    hint: 'Bấm để tung xúc xắc',
+    hint: T('Tap to roll the dice', 'Bấm để tung xúc xắc'),
     start: () => Promise.race([started, gate.promise]),
     cancel: gate.cancel,
     async reveal(index) {
@@ -105,12 +105,12 @@ const SLOT_SYMBOLS = ['🍒', '🍋', '🔔', '⭐', '💎', '7️⃣', '🍀', 
 function slotGame(container, prizes) {
   const symbolOf = i => SLOT_SYMBOLS[i % SLOT_SYMBOLS.length];
   const legend = prizes.map((p, i) => `<span class="dice-legend">${isNoPrize(p) ? '' : `<b>${symbolOf(i).repeat(3)}</b> `}${esc(p.name)}</span>`).join('');
-  container.innerHTML = `<div class="slot-machine"><div class="slot-reels">${[0, 1, 2].map(() => '<div class="slot-reel">❔</div>').join('')}</div></div><div class="dice-legends">${legend}</div><button class="btn btn-grad btn-lg mt-3" id="slot-go" type="button"><i class="ti ti-slot-machine me-1"></i>Kéo cần!</button>`;
+  container.innerHTML = `<div class="slot-machine"><div class="slot-reels">${[0, 1, 2].map(() => '<div class="slot-reel">❔</div>').join('')}</div></div><div class="dice-legends">${legend}</div><button class="btn btn-grad btn-lg mt-3" id="slot-go" type="button"><i class="ti ti-slot-machine me-1"></i>${T('Pull the lever!', 'Kéo cần!')}</button>`;
   const reels = [...container.querySelectorAll('.slot-reel')];
   const gate = cancellable();
   const started = new Promise(resolve => container.querySelector('#slot-go').addEventListener('click', e => { e.currentTarget.disabled = true; resolve(); }));
   return {
-    hint: 'Kéo cần để quay',
+    hint: T('Pull the lever to spin', 'Kéo cần để quay'),
     start: () => Promise.race([started, gate.promise]),
     cancel: gate.cancel,
     async reveal(index, result) {

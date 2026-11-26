@@ -12,8 +12,8 @@ async function loyaltyFetch(path, options = {}) {
     }
   });
   const body = await res.json().catch(() => ({}));
-  if (res.status === 401) { logout(); throw new Error('Phiên đăng nhập đã hết hạn.'); }
-  if (!res.ok) throw new Error(body.error || `API trả về HTTP ${res.status}`);
+  if (res.status === 401) { logout(); throw new Error(T('Your session has expired.', 'Phiên đăng nhập đã hết hạn.')); }
+  if (!res.ok) throw new Error(body.error || T(`The API returned HTTP ${res.status}`, `API trả về HTTP ${res.status}`));
   return body;
 }
 
@@ -80,3 +80,11 @@ const LoyaltyAPI = {
   rewards: ref => loyaltyFetch(`/reward-world/rewards?customer_ref=${encodeURIComponent(ref)}`),
   claim: (id, note) => loyaltyFetch(`/reward-world/results/${encodeURIComponent(id)}/claim`, jsonBody('POST', { claim_note: note })),
 };
+
+/** Load the store's points rule and remember its currency for formatting amounts. */
+async function loadProgram() {
+  const { program } = await LoyaltyAPI.getProgram();
+  setStoreCurrency(program?.currency || 'USD');
+  applyCurrency();
+  return program;
+}

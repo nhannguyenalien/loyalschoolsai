@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Săn kho báu - Loyal SchoolsAI</title>
+  <title>Treasure hunt - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -24,40 +24,40 @@
 <template id="tpl">
 <div class="row row-cards">
   <div class="col-lg-7">
-    <div class="d-flex align-items-center mb-3"><h2 class="m-0 fs-3 fw-bold">Kho báu đang giấu</h2></div>
-    <div id="treasure-list" class="mb-3"><div class="text-secondary">Đang tải...</div></div>
+    <div class="d-flex align-items-center mb-3"><h2 class="m-0 fs-3 fw-bold" data-vi="Kho báu đang giấu">Hidden treasures</h2></div>
+    <div id="treasure-list" class="mb-3"><div class="text-secondary" data-vi="Đang tải...">Loading...</div></div>
     <div id="gifts"></div>
   </div>
   <div class="col-lg-5">
     <section class="card mb-3">
-      <div class="card-header"><h3 class="card-title"><i class="ti ti-key me-2"></i>Khách nhập mã</h3></div>
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-key me-2"></i><span data-vi="Khách nhập mã">Enter a code</span></h3></div>
       <form class="card-body" id="redeem-form">
-        <div class="mb-3"><label class="form-label">Số điện thoại / mã khách</label><input id="r-ref" class="form-control" required inputmode="tel"></div>
-        <div class="mb-3"><label class="form-label">Mã kho báu</label><input id="r-code" class="form-control form-control-lg font-monospace text-uppercase" placeholder="XXXX-XXXX" required autocomplete="off" style="letter-spacing:.12em"></div>
-        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-diamond me-1"></i>Mở kho báu</button>
-        <div class="form-hint mt-2">Gõ chữ thường, có hoặc không có dấu gạch đều được. Website/app của bạn gọi <a href="docs.html#post-treasure-redeem" target="_blank">API</a> để khách tự nhập.</div>
+        <div class="mb-3"><label class="form-label" data-vi="Số điện thoại / mã khách">Phone number / customer code</label><input id="r-ref" class="form-control" required inputmode="tel"></div>
+        <div class="mb-3"><label class="form-label" data-vi="Mã kho báu">Treasure code</label><input id="r-code" class="form-control form-control-lg font-monospace text-uppercase" placeholder="XXXX-XXXX" required autocomplete="off" style="letter-spacing:.12em"></div>
+        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-diamond me-1"></i><span data-vi="Mở kho báu">Open treasure</span></button>
+        <div class="form-hint mt-2"><span data-vi="Gõ chữ thường, có hoặc không có dấu gạch đều được. Website/app của bạn gọi">Lowercase and with or without hyphens both work. Your website or app can call the</span> <a href="docs.html#post-treasure-redeem" target="_blank">API</a> <span data-vi="để khách tự nhập.">so customers enter codes themselves.</span></div>
         <div id="redeem-result" class="mt-3"></div>
       </form>
     </section>
     <section class="card">
-      <div class="card-header"><h3 class="card-title"><i class="ti ti-plus me-2"></i>Thêm kho báu</h3></div>
+      <div class="card-header"><h3 class="card-title"><i class="ti ti-plus me-2"></i><span data-vi="Thêm kho báu">Add treasure</span></h3></div>
       <form class="card-body" id="treasure-form">
-        <div class="mb-3"><label class="form-label">Tên kho báu</label><input id="t-name" class="form-control" maxlength="120" required placeholder="Ví dụ: Kho báu trang giới thiệu"></div>
-        <div class="mb-3"><label class="form-label">Gợi ý cho khách <span class="text-secondary">(tùy chọn)</span></label><input id="t-hint" class="form-control" maxlength="300" placeholder="Ví dụ: Tìm ở cuối trang Giới thiệu"></div>
-        <div class="mb-3"><label class="form-label">Mã <span class="text-secondary">(để trống để tự sinh)</span></label><input id="t-code" class="form-control font-monospace text-uppercase" maxlength="30" placeholder="Tự sinh ngẫu nhiên"></div>
+        <div class="mb-3"><label class="form-label" data-vi="Tên kho báu">Treasure name</label><input id="t-name" class="form-control" maxlength="120" required placeholder="e.g. About-page treasure" data-vi-placeholder="Ví dụ: Kho báu trang giới thiệu"></div>
+        <div class="mb-3"><label class="form-label"><span data-vi="Gợi ý cho khách">Hint for customers</span> <span class="text-secondary" data-vi="(tùy chọn)">(optional)</span></label><input id="t-hint" class="form-control" maxlength="300" placeholder="e.g. Look at the bottom of the About page" data-vi-placeholder="Ví dụ: Tìm ở cuối trang Giới thiệu"></div>
+        <div class="mb-3"><label class="form-label"><span data-vi="Mã">Code</span> <span class="text-secondary" data-vi="(để trống để tự sinh)">(leave empty to generate)</span></label><input id="t-code" class="form-control font-monospace text-uppercase" maxlength="30" placeholder="Generated automatically" data-vi-placeholder="Tự sinh ngẫu nhiên"></div>
         <div class="row g-3 mb-3">
-          <div class="col-12"><label class="form-label">Phần thưởng</label><select id="t-reward" class="form-select"><option value="points">Điểm thưởng</option><option value="spin">Lượt chơi (lượt quay)</option><option value="gift">Quà hiện vật (nhân viên giao)</option></select></div>
-          <div class="col-12" id="t-points-wrap"><label class="form-label">Số điểm</label><input id="t-points" class="form-control" type="number" min="1" value="20"></div>
-          <div class="col-12 d-none" id="t-campaign-wrap"><label class="form-label">Chương trình quay</label><select id="t-campaign" class="form-select"></select></div>
-          <div class="col-12 d-none" id="t-label-wrap"><label class="form-label">Tên quà</label><input id="t-label" class="form-control" maxlength="120" placeholder="Ví dụ: Móc khóa"></div>
+          <div class="col-12"><label class="form-label" data-vi="Phần thưởng">Reward</label><select id="t-reward" class="form-select"><option value="points" data-vi="Điểm thưởng">Bonus points</option><option value="spin" data-vi="Lượt chơi (lượt quay)">Play (spin)</option><option value="gift" data-vi="Quà hiện vật (nhân viên giao)">Physical gift (staff hands it out)</option></select></div>
+          <div class="col-12" id="t-points-wrap"><label class="form-label" data-vi="Số điểm">Points</label><input id="t-points" class="form-control" type="number" min="1" value="20"></div>
+          <div class="col-12 d-none" id="t-campaign-wrap"><label class="form-label" data-vi="Chương trình quay">Spin campaign</label><select id="t-campaign" class="form-select"></select></div>
+          <div class="col-12 d-none" id="t-label-wrap"><label class="form-label" data-vi="Tên quà">Gift name</label><input id="t-label" class="form-control" maxlength="120" placeholder="e.g. Keychain" data-vi-placeholder="Ví dụ: Móc khóa"></div>
         </div>
         <div class="row g-3 mb-3">
-          <div class="col-12"><label class="form-label">Số suất tối đa <span class="text-secondary">(0 = không giới hạn)</span></label><input id="t-max" class="form-control" type="number" min="0" value="0"></div>
-          <div class="col-6"><label class="form-label">Bắt đầu</label><input id="t-start" type="datetime-local" class="form-control"></div>
-          <div class="col-6"><label class="form-label">Kết thúc</label><input id="t-end" type="datetime-local" class="form-control"></div>
+          <div class="col-12"><label class="form-label"><span data-vi="Số suất tối đa">Max claims</span> <span class="text-secondary" data-vi="(0 = không giới hạn)">(0 = unlimited)</span></label><input id="t-max" class="form-control" type="number" min="0" value="0"></div>
+          <div class="col-6"><label class="form-label" data-vi="Bắt đầu">Starts</label><input id="t-start" type="datetime-local" class="form-control"></div>
+          <div class="col-6"><label class="form-label" data-vi="Kết thúc">Ends</label><input id="t-end" type="datetime-local" class="form-control"></div>
         </div>
-        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i>Tạo kho báu</button>
-        <div class="form-hint mt-2">Mỗi khách chỉ nhận mỗi kho báu một lần. Bạn tự quyết định giấu mã ở đâu: website, app, poster, hóa đơn...</div>
+        <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i><span data-vi="Tạo kho báu">Create treasure</span></button>
+        <div class="form-hint mt-2" data-vi="Mỗi khách chỉ nhận mỗi kho báu một lần. Bạn tự quyết định giấu mã ở đâu: website, app, poster, hóa đơn...">Each customer can claim a treasure once. Hide the code wherever you like: website, app, poster, receipt...</div>
       </form>
     </section>
   </div>
@@ -66,37 +66,38 @@
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('treasures', 'Săn kho báu', 'Giấu mã quà ở khắp nơi — khách tìm thấy và nhập mã để nhận thưởng.');
+  renderLayout('treasures', T('Treasure hunt', 'Săn kho báu'), T('Hide reward codes anywhere — customers find them and enter them to win.', 'Giấu mã quà ở khắp nơi — khách tìm thấy và nhập mã để nhận thưởng.'));
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  applyI18n(); applyCurrency();
   const $ = id => document.getElementById(id);
   const gifts = mountGiftsPanel($('gifts'));
   let treasures = [];
-  const STATUS = { active: ['Đang giấu', 'success'], paused: ['Tạm dừng', 'warning'] };
+  const STATUS = { active: [T('Hidden', 'Đang giấu'), 'success'], paused: [T('Paused', 'Tạm dừng'), 'warning'] };
   const fmtCode = c => c.replace(/(.{4})(?=.)/g, '$1-');
-  const rewardText = t => t.reward_type === 'points' ? `+${money.format(t.reward_points)} điểm` : t.reward_type === 'spin' ? '🎁 1 lượt chơi' : `🎀 ${t.reward_label || 'Quà'}`;
+  const rewardText = t => t.reward_type === 'points' ? `+${pts(t.reward_points)}` : t.reward_type === 'spin' ? T('🎁 1 play', '🎁 1 lượt chơi') : `🎀 ${t.reward_label || T('Gift', 'Quà')}`;
 
   function card(t) {
     const [label, tone] = STATUS[t.status] || [t.status, 'secondary'];
     const full = Number(t.max_claims) > 0 && t.claimed_count >= t.max_claims;
     const now = Date.now();
-    const timing = t.starts_at && new Date(t.starts_at) > now ? 'chưa bắt đầu' : t.ends_at && new Date(t.ends_at) < now ? 'đã hết hạn' : null;
+    const timing = t.starts_at && new Date(t.starts_at) > now ? T('not started', 'chưa bắt đầu') : t.ends_at && new Date(t.ends_at) < now ? T('expired', 'đã hết hạn') : null;
     const pct = Number(t.max_claims) ? Math.min(100, Math.round(t.claimed_count / t.max_claims * 100)) : 0;
     return `<article class="card mb-3"><div class="card-body">
-      <div class="d-flex align-items-start mb-2"><div class="me-auto"><div class="fw-bold fs-4">${esc(t.name)}</div><div class="text-secondary">${t.hint ? `💡 ${esc(t.hint)}` : 'Chưa có gợi ý'}</div></div>
-        <span class="badge bg-${full || timing ? 'secondary' : tone}-lt text-${full || timing ? 'secondary' : tone}">${full ? 'Đã hết suất' : timing || label}</span></div>
-      <div class="d-flex align-items-center gap-2 mb-3"><code class="fs-3 fw-bold px-3 py-2" style="letter-spacing:.14em">${esc(fmtCode(t.code))}</code><button class="btn btn-sm btn-outline-secondary copy-code" data-code="${esc(fmtCode(t.code))}"><i class="ti ti-copy me-1"></i>Chép mã</button></div>
-      <div class="row g-3 align-items-center"><div class="col-sm-5"><div class="stat-label">Phần thưởng</div><div class="fw-bold">${esc(rewardText(t))}</div></div>
-        <div class="col-sm-7"><div class="stat-label d-flex justify-content-between"><span>Đã có người tìm thấy</span><b>${t.claimed_count}${Number(t.max_claims) ? ` / ${t.max_claims}` : ' (không giới hạn)'}</b></div>
+      <div class="d-flex align-items-start mb-2"><div class="me-auto"><div class="fw-bold fs-4">${esc(t.name)}</div><div class="text-secondary">${t.hint ? `💡 ${esc(t.hint)}` : T('No hint', 'Chưa có gợi ý')}</div></div>
+        <span class="badge bg-${full || timing ? 'secondary' : tone}-lt text-${full || timing ? 'secondary' : tone}">${full ? T('Fully claimed', 'Đã hết suất') : timing || label}</span></div>
+      <div class="d-flex align-items-center gap-2 mb-3"><code class="fs-3 fw-bold px-3 py-2" style="letter-spacing:.14em">${esc(fmtCode(t.code))}</code><button class="btn btn-sm btn-outline-secondary copy-code" data-code="${esc(fmtCode(t.code))}"><i class="ti ti-copy me-1"></i>${T('Copy code', 'Chép mã')}</button></div>
+      <div class="row g-3 align-items-center"><div class="col-sm-5"><div class="stat-label">${T('Reward', 'Phần thưởng')}</div><div class="fw-bold">${esc(rewardText(t))}</div></div>
+        <div class="col-sm-7"><div class="stat-label d-flex justify-content-between"><span>${T('Found by', 'Đã có người tìm thấy')}</span><b>${t.claimed_count}${Number(t.max_claims) ? ` / ${t.max_claims}` : T(' (unlimited)', ' (không giới hạn)')}</b></div>
           ${Number(t.max_claims) ? `<div class="progress progress-sm mt-1"><div class="progress-bar" style="width:${pct}%;background:var(--brand-grad)"></div></div>` : ''}</div></div>
-      ${t.starts_at || t.ends_at ? `<div class="small text-secondary mt-2"><i class="ti ti-calendar me-1"></i>${t.starts_at ? esc(fmtShort(t.starts_at)) : 'ngay'} → ${t.ends_at ? esc(fmtShort(t.ends_at)) : 'không giới hạn'}</div>` : ''}
+      ${t.starts_at || t.ends_at ? `<div class="small text-secondary mt-2"><i class="ti ti-calendar me-1"></i>${t.starts_at ? esc(fmtShort(t.starts_at)) : T('now', 'ngay')} → ${t.ends_at ? esc(fmtShort(t.ends_at)) : T('no end', 'không giới hạn')}</div>` : ''}
     </div><div class="card-footer d-flex gap-2">
-      <button class="btn btn-sm btn-outline-${t.status === 'active' ? 'warning' : 'success'} toggle" data-id="${esc(t.id)}" data-status="${t.status === 'active' ? 'paused' : 'active'}">${t.status === 'active' ? 'Tạm dừng' : 'Bật lại'}</button>
-      <button class="btn btn-sm btn-outline-danger ms-auto archive" data-id="${esc(t.id)}"><i class="ti ti-trash me-1"></i>Xóa</button></div></article>`;
+      <button class="btn btn-sm btn-outline-${t.status === 'active' ? 'warning' : 'success'} toggle" data-id="${esc(t.id)}" data-status="${t.status === 'active' ? 'paused' : 'active'}">${t.status === 'active' ? T('Pause', 'Tạm dừng') : T('Resume', 'Bật lại')}</button>
+      <button class="btn btn-sm btn-outline-danger ms-auto archive" data-id="${esc(t.id)}"><i class="ti ti-trash me-1"></i>${T('Delete', 'Xóa')}</button></div></article>`;
   }
   async function load() {
     try {
       treasures = (await LoyaltyAPI.treasures()).treasures;
-      $('treasure-list').innerHTML = treasures.map(card).join('') || '<div class="card"><div class="empty-state"><i class="ti ti-diamond-off"></i>Chưa có kho báu nào.<br><span class="small">Tạo kho báu đầu tiên ở khung bên phải, rồi giấu mã ở nơi khách dễ tìm.</span></div></div>';
+      $('treasure-list').innerHTML = treasures.map(card).join('') || `<div class="card"><div class="empty-state"><i class="ti ti-diamond-off"></i>${T('No treasures yet.', 'Chưa có kho báu nào.')}<br><span class="small">${T('Create your first one in the form, then hide the code where customers can find it.', 'Tạo kho báu đầu tiên ở khung bên phải, rồi giấu mã ở nơi khách dễ tìm.')}</span></div></div>`;
     } catch (e) { showAlert(e.message, 'danger'); }
   }
   $('treasure-list').addEventListener('click', async e => {
@@ -104,7 +105,7 @@
     try {
       if (copy) return copyText(copy.dataset.code, copy);
       if (toggle) await LoyaltyAPI.updateTreasure(toggle.dataset.id, { status: toggle.dataset.status });
-      else if (archive) { if (!confirm('Xóa kho báu này? Mã sẽ ngừng hoạt động (lịch sử vẫn được giữ).')) return; await LoyaltyAPI.updateTreasure(archive.dataset.id, { status: 'archived' }); }
+      else if (archive) { if (!confirm(T('Delete this treasure? The code stops working (history is kept).', 'Xóa kho báu này? Mã sẽ ngừng hoạt động (lịch sử vẫn được giữ).'))) return; await LoyaltyAPI.updateTreasure(archive.dataset.id, { status: 'archived' }); }
       else return;
       await load();
     } catch (err) { showAlert(err.message, 'danger'); }
@@ -119,7 +120,7 @@
   $('t-reward').addEventListener('change', syncForm);
   onSubmit('treasure-form', async () => {
     const reward = $('t-reward').value;
-    if (reward === 'spin' && !$('t-campaign').value) throw new Error('Chưa có chương trình quay nào cửa hàng đã tham gia. Hãy tham gia ở trang Quay thưởng trước.');
+    if (reward === 'spin' && !$('t-campaign').value) throw new Error(T('Your store has not joined any spin campaign. Join one on the Reward spins page first.', 'Chưa có chương trình quay nào cửa hàng đã tham gia. Hãy tham gia ở trang Quay thưởng trước.'));
     const created = await LoyaltyAPI.createTreasure({
       name: $('t-name').value.trim(), hint: $('t-hint').value.trim(), code: $('t-code').value.trim(), reward_type: reward,
       ...(reward === 'points' ? { reward_points: Number($('t-points').value) } : reward === 'spin' ? { reward_campaign_id: $('t-campaign').value } : { reward_label: $('t-label').value.trim() }),
@@ -127,22 +128,22 @@
       starts_at: $('t-start').value ? new Date($('t-start').value).toISOString() : '', ends_at: $('t-end').value ? new Date($('t-end').value).toISOString() : '',
     });
     ['t-name', 't-hint', 't-code'].forEach(id => { $(id).value = ''; });
-    showAlert(`Đã tạo kho báu. Mã: ${fmtCode(created.code)}`); await load();
+    showAlert(`${T('Treasure created. Code', 'Đã tạo kho báu. Mã')}: ${fmtCode(created.code)}`); await load();
   });
 
   onSubmit('redeem-form', async () => {
     const r = await LoyaltyAPI.redeemTreasure($('r-ref').value.trim(), $('r-code').value.trim());
-    const text = r.reward.type === 'points' ? `+${money.format(r.reward.points)} điểm (số dư ${money.format(r.balance)})` : r.reward.type === 'spin' ? '1 lượt chơi' : `Quà: ${r.reward.label} — nhớ giao cho khách`;
+    const text = r.reward.type === 'points' ? `+${pts(r.reward.points)} (${T('balance', 'số dư')} ${money.format(r.balance)})` : r.reward.type === 'spin' ? T('1 play', '1 lượt chơi') : T(`Gift: ${r.reward.label} — remember to hand it out`, `Quà: ${r.reward.label} — nhớ giao cho khách`);
     $('redeem-result').innerHTML = r.replayed
-      ? `<div class="alert alert-info mb-0"><b>Khách đã tìm thấy "${esc(r.treasure.name)}" rồi.</b><div class="small">Không thưởng thêm.</div></div>`
-      : `<div class="alert alert-success mb-0"><div class="fw-bold">🎉 Tìm thấy "${esc(r.treasure.name)}"!</div><div>${esc(text)}</div></div>`;
+      ? `<div class="alert alert-info mb-0"><b>${T(`This customer already found "${esc(r.treasure.name)}".`, `Khách đã tìm thấy "${esc(r.treasure.name)}" rồi.`)}</b><div class="small">${T('No extra reward.', 'Không thưởng thêm.')}</div></div>`
+      : `<div class="alert alert-success mb-0"><div class="fw-bold">🎉 ${T('Found', 'Tìm thấy')} "${esc(r.treasure.name)}"!</div><div>${esc(text)}</div></div>`;
     if (!r.replayed) { launchConfetti(); $('r-code').value = ''; await load(); gifts.reload(); }
   });
   $('redeem-form').addEventListener('input', () => { $('redeem-result').innerHTML = ''; });
 
   try {
     const world = await LoyaltyAPI.campaigns();
-    $('t-campaign').innerHTML = world.campaigns.filter(c => c.joined).map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') || '<option value="">(chưa tham gia chương trình nào)</option>';
+    $('t-campaign').innerHTML = world.campaigns.filter(c => c.joined).map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') || `<option value="">${T('(no campaign joined)', '(chưa tham gia chương trình nào)')}</option>`;
   } catch (e) { showAlert(e.message, 'danger'); }
   syncForm(); load();
 })();

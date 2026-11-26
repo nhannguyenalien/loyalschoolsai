@@ -1,4 +1,5 @@
 import { requireNonEmpty } from "../../domain/loyalty/points.js";
+import { requireCurrency } from "../../domain/loyalty/currency.js";
 import { LoyaltyNotFoundError, LoyaltyValidationError } from "../../domain/loyalty/errors.js";
 
 const CAMPAIGN_STATUSES = new Set(["draft", "active", "paused", "ended"]);
@@ -35,6 +36,7 @@ export function createManagedCampaign({ repository, input }) {
     spend_per_spin_minor: integer(input.spend_per_spin_minor, "spend_per_spin_minor", 1),
     max_spins_per_sale: integer(input.max_spins_per_sale ?? 1, "max_spins_per_sale", 1),
     theme_json: JSON.stringify(input.theme || {}),
+    currency: requireCurrency(input.currency || "VND"),
   });
 }
 
@@ -48,6 +50,7 @@ export async function updateManagedCampaign({ repository, campaignId, input }) {
   if (input.ends_at !== undefined) patch.ends_at = optionalDate(input.ends_at, "ends_at");
   if (input.spend_per_spin_minor !== undefined) patch.spend_per_spin_minor = integer(input.spend_per_spin_minor, "spend_per_spin_minor", 1);
   if (input.max_spins_per_sale !== undefined) patch.max_spins_per_sale = integer(input.max_spins_per_sale, "max_spins_per_sale", 1);
+  if (input.currency !== undefined) patch.currency = requireCurrency(input.currency);
   if (input.theme !== undefined) patch.theme_json = JSON.stringify(input.theme || {});
   return repository.updateRewardCampaign(campaignId, patch);
 }

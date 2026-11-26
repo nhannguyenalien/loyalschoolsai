@@ -1,19 +1,19 @@
 const NAV = [
-  { page: 'welcome', href: 'welcome.html', icon: 'ti-rocket', label: 'Bắt đầu nhanh' },
-  { page: 'overview', href: 'overview.html', icon: 'ti-layout-dashboard', label: 'Tổng quan' },
-  { page: 'customers', href: 'customers.html', icon: 'ti-users', label: 'Khách hàng & điểm' },
-  { page: 'qr', href: 'qr.html', icon: 'ti-qrcode', label: 'Trang khách & QR' },
-  { page: 'rewards', href: 'rewards.html', icon: 'ti-gift', label: 'Quay thưởng' },
-  { section: 'Trò chơi' },
-  { page: 'checkin', href: 'checkin.html', icon: 'ti-calendar-check', label: 'Điểm danh & chuỗi' },
-  { page: 'missions', href: 'missions.html', icon: 'ti-target-arrow', label: 'Nhiệm vụ hằng ngày' },
-  { page: 'challenges', href: 'challenges.html', icon: 'ti-trophy', label: 'Thử thách tuần' },
-  { page: 'treasures', href: 'treasures.html', icon: 'ti-diamond', label: 'Săn kho báu' },
-  { page: 'draws', href: 'draws.html', icon: 'ti-ticket', label: 'Quay số may mắn' },
-  { section: 'Cấu hình' },
-  { page: 'settings', href: 'settings.html', icon: 'ti-adjustments', label: 'Luật tích điểm' },
-  { page: 'integrations', href: 'integrations.html', icon: 'ti-plug-connected', label: 'Tích hợp POS' },
-  { page: 'docs', href: 'docs.html', icon: 'ti-book-2', label: 'Tài liệu API', external: true },
+  { page: 'welcome', href: 'welcome.html', icon: 'ti-rocket', label: T('Quick start', 'Bắt đầu nhanh') },
+  { page: 'overview', href: 'overview.html', icon: 'ti-layout-dashboard', label: T('Overview', 'Tổng quan') },
+  { page: 'customers', href: 'customers.html', icon: 'ti-users', label: T('Customers & points', 'Khách hàng & điểm') },
+  { page: 'qr', href: 'qr.html', icon: 'ti-qrcode', label: T('Customer page & QR', 'Trang khách & QR') },
+  { page: 'rewards', href: 'rewards.html', icon: 'ti-gift', label: T('Reward spins', 'Quay thưởng') },
+  { section: T('Games', 'Trò chơi') },
+  { page: 'checkin', href: 'checkin.html', icon: 'ti-calendar-check', label: T('Check-in & streaks', 'Điểm danh & chuỗi') },
+  { page: 'missions', href: 'missions.html', icon: 'ti-target-arrow', label: T('Daily missions', 'Nhiệm vụ hằng ngày') },
+  { page: 'challenges', href: 'challenges.html', icon: 'ti-trophy', label: T('Weekly challenges', 'Thử thách tuần') },
+  { page: 'treasures', href: 'treasures.html', icon: 'ti-diamond', label: T('Treasure hunt', 'Săn kho báu') },
+  { page: 'draws', href: 'draws.html', icon: 'ti-ticket', label: T('Lucky draws', 'Quay số may mắn') },
+  { section: T('Setup', 'Cấu hình') },
+  { page: 'settings', href: 'settings.html', icon: 'ti-adjustments', label: T('Points rule', 'Luật tích điểm') },
+  { page: 'integrations', href: 'integrations.html', icon: 'ti-plug-connected', label: T('POS integration', 'Tích hợp POS') },
+  { page: 'docs', href: T('docs.html', 'docs-vi.html'), icon: 'ti-book-2', label: T('API docs', 'Tài liệu API'), external: true },
 ];
 
 function renderLayout(active, title, subtitle = '', actionsHtml = '') {
@@ -31,9 +31,10 @@ function renderLayout(active, title, subtitle = '', actionsHtml = '') {
           <div class="side-user mt-auto">
             <div class="d-flex align-items-center gap-2 mb-2">
               <span class="avatar avatar-sm avatar-grad rounded-circle">${esc(initials(user.name || user.email))}</span>
-              <div class="text-truncate"><div class="email text-truncate">${esc(user.name || user.email || '')}</div><div class="small text-truncate">${esc(user.email && user.name !== user.email ? user.email : 'Cửa hàng của bạn')}</div></div>
+              <div class="text-truncate"><div class="email text-truncate">${esc(user.name || user.email || '')}</div><div class="small text-truncate">${esc(user.email && user.name !== user.email ? user.email : T('Your store', 'Cửa hàng của bạn'))}</div></div>
             </div>
-            <button class="btn btn-sm w-100" style="background:rgba(255,255,255,.1);color:#fff" onclick="logout()"><i class="ti ti-logout me-1"></i>Đăng xuất</button>
+            <button class="btn btn-sm w-100 mb-2" style="background:rgba(255,255,255,.1);color:#fff" onclick="logout()"><i class="ti ti-logout me-1"></i>${T('Sign out', 'Đăng xuất')}</button>
+            <div class="text-center small">${langSwitchHtml('text-white-50')}</div>
           </div>
         </div>
       </div>

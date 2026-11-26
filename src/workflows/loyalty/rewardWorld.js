@@ -2,12 +2,17 @@ import { requireNonEmpty } from "../../domain/loyalty/points.js";
 import { assertCampaignOpen, normalizeGame, pickWeightedPrize, secureRandom } from "../../domain/loyalty/rewardWorld.js";
 import { LoyaltyConflictError, LoyaltyNotFoundError, LoyaltyValidationError } from "../../domain/loyalty/errors.js";
 
+const sameCurrency = (campaign, currency) => (campaign.currency || "VND") === currency;
+
 export async function listRewardWorld({ repository, tenant, now = () => new Date() }) {
   const campaigns = await repository.listRewardCampaigns();
   const joins = await repository.listStoreCampaignJoins(tenant);
   const joined = new Set(joins.map(item => item.campaign_id));
+  const currency = (await repository.getActiveProgram?.(tenant))?.currency;
   const visible = [];
   for (const campaign of campaigns) {
+    // Other-currency campaigns can't be joined; ones already joined stay visible so earned spins remain usable.
+    if (currency && !sameCurrency(campaign, currency) && !joined.has(campaign.id)) continue;
     try { assertCampaignOpen(campaign, now()); }
     catch { continue; }
     visible.push({ ...campaign, joined: joined.has(campaign.id), prizes: await repository.listCampaignPrizes(campaign.id) });
@@ -20,6 +25,8 @@ export async function joinRewardCampaign({ repository, tenant, campaignId, now =
   const campaign = await repository.getRewardCampaign(id);
   if (!campaign) throw new LoyaltyNotFoundError("Campaign was not found.");
   assertCampaignOpen(campaign, now());
+  const currency = (await repository.getActiveProgram?.(tenant))?.currency;
+  if (currency && !sameCurrency(campaign, currency)) throw new LoyaltyConflictError(`This campaign is for ${campaign.currency || "VND"} stores.`);
   return repository.joinRewardCampaign(tenant, id, now().toISOString());
 }
 

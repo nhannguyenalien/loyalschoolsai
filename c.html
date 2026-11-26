@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Điểm thưởng của bạn</title>
+  <title>Your reward points</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -20,35 +20,38 @@
     .chero { background: var(--brand-grad); color: #fff; margin: 0 -16px 16px; padding: 28px 20px 56px; text-align: center; border-radius: 0 0 28px 28px; }
     .chero h1 { font-size: 1.35rem; font-weight: 800; margin: 0 0 4px; }
     .chero p { margin: 0; opacity: .9; font-size: .9rem; }
-    .cmain { margin-top: -40px; }
+    .cmain { margin-top: -40px; position: relative; z-index: 1; }
+    .lang-corner { text-align: right; font-size: .8rem; margin: -18px 0 14px; }
+    .lang-corner a { color: #fff; opacity: .85; }
     .balance { font-size: 3rem; font-weight: 800; line-height: 1; background: var(--brand-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .item { display: flex; align-items: center; gap: .75rem; padding: .75rem 0; border-bottom: 1px solid #eef0f8; }
     .item:last-child { border-bottom: 0; }
     .item .grow { flex: 1; min-width: 0; }
     #spin-stage { text-align: center; }
+    #alert .alert { background: #fff; }
   </style>
 </head>
 <body>
 <div class="cwrap">
-  <div class="chero"><h1 id="store-name">Đang tải...</h1><p id="store-sub">Tích điểm – điểm danh – nhận quà</p></div>
+  <div class="chero"><div class="lang-corner" id="lang-switch"></div><h1 id="store-name" data-vi="Đang tải...">Loading...</h1><p id="store-sub" data-vi="Tích điểm – điểm danh – nhận quà">Earn points – check in – win rewards</p></div>
   <div class="cmain">
     <div id="alert"></div>
     <section class="card mb-3"><div class="card-body">
       <form id="phone-form">
         <div class="input-group input-group-lg">
-          <input id="phone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" placeholder="Số điện thoại" required>
-          <button class="btn btn-grad" type="submit">Xem điểm</button>
+          <input id="phone" class="form-control" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number" data-vi-placeholder="Số điện thoại" required>
+          <button class="btn btn-grad" type="submit" data-vi="Xem điểm">View points</button>
         </div>
-        <input id="pin" class="form-control form-control-lg mt-2 d-none" type="password" inputmode="numeric" autocomplete="current-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="Mã PIN (4–6 số)">
+        <input id="pin" class="form-control form-control-lg mt-2 d-none" type="password" inputmode="numeric" autocomplete="current-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="PIN (4–6 digits)" data-vi-placeholder="Mã PIN (4–6 số)">
       </form>
       <form id="pin-setup" class="d-none mt-3 p-3 rounded" style="background:#f4f5fb">
-        <div class="fw-bold mb-1">Tạo mã PIN để bảo vệ điểm của bạn</div>
-        <div class="small text-secondary mb-2">Chỉ cần làm một lần. Hãy nhớ PIN, cửa hàng không xem được PIN của bạn.</div>
-        <input id="pin-new" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="PIN mới (4–6 số)" required>
-        <input id="pin-new2" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="Nhập lại PIN" required>
-        <button class="btn btn-grad w-100" type="submit">Lưu PIN và xem điểm</button>
+        <div class="fw-bold mb-1" data-vi="Tạo mã PIN để bảo vệ điểm của bạn">Create a PIN to protect your points</div>
+        <div class="small text-secondary mb-2" data-vi="Chỉ cần làm một lần. Hãy nhớ PIN, cửa hàng không xem được PIN của bạn.">Only once. Remember it — the store cannot see your PIN.</div>
+        <input id="pin-new" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="New PIN (4–6 digits)" data-vi-placeholder="PIN mới (4–6 số)" required>
+        <input id="pin-new2" class="form-control mb-2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{4,6}" placeholder="Repeat PIN" data-vi-placeholder="Nhập lại PIN" required>
+        <button class="btn btn-grad w-100" type="submit" data-vi="Lưu PIN và xem điểm">Save PIN and view points</button>
       </form>
-      <div class="form-hint mt-2 small text-secondary">Dùng đúng số điện thoại bạn đã đưa cho cửa hàng khi mua hàng.</div>
+      <div class="form-hint mt-2 small text-secondary" data-vi="Dùng đúng số điện thoại bạn đã đưa cho cửa hàng khi mua hàng.">Use the phone number you gave the store when you bought something.</div>
     </div></section>
     <div id="me" class="d-none"></div>
     <section class="card mb-3 d-none" id="how"><div class="card-body small text-secondary" id="how-text"></div></section>
@@ -57,6 +60,23 @@
 <script>
 (() => {
   const $ = id => document.getElementById(id);
+  applyI18n();
+  $('lang-switch').innerHTML = langSwitchHtml();
+  // The API answers in English; translate the messages customers can hit when the page is in Vietnamese.
+  const VI_ERRORS = [
+    [/^Store not found/, () => 'Không tìm thấy cửa hàng.'],
+    [/^Invalid phone number/, () => 'Số điện thoại không hợp lệ.'],
+    [/couldn't find this number/, () => 'Chưa tìm thấy số này. Hãy mua hàng lần đầu để nhận điểm nhé!'],
+    [/^Create a 4–6 digit PIN/, () => 'Hãy tạo mã PIN 4–6 số để bảo vệ điểm của bạn.'],
+    [/^Please enter your PIN/, () => 'Vui lòng nhập mã PIN.'],
+    [/^Wrong PIN\. (\d+) attempts left/, m => `PIN không đúng. Còn ${m[1]} lần thử.`],
+    [/^Wrong PIN/, () => 'PIN không đúng.'],
+    [/^Too many wrong attempts\. Try again in (\d+)/, m => `Nhập sai quá nhiều lần. Thử lại sau ${m[1]} phút.`],
+    [/must be 4–6 digits/, () => 'PIN gồm 4–6 chữ số.'],
+    [/already has a PIN/, () => 'Số này đã có PIN. Hãy nhập PIN hiện tại để đổi.'],
+    [/no available spin/i, () => 'Bạn đã hết lượt quay.'],
+  ];
+  const localize = message => { if (LANG !== 'vi') return message; for (const [re, vi] of VI_ERRORS) { const m = message.match(re); if (m) return vi(m); } return message; };
   const slug = new URLSearchParams(location.search).get('s') || '';
   const API = `/api/v1/public/${encodeURIComponent(slug)}`;
   let store = null, phone = '', pin = '', current = null;
@@ -69,16 +89,16 @@
     if (body && body.phone !== undefined && pin && body.pin === undefined) body = { ...body, pin };
     const res = await fetch(API + path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error(data.error || 'Có lỗi xảy ra, vui lòng thử lại.'), { code: data.code });
+    if (!res.ok) throw Object.assign(new Error(data.error ? localize(data.error) : T('Something went wrong, please try again.', 'Có lỗi xảy ra, vui lòng thử lại.')), { code: data.code });
     return data;
   }
-  const rewardText = m => m.reward_label || (m.reward_type === 'points' ? `+${money.format(m.reward_points)} điểm` : m.reward_type === 'spin' ? '1 lượt quay' : 'Quà tặng');
+  const rewardText = m => m.reward_label || (m.reward_type === 'points' ? `+${pts(m.reward_points)}` : m.reward_type === 'spin' ? T('1 spin', '1 lượt quay') : T('Gift', 'Quà tặng'));
 
   function missionRows(list) {
     return list.map(m => {
       const pct = Math.min(100, Math.round(m.current / Math.max(1, m.target) * 100));
-      const action = m.claimed ? '<span class="badge bg-green-lt">Đã nhận</span>'
-        : m.completed ? `<button class="btn btn-sm btn-grad claim" data-id="${esc(m.id)}">Nhận</button>`
+      const action = m.claimed ? `<span class="badge bg-green-lt">${T('Claimed', 'Đã nhận')}</span>`
+        : m.completed ? `<button class="btn btn-sm btn-grad claim" data-id="${esc(m.id)}">${T('Claim', 'Nhận')}</button>`
         : `<span class="small text-secondary">${money.format(m.current)}/${money.format(m.target)}</span>`;
       return `<div class="item"><div class="grow"><div class="fw-bold">${esc(m.name)}</div><div class="small text-secondary mb-1">${esc(rewardText(m))}</div><div class="progress progress-sm"><div class="progress-bar" style="width:${pct}%"></div></div></div>${action}</div>`;
     }).join('');
@@ -87,23 +107,23 @@
   function render(me) {
     current = me;
     const checkin = me.checkin, next = checkin.next_milestone;
-    const spinTotal = me.spins.reduce((s, c) => s + c.available, 0);
     const campaigns = Object.fromEntries(store.campaigns.map(c => [c.id, c]));
-    const spinRows = me.spins.filter(c => campaigns[c.campaign_id]).map(c => `<div class="item"><span class="avatar tone-amber rounded-circle"><i class="ti ti-gift"></i></span><div class="grow"><div class="fw-bold">${esc(campaigns[c.campaign_id].name)}</div><div class="small text-secondary">Bạn có ${c.available} lượt quay</div></div><button class="btn btn-grad spin" data-id="${esc(c.campaign_id)}">Quay ngay</button></div>`).join('');
+    const spinTotal = me.spins.filter(c => campaigns[c.campaign_id]).reduce((s, c) => s + c.available, 0);
+    const spinRows = me.spins.filter(c => campaigns[c.campaign_id]).map(c => `<div class="item"><span class="avatar tone-amber rounded-circle"><i class="ti ti-gift"></i></span><div class="grow"><div class="fw-bold">${esc(campaigns[c.campaign_id].name)}</div><div class="small text-secondary">${T(`You have ${c.available} ${plural(c.available, 'spin', 'spins')}`, `Bạn có ${c.available} lượt quay`)}</div></div><button class="btn btn-grad spin" data-id="${esc(c.campaign_id)}">${T('Spin now', 'Quay ngay')}</button></div>`).join('');
     $('me').innerHTML = `
       <section class="card mb-3 text-center"><div class="card-body">
-        <div class="text-secondary">Xin chào, <b>${esc(me.customer.name)}</b></div>
-        <div class="balance my-2">${money.format(me.balance)}</div><div class="text-secondary">điểm hiện có</div>
+        <div class="text-secondary">${T('Hello', 'Xin chào')}, <b>${esc(me.customer.name || T('there', 'quý khách'))}</b></div>
+        <div class="balance my-2">${money.format(me.balance)}</div><div class="text-secondary">${T('points available', 'điểm hiện có')}</div>
       </div></section>
       <section class="card mb-3"><div class="card-body d-flex align-items-center gap-3">
         <span class="avatar avatar-lg tone-indigo rounded-circle"><i class="ti ti-calendar-check"></i></span>
-        <div class="me-auto"><div class="fw-bold">Điểm danh mỗi ngày</div><div class="small text-secondary">Chuỗi hiện tại: <b>${checkin.streak}</b> ngày${next ? ` · còn ${next.days - checkin.streak} ngày nữa nhận +${money.format(next.points)} điểm` : ''}</div></div>
-        <button class="btn ${checkin.checked_in_today ? 'btn-outline-secondary' : 'btn-grad'}" id="checkin-btn" ${checkin.checked_in_today ? 'disabled' : ''}>${checkin.checked_in_today ? 'Đã điểm danh' : `+${store.checkin_points} điểm`}</button>
+        <div class="me-auto"><div class="fw-bold">${T('Daily check-in', 'Điểm danh mỗi ngày')}</div><div class="small text-secondary">${T(`Current streak: <b>${checkin.streak}</b> ${plural(checkin.streak, 'day', 'days')}`, `Chuỗi hiện tại: <b>${checkin.streak}</b> ngày`)}${next ? T(` · ${next.days - checkin.streak} more for +${pts(next.points)}`, ` · còn ${next.days - checkin.streak} ngày nữa nhận +${money.format(next.points)} điểm`) : ''}</div></div>
+        <button class="btn ${checkin.checked_in_today ? 'btn-outline-secondary' : 'btn-grad'}" id="checkin-btn" ${checkin.checked_in_today ? 'disabled' : ''}>${checkin.checked_in_today ? T('Checked in', 'Đã điểm danh') : `+${pts(store.checkin_points)}`}</button>
       </div></section>
-      ${spinTotal ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">🎁 Lượt quay của bạn</h3></div><div class="card-body py-1" id="spin-list">${spinRows}</div><div class="card-body d-none" id="spin-stage"><div id="wheel-mount" class="mb-3"></div><div class="result-title" id="spin-result"></div><button class="btn btn-grad mt-3 d-none" id="spin-done">Xong</button></div></section>` : ''}
-      ${me.missions.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">Nhiệm vụ hôm nay</h3></div><div class="card-body py-1">${missionRows(me.missions)}</div></section>` : ''}
-      ${me.challenges.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">Thử thách tuần</h3></div><div class="card-body py-1">${missionRows(me.challenges)}</div></section>` : ''}
-      ${store.pin_required ? '<div class="text-center"><a href="#" id="change-pin" class="small text-secondary">Đổi mã PIN</a></div>' : ''}`;
+      ${spinTotal ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">🎁 ${T('Your spins', 'Lượt quay của bạn')}</h3></div><div class="card-body py-1" id="spin-list">${spinRows}</div><div class="card-body d-none" id="spin-stage"><div id="wheel-mount" class="mb-3"></div><div class="result-title" id="spin-result"></div><button class="btn btn-grad mt-3 d-none" id="spin-done">${T('Done', 'Xong')}</button></div></section>` : ''}
+      ${me.missions.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">${T("Today's missions", 'Nhiệm vụ hôm nay')}</h3></div><div class="card-body py-1">${missionRows(me.missions)}</div></section>` : ''}
+      ${me.challenges.length ? `<section class="card mb-3"><div class="card-header"><h3 class="card-title">${T('Weekly challenges', 'Thử thách tuần')}</h3></div><div class="card-body py-1">${missionRows(me.challenges)}</div></section>` : ''}
+      ${store.pin_required ? `<div class="text-center"><a href="#" id="change-pin" class="small text-secondary">${T('Change PIN', 'Đổi mã PIN')}</a></div>` : ''}`;
     $('me').classList.remove('d-none');
   }
 
@@ -129,30 +149,30 @@
   setupForm.addEventListener('submit', async event => {
     event.preventDefault();
     const a = $('pin-new').value.trim(), b = $('pin-new2').value.trim();
-    if (a !== b) return showAlert('Hai lần nhập PIN chưa giống nhau.', 'danger');
+    if (a !== b) return showAlert(T('The two PINs do not match.', 'Hai lần nhập PIN chưa giống nhau.'), 'danger');
     const btn = event.submitter; if (btn) btn.disabled = true;
-    try { await api('/pin', { phone, new_pin: a }); pin = a; $('pin').value = a; setupForm.classList.add('d-none'); $('pin-new').value = $('pin-new2').value = ''; await refresh(); save(phone); savePin(pin); $('alert').innerHTML = ''; showAlert('Đã tạo PIN. Lần sau bạn nhập PIN này để xem điểm.'); }
+    try { await api('/pin', { phone, new_pin: a }); pin = a; $('pin').value = a; setupForm.classList.add('d-none'); $('pin-new').value = $('pin-new2').value = ''; await refresh(); save(phone); savePin(pin); $('alert').innerHTML = ''; showAlert(T('PIN created. Use it next time to view your points.', 'Đã tạo PIN. Lần sau bạn nhập PIN này để xem điểm.')); }
     catch (e) { showAlert(e.message, 'danger'); }
     finally { if (btn) btn.disabled = false; }
   });
 
   $('me').addEventListener('click', async event => {
-    if (event.target.closest('#change-pin')) { event.preventDefault(); const next = prompt('Nhập PIN mới (4–6 số):'); if (next === null) return; try { await api('/pin', { phone, pin, new_pin: next.trim() }); pin = next.trim(); savePin(pin); showAlert('Đã đổi PIN.'); } catch (e) { showAlert(e.message, 'danger'); } return; }
+    if (event.target.closest('#change-pin')) { event.preventDefault(); const next = prompt(T('Enter a new PIN (4–6 digits):', 'Nhập PIN mới (4–6 số):')); if (next === null) return; try { await api('/pin', { phone, pin, new_pin: next.trim() }); pin = next.trim(); savePin(pin); showAlert(T('PIN changed.', 'Đã đổi PIN.')); } catch (e) { showAlert(e.message, 'danger'); } return; }
     const checkinBtn = event.target.closest('#checkin-btn'), claimBtn = event.target.closest('.claim'), spinBtn = event.target.closest('.spin');
     try {
       if (checkinBtn) {
         checkinBtn.disabled = true;
         const r = await api('/checkin', { phone });
-        showAlert(r.milestone ? `Điểm danh thành công! Chạm mốc ${r.milestone.days} ngày, thưởng thêm ${money.format(r.milestone.points)} điểm 🎉` : `Đã nhận ${money.format(r.points)} điểm. Chuỗi ${r.streak} ngày!`);
+        showAlert(r.milestone ? T(`Checked in! ${r.milestone.days}-day milestone: bonus ${pts(r.milestone.points)} 🎉`, `Điểm danh thành công! Chạm mốc ${r.milestone.days} ngày, thưởng thêm ${money.format(r.milestone.points)} điểm 🎉`) : T(`You got ${pts(r.points)}. ${r.streak}-day streak!`, `Đã nhận ${money.format(r.points)} điểm. Chuỗi ${r.streak} ngày!`));
         if (r.milestone) launchConfetti();
         await refresh();
       } else if (claimBtn) {
         claimBtn.disabled = true;
         await api(`/missions/${encodeURIComponent(claimBtn.dataset.id)}/claim`, { phone });
         const mission = [...current.missions, ...current.challenges].find(m => m.id === claimBtn.dataset.id) || {};
-        showAlert(mission.reward_type === 'points' ? `Đã nhận +${money.format(mission.reward_points)} điểm 🎉`
-          : mission.reward_type === 'spin' ? 'Bạn nhận thêm 1 lượt quay 🎉'
-          : 'Đã nhận thưởng 🎉 Hãy đưa số điện thoại cho nhân viên để nhận quà tại quầy.');
+        showAlert(mission.reward_type === 'points' ? T(`You got +${pts(mission.reward_points)} 🎉`, `Đã nhận +${money.format(mission.reward_points)} điểm 🎉`)
+          : mission.reward_type === 'spin' ? T('You got 1 more spin 🎉', 'Bạn nhận thêm 1 lượt quay 🎉')
+          : T('Reward claimed 🎉 Show your phone number to staff to collect it.', 'Đã nhận thưởng 🎉 Hãy đưa số điện thoại cho nhân viên để nhận quà tại quầy.'));
         launchConfetti();
         await refresh();
       } else if (spinBtn) {
@@ -163,15 +183,15 @@
 
   async function spin(campaign) {
     $('spin-list').classList.add('d-none'); $('spin-stage').classList.remove('d-none');
-    const done = $('spin-done'); done.classList.add('d-none'); $('spin-result').textContent = 'Chúc bạn may mắn...';
+    const done = $('spin-done'); done.classList.add('d-none'); $('spin-result').textContent = T('Good luck...', 'Chúc bạn may mắn...');
     const game = createGame('wheel', $('wheel-mount'), campaign.prizes);
     try {
       await game.start();
       const r = await api('/spin', { phone, campaign_id: campaign.id, request_id: crypto.randomUUID() });
       await game.reveal(Math.max(0, campaign.prizes.findIndex(p => p.id === r.prize.id)), r.prize);
       const lost = r.prize.prize_type === 'none';
-      $('spin-result').textContent = lost ? `🍀 ${r.prize.name}` : `🎁 Bạn trúng: ${r.prize.name}`;
-      if (!lost) { launchConfetti(); showAlert('Chúc mừng! Hãy đưa số điện thoại cho nhân viên để nhận quà.'); }
+      $('spin-result').textContent = lost ? `🍀 ${r.prize.name}` : `🎁 ${T('You won', 'Bạn trúng')}: ${r.prize.name}`;
+      if (!lost) { launchConfetti(); showAlert(T('Congratulations! Show your phone number to staff to collect your prize.', 'Chúc mừng! Hãy đưa số điện thoại cho nhân viên để nhận quà.')); }
     } catch (e) { showAlert(e.message, 'danger'); $('spin-result').textContent = ''; }
     done.classList.remove('d-none');
     done.onclick = () => refresh().catch(err => showAlert(err.message, 'danger'));
@@ -180,18 +200,19 @@
   (async () => {
     try {
       store = await api('');
-      document.title = `${store.store.name} — Điểm thưởng`;
+      document.title = `${store.store.name} — ${T('Reward points', 'Điểm thưởng')}`;
       $('store-name').textContent = store.store.name;
       if (store.program) {
         $('how').classList.remove('d-none');
-        $('how-text').innerHTML = `<b>Cách tích điểm:</b> mỗi ${money.format(store.program.spend_per_point_minor)} ${esc(store.program.currency)} bạn chi tiêu nhận ${store.program.points_per_step} điểm. Điểm danh mỗi ngày +${store.checkin_points} điểm, điểm danh liên tiếp còn có thưởng thêm.`;
+        const step = fmtMoney(store.program.spend_per_point_minor, store.program.currency);
+        $('how-text').innerHTML = T(`<b>How to earn:</b> every ${step} you spend earns ${pts(store.program.points_per_step)}. Daily check-in +${pts(store.checkin_points)}, with extra bonuses for streaks.`, `<b>Cách tích điểm:</b> mỗi ${step} bạn chi tiêu nhận ${store.program.points_per_step} điểm. Điểm danh mỗi ngày +${store.checkin_points} điểm, điểm danh liên tiếp còn có thưởng thêm.`);
       }
       if (store.pin_required) $('pin').classList.remove('d-none');
       const saved = load(); pin = loadPin();
       if (saved) { $('phone').value = saved; if (store.pin_required) $('pin').value = pin; if (!store.pin_required || pin) $('phone-form').requestSubmit(); else $('pin').focus(); }
     } catch (e) {
-      $('store-name').textContent = 'Không tìm thấy cửa hàng';
-      $('store-sub').textContent = 'Vui lòng quét lại mã QR tại quầy.';
+      $('store-name').textContent = T('Store not found', 'Không tìm thấy cửa hàng');
+      $('store-sub').textContent = T('Please scan the QR code at the counter again.', 'Vui lòng quét lại mã QR tại quầy.');
       $('phone-form').classList.add('d-none');
     }
   })();

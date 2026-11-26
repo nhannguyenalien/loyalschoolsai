@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Khách hàng - Loyal SchoolsAI</title>
+  <title>Customers & points - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -24,39 +24,39 @@
   <div class="col-lg-5">
     <section class="card">
       <div class="card-header"><ul class="nav nav-pills tabs-pill" data-bs-toggle="tabs">
-        <li class="nav-item"><a href="#tab-earn" class="nav-link active" data-bs-toggle="tab"><i class="ti ti-plus me-1"></i>Cộng điểm</a></li>
-        <li class="nav-item"><a href="#tab-redeem" class="nav-link" data-bs-toggle="tab"><i class="ti ti-gift-card me-1"></i>Dùng điểm</a></li>
+        <li class="nav-item"><a href="#tab-earn" class="nav-link active" data-bs-toggle="tab"><i class="ti ti-plus me-1"></i><span data-vi="Cộng điểm">Add points</span></a></li>
+        <li class="nav-item"><a href="#tab-redeem" class="nav-link" data-bs-toggle="tab"><i class="ti ti-gift-card me-1"></i><span data-vi="Dùng điểm">Redeem</span></a></li>
       </ul></div>
       <div class="card-body tab-content">
         <form class="tab-pane active show" id="tab-earn"><div id="sale-form-wrap">
-          <div class="mb-3"><label class="form-label">Số điện thoại / mã khách</label><input id="customer-ref" class="form-control" maxlength="200" required autocomplete="off" inputmode="tel"></div>
+          <div class="mb-3"><label class="form-label" data-vi="Số điện thoại / mã khách">Phone number / customer code</label><input id="customer-ref" class="form-control" maxlength="200" required autocomplete="off" inputmode="tel"></div>
           <div class="row g-3 mb-3">
-            <div class="col-sm-6"><label class="form-label">Tên khách <span class="text-secondary">(tùy chọn)</span></label><input id="customer-name" class="form-control" maxlength="200"></div>
-            <div class="col-sm-6"><label class="form-label">Mã hóa đơn</label><input id="receipt-ref" class="form-control" maxlength="200" required autocomplete="off"></div>
+            <div class="col-sm-6"><label class="form-label"><span data-vi="Tên khách">Customer name</span> <span class="text-secondary" data-vi="(tùy chọn)">(optional)</span></label><input id="customer-name" class="form-control" maxlength="200"></div>
+            <div class="col-sm-6"><label class="form-label" data-vi="Mã hóa đơn">Receipt number</label><input id="receipt-ref" class="form-control" maxlength="200" required autocomplete="off"></div>
           </div>
-          <div class="mb-1"><label class="form-label">Số tiền (VND)</label><input id="sale-amount" class="form-control form-control-lg" type="number" min="1" step="1" required></div>
+          <div class="mb-1"><label class="form-label"><span data-vi="Số tiền">Amount</span> (<span data-cur></span>)</label><input id="sale-amount" class="form-control form-control-lg" type="number" min="0.01" data-money required></div>
           <div class="small text-secondary mb-3" id="earn-preview">&nbsp;</div>
-          <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i>Cộng điểm</button>
-          <div class="form-hint mt-2">Một mã hóa đơn chỉ cộng một lần; bấm lại do mạng chậm cũng không cộng trùng.</div>
+          <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i><span data-vi="Cộng điểm">Add points</span></button>
+          <div class="form-hint mt-2" data-vi="Một mã hóa đơn chỉ cộng một lần; bấm lại do mạng chậm cũng không cộng trùng.">A receipt number is credited once; retrying on a slow network will not double it.</div>
         </div></form>
         <form class="tab-pane" id="tab-redeem">
-          <div class="mb-3"><label class="form-label">Số điện thoại / mã khách</label><input id="redeem-customer-ref" class="form-control" maxlength="200" required inputmode="tel"></div>
+          <div class="mb-3"><label class="form-label" data-vi="Số điện thoại / mã khách">Phone number / customer code</label><input id="redeem-customer-ref" class="form-control" maxlength="200" required inputmode="tel"></div>
           <div class="row g-3 mb-3">
-            <div class="col-sm-6"><label class="form-label">Số điểm cần trừ</label><input id="redeem-points" class="form-control" type="number" min="1" step="1" required></div>
-            <div class="col-sm-6"><label class="form-label">Mã đổi thưởng</label><input id="redeem-ref" class="form-control" maxlength="200" required></div>
+            <div class="col-sm-6"><label class="form-label" data-vi="Số điểm cần trừ">Points to redeem</label><input id="redeem-points" class="form-control" type="number" min="1" step="1" required></div>
+            <div class="col-sm-6"><label class="form-label" data-vi="Mã đổi thưởng">Redemption code</label><input id="redeem-ref" class="form-control" maxlength="200" required></div>
           </div>
-          <div class="mb-3"><label class="form-label">Ghi chú <span class="text-secondary">(tùy chọn)</span></label><input id="redeem-note" class="form-control" maxlength="500" placeholder="Ví dụ: Đổi 1 ly nước"></div>
-          <button class="btn btn-warning w-100" type="submit"><i class="ti ti-minus me-1"></i>Trừ điểm</button>
-          <div class="form-hint mt-2">Hệ thống kiểm tra đủ điểm và không cho dùng trùng một mã đổi thưởng.</div>
+          <div class="mb-3"><label class="form-label"><span data-vi="Ghi chú">Note</span> <span class="text-secondary" data-vi="(tùy chọn)">(optional)</span></label><input id="redeem-note" class="form-control" maxlength="500" placeholder="e.g. One free drink" data-vi-placeholder="Ví dụ: Đổi 1 ly nước"></div>
+          <button class="btn btn-warning w-100" type="submit"><i class="ti ti-minus me-1"></i><span data-vi="Trừ điểm">Redeem points</span></button>
+          <div class="form-hint mt-2" data-vi="Hệ thống kiểm tra đủ điểm và không cho dùng trùng một mã đổi thưởng.">The balance is checked and a redemption code cannot be used twice.</div>
         </form>
       </div>
     </section>
   </div>
   <div class="col-lg-7">
     <section class="card">
-      <div class="card-header"><h3 class="card-title">Tra cứu khách hàng</h3></div>
-      <form class="card-body border-bottom" id="lookup-form"><div class="input-group"><input id="lookup-ref" class="form-control" placeholder="Nhập số điện thoại hoặc mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>Tra cứu</button></div></form>
-      <div class="card-body" id="account-result"><div class="empty-state"><i class="ti ti-user-search"></i>Nhập số điện thoại để xem điểm và lịch sử giao dịch.</div></div>
+      <div class="card-header"><h3 class="card-title" data-vi="Tra cứu khách hàng">Customer lookup</h3></div>
+      <form class="card-body border-bottom" id="lookup-form"><div class="input-group"><input id="lookup-ref" class="form-control" placeholder="Enter a phone number or customer code" data-vi-placeholder="Nhập số điện thoại hoặc mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i><span data-vi="Tra cứu">Search</span></button></div></form>
+      <div class="card-body" id="account-result"><div class="empty-state"><i class="ti ti-user-search"></i><span data-vi="Nhập số điện thoại để xem điểm và lịch sử giao dịch.">Enter a phone number to see points and history.</span></div></div>
     </section>
   </div>
 </div>
@@ -64,38 +64,39 @@
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('customers', 'Khách hàng & tích điểm', 'Cộng điểm theo hóa đơn, đổi thưởng và tra cứu lịch sử từng khách.');
+  renderLayout('customers', T('Customers & points', 'Khách hàng & tích điểm'), T('Add points per receipt, redeem rewards and look up customer history.', 'Cộng điểm theo hóa đơn, đổi thưởng và tra cứu lịch sử từng khách.'));
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  applyI18n(); applyCurrency();
   const val = id => document.getElementById(id).value.trim();
   let program = null;
-  LoyaltyAPI.getProgram().then(r => { program = r.program; updatePreview(); }).catch(() => {});
+  loadProgram().then(p => { program = p; updatePreview(); }).catch(() => {});
 
   function updatePreview() {
-    const el = document.getElementById('earn-preview'), amount = Number(val('sale-amount'));
-    if (!program) { el.innerHTML = '<a href="settings.html">Chưa có luật tích điểm — đặt luật trước →</a>'; return; }
+    const el = document.getElementById('earn-preview'), amount = toMinor(val('sale-amount'));
+    if (!program) { el.innerHTML = `<a href="settings.html">${T('No points rule yet — set one first →', 'Chưa có luật tích điểm — đặt luật trước →')}</a>`; return; }
     const points = Math.floor(amount / Number(program.spend_per_point_minor)) * Number(program.points_per_step);
-    el.innerHTML = amount ? `≈ <b>${money.format(points)} điểm</b> theo luật hiện tại` : `Luật: mỗi ${money.format(Number(program.spend_per_point_minor))} ₫ = ${program.points_per_step} điểm`;
+    el.innerHTML = amount ? T(`≈ <b>${pts(points)}</b> under the current rule`, `≈ <b>${pts(points)}</b> theo luật hiện tại`) : T(`Rule: every ${fmtMoney(program.spend_per_point_minor)} = ${pts(program.points_per_step)}`, `Luật: mỗi ${fmtMoney(program.spend_per_point_minor)} = ${program.points_per_step} điểm`);
   }
   document.getElementById('sale-amount').addEventListener('input', updatePreview);
 
   function renderAccount(account) {
     const rows = account.entries.slice().reverse().map(e => {
       const earn = Number(e.points_delta) >= 0;
-      return `<tr><td class="text-nowrap">${esc(fmtDate(e.occurred_at || e.created))}</td><td>${esc(e.source_ref)}</td><td class="text-end">${e.amount_minor ? money.format(Number(e.amount_minor)) + ' ₫' : '—'}</td><td class="text-end"><span class="pill ${earn ? 'pill-earn' : 'pill-redeem'}">${earn ? '+' : ''}${esc(e.points_delta)}</span></td></tr>`;
+      return `<tr><td class="text-nowrap">${esc(fmtDate(e.occurred_at || e.created))}</td><td>${esc(e.source_ref)}</td><td class="text-end">${Number(e.amount_minor) ? fmtMoney(e.amount_minor, e.currency) : '—'}</td><td class="text-end"><span class="pill ${earn ? 'pill-earn' : 'pill-redeem'}">${earn ? '+' : ''}${esc(e.points_delta)}</span></td></tr>`;
     }).join('');
     const name = account.customer.name || account.customer.customer_ref;
     document.getElementById('account-result').innerHTML = `
       <div class="balance-card mb-4 d-flex align-items-center gap-3">
         <span class="avatar avatar-lg rounded-circle" style="background:rgba(255,255,255,.22);color:#fff">${esc(initials(name))}</span>
-        <div class="me-auto"><div style="opacity:.85">${esc(name)}${account.customer.name ? ` · ${esc(account.customer.customer_ref)}` : ''}</div><div class="big">${money.format(account.balance)} <span class="fs-4 fw-bold" style="opacity:.8">điểm</span></div></div>
-        <button class="btn btn-sm btn-light" id="reset-pin" title="Xóa hoặc đặt PIN mới cho khách (dùng khi khách quên PIN)"><i class="ti ti-lock-open me-1"></i>Đặt lại PIN</button>
-        <button class="btn btn-sm btn-light" id="use-points"><i class="ti ti-gift-card me-1"></i>Dùng điểm</button>
+        <div class="me-auto"><div style="opacity:.85">${esc(name)}${account.customer.name ? ` · ${esc(account.customer.customer_ref)}` : ''}</div><div class="big">${money.format(account.balance)} <span class="fs-4 fw-bold" style="opacity:.8">${T('points', 'điểm')}</span></div></div>
+        <button class="btn btn-sm btn-light" id="reset-pin" title="${T('Clear or set a new PIN (when a customer forgets it)', 'Xóa hoặc đặt PIN mới cho khách (dùng khi khách quên PIN)')}"><i class="ti ti-lock-open me-1"></i>${T('Reset PIN', 'Đặt lại PIN')}</button>
+        <button class="btn btn-sm btn-light" id="use-points"><i class="ti ti-gift-card me-1"></i>${T('Redeem', 'Dùng điểm')}</button>
       </div>
-      <div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>Thời gian</th><th>Hóa đơn / mã</th><th class="text-end">Giá trị</th><th class="text-end">Điểm</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="text-secondary text-center py-4">Chưa có giao dịch</td></tr>'}</tbody></table></div>`;
+      <div class="table-responsive"><table class="table table-vcenter"><thead><tr><th>${T('Time', 'Thời gian')}</th><th>${T('Receipt / code', 'Hóa đơn / mã')}</th><th class="text-end">${T('Amount', 'Giá trị')}</th><th class="text-end">${T('Points', 'Điểm')}</th></tr></thead><tbody>${rows || `<tr><td colspan="4" class="text-secondary text-center py-4">${T('No transactions yet', 'Chưa có giao dịch')}</td></tr>`}</tbody></table></div>`;
     document.getElementById('reset-pin').onclick = async () => {
-      const pin = prompt('PIN mới cho khách (4–6 số).\nĐể trống = xóa PIN, khách sẽ tự tạo lại khi vào trang khách:');
+      const pin = prompt(T('New PIN for this customer (4–6 digits).\nLeave empty to clear it; the customer will create a new one on the customer page:', 'PIN mới cho khách (4–6 số).\nĐể trống = xóa PIN, khách sẽ tự tạo lại khi vào trang khách:'));
       if (pin === null) return;
-      try { const r = await LoyaltyAPI.resetCustomerPin(account.customer.customer_ref, pin.trim()); showAlert(r.cleared ? 'Đã xóa PIN. Khách sẽ tự tạo PIN mới ở lần vào tiếp theo.' : 'Đã đặt PIN mới cho khách.'); }
+      try { const r = await LoyaltyAPI.resetCustomerPin(account.customer.customer_ref, pin.trim()); showAlert(r.cleared ? T('PIN cleared. The customer will create a new one next visit.', 'Đã xóa PIN. Khách sẽ tự tạo PIN mới ở lần vào tiếp theo.') : T('New PIN set for the customer.', 'Đã đặt PIN mới cho khách.')); }
       catch (e) { showAlert(e.message, 'danger'); }
     };
     document.getElementById('use-points').onclick = () => {
@@ -118,11 +119,11 @@
     const ref = val('customer-ref'), receipt = val('receipt-ref');
     const result = await LoyaltyAPI.sendEvent({
       type: 'purchase', customer_ref: ref, order_id: receipt, source_type: 'manual',
-      amount_minor: Number(val('sale-amount')),
+      amount_minor: toMinor(val('sale-amount')),
       customer: { name: val('customer-name'), phone: ref }, metadata: { channel: 'loyalschoolsai' }
     }, `manual:${receipt}`);
     const spins = result.spins_earned || 0;
-    showAlert(result.replayed ? 'Hóa đơn này đã được ghi trước đó, hệ thống không cộng trùng.' : `Đã cộng ${result.points_delta} điểm${spins ? ` và cấp ${spins} lượt quay 🎁` : ''}.`);
+    showAlert(result.replayed ? T('This receipt was already recorded; it was not added twice.', 'Hóa đơn này đã được ghi trước đó, hệ thống không cộng trùng.') : T(`Added ${pts(result.points_delta)}${spins ? ` and ${spins} ${plural(spins, 'spin', 'spins')} 🎁` : ''}.`, `Đã cộng ${result.points_delta} điểm${spins ? ` và cấp ${spins} lượt quay 🎁` : ''}.`));
     await loadAccount(ref);
     if (!result.replayed) { document.getElementById('receipt-ref').value = ''; document.getElementById('sale-amount').value = ''; updatePreview(); }
   });
@@ -133,7 +134,7 @@
       idempotency_key: `redemption:${code}`, customer_ref: ref, source_ref: code,
       points: Number(val('redeem-points')), note: val('redeem-note'), metadata: { channel: 'loyalschoolsai' }
     });
-    showAlert(result.replayed ? 'Giao dịch đổi điểm này đã được ghi trước đó, hệ thống không trừ trùng.' : `Đã trừ ${Math.abs(Number(result.entry.points_delta))} điểm. Số dư còn ${money.format(result.balance)} điểm.`);
+    showAlert(result.replayed ? T('This redemption was already recorded; it was not deducted twice.', 'Giao dịch đổi điểm này đã được ghi trước đó, hệ thống không trừ trùng.') : T(`Redeemed ${pts(Math.abs(Number(result.entry.points_delta)))}. Balance: ${pts(result.balance)}.`, `Đã trừ ${Math.abs(Number(result.entry.points_delta))} điểm. Số dư còn ${money.format(result.balance)} điểm.`));
     await loadAccount(ref);
     if (!result.replayed) ['redeem-points', 'redeem-ref', 'redeem-note'].forEach(id => document.getElementById(id).value = '');
   });

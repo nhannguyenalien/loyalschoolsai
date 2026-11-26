@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tài liệu API - Loyal SchoolsAI</title>
-  <meta name="description" content="Tài liệu API tích điểm, đổi thưởng và quay thưởng cho POS.">
+  <title>API documentation - Loyal SchoolsAI</title>
+  <meta name="description" content="API docs for points, redemptions and reward spins for POS integrations.">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -30,7 +30,7 @@
 <body>
 <header class="docs-top"><div class="container-xl d-flex align-items-center py-3">
   <a href="index.html" class="d-flex align-items-center text-decoration-none"><span class="brand-mark" style="width:34px;height:34px;font-size:18px"><i class="ti ti-gift"></i></span><span class="fw-bold" style="color:var(--ink)">Loyal SchoolsAI <span class="text-secondary fw-normal">· API</span></span></a>
-  <div class="ms-auto d-flex gap-2"><a class="btn btn-outline-primary btn-sm" href="integrations.html"><i class="ti ti-key me-1"></i>Lấy API key</a><a class="btn btn-grad btn-sm" href="index.html">Đăng nhập</a></div>
+  <div class="ms-auto d-flex gap-2 align-items-center"><a class="small me-2" href="docs-vi.html">Tiếng Việt</a><a class="btn btn-outline-primary btn-sm" href="integrations.html"><i class="ti ti-key me-1"></i>Get API key</a><a class="btn btn-grad btn-sm" href="index.html">Sign in</a></div>
 </div></header>
 
 <div class="container-xl py-4"><div class="row">
@@ -39,181 +39,183 @@
 </div></div>
 
 <script>
-const BASE = location.origin + '/api/v1/loyalty';
+const BASE = location.origin.replace(/\/\/[0-9a-f]{8}\.([^/]+\.pages\.dev)/, '//$1') + '/api/v1/loyalty';
 const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const code = (text, lang = '') => `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">Sao chép</button><code>${esc(text.replaceAll('{{BASE}}', BASE))}</code></pre>`;
+const code = (text, lang = '') => `<pre class="code"><button class="btn btn-sm btn-dark copy-btn" type="button">Copy</button><code>${esc(text.replaceAll('{{BASE}}', BASE))}</code></pre>`;
 const KEY = '-H "Authorization: Bearer lsk_YOUR_KEY"';
-const entry = (extra) => ({ id: '6c0a7713-…', customer_ref: '0901234567', transaction_type: 'earn', points_delta: 25, amount_minor: 250000, currency: 'VND', source_type: 'pos', source_ref: 'HD001', rule_version: 1, idempotency_key: 'pos:HD001', occurred_at: '2026-10-08T07:13:59.942Z', ...extra });
+const entry = (extra) => ({ id: '6c0a7713-…', customer_ref: '0901234567', transaction_type: 'earn', points_delta: 25, amount_minor: 2500, currency: 'USD', source_type: 'pos', source_ref: 'R001', rule_version: 1, idempotency_key: 'pos:R001', occurred_at: '2026-10-08T07:13:59.942Z', ...extra });
 
-/* ---------- Nội dung các endpoint ---------- */
+/* ---------- Endpoints ---------- */
+const CUSTOMER_Q = 'Phone number or customer code (query).';
+const CUSTOMER_B = 'Phone number or customer code (in the body).';
 const GROUPS = [
-  { id: 'webhooks', title: 'Webhook', endpoints: [
-    { id: 'webhook-events', m: 'POST', path: 'URL của bạn', title: 'Nhận sự kiện (webhook)',
-      desc: 'Thêm URL ở trang <b>Tích hợp</b>. Mỗi sự kiện được gửi bằng <code>POST</code> JSON: <code>{ id, type, created_at, data }</code>. Loại sự kiện: <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Xác minh chữ ký</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, với <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; nên từ chối nếu <code>t</code> lệch quá 5 phút. Trả về 2xx trong 5 giây; nếu không, hệ thống thử lại sau 1 phút, 5 phút, 30 phút, 2 giờ, 6 giờ (tối đa 6 lần). Cùng <code>id</code> có thể đến nhiều lần — hãy xử lý idempotent.',
+  { id: 'webhooks', title: 'Webhooks', endpoints: [
+    { id: 'webhook-events', m: 'POST', path: 'Your URL', title: 'Receive events (webhooks)',
+      desc: 'Add a URL on the <b>POS integration</b> page. Each event is sent as a JSON <code>POST</code>: <code>{ id, type, created_at, data }</code>. Event types: <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Verify the signature</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, where <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; reject if <code>t</code> is more than 5 minutes off. Reply 2xx within 5 seconds, otherwise we retry after 1 min, 5 min, 30 min, 2 h and 6 h (6 attempts at most). The same <code>id</code> may arrive more than once — handle it idempotently.',
       params: [],
       curl: `// Node.js\nimport crypto from "node:crypto";\nconst [t, v1] = req.headers["x-loyalty-signature"].split(",").map(p => p.split("=")[1]);\nconst ok = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(t + "." + rawBody).digest("hex") === v1;`,
-      status: 'Phản hồi 2xx', res: { id: 'c1f0…', type: 'points.earned', created_at: '2026-11-20T03:12:00.000Z', data: { customer_ref: '0901234567', points: 25, amount_minor: 250000, source_ref: 'HD001' } } },
+      status: '2xx reply', res: { id: 'c1f0…', type: 'points.earned', created_at: '2026-11-20T03:12:00.000Z', data: { customer_ref: '0901234567', points: 25, amount_minor: 2500, currency: 'USD', source_ref: 'R001' } } },
   ] },
 
-  { id: 'points', title: 'Tích điểm', endpoints: [
-    { id: 'post-events', m: 'POST', path: '/events', title: 'Gửi sự kiện (khuyên dùng)',
-      desc: 'Một endpoint cho mọi thứ: <code>purchase</code> (cộng điểm + sinh lượt quay + vé), <code>redeem</code> (trừ điểm), <code>checkin</code> (điểm danh + chuỗi). Nhiệm vụ và thử thách tự tính tiến độ từ các sự kiện này. Chống trùng bằng header <code>Idempotency-Key</code> hoặc mặc định <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
+  { id: 'points', title: 'Points', endpoints: [
+    { id: 'post-events', m: 'POST', path: '/events', title: 'Send an event (recommended)',
+      desc: 'One endpoint for everything: <code>purchase</code> (add points + earn spins + tickets), <code>redeem</code> (deduct points), <code>checkin</code> (check-in + streak). Missions and challenges compute progress from these events. De-duplicated by the <code>Idempotency-Key</code> header, or by default <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
       params: [['type', 'string', true, '<code>purchase</code> | <code>redeem</code> | <code>checkin</code>.'],
-        ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách.'],
-        ['order_id', 'string', false, 'Mã hóa đơn / mã đổi thưởng (bắt buộc với purchase và redeem).'],
-        ['amount_minor', 'integer', false, 'Giá trị hóa đơn (purchase).'],
-        ['points', 'integer', false, 'Số điểm trừ (redeem).'],
-        ['customer', 'object', false, '<code>{ name, phone }</code> khi tạo khách mới.']],
-      curl: `curl -X POST {{BASE}}/events ${KEY} \\n  -H "Content-Type: application/json" -H "Idempotency-Key: pos:HD001" \\n  -d '{"type":"purchase","customer_ref":"0901234567","order_id":"HD001","source_type":"pos","amount_minor":250000}'`,
-      status: '201 Created (200 nếu replayed)', res: { type: 'purchase', customer_ref: '0901234567', replayed: false, balance: 25, points_delta: 25, spins_earned: 0, tickets_earned: 0, detail: '…' } },
-    { id: 'post-sales', m: 'POST', path: '/sales', title: 'Cộng điểm cho hóa đơn',
-      desc: 'Ghi một hóa đơn và cộng điểm theo luật hiện hành. Mỗi hóa đơn chỉ được cộng một lần. Nếu cửa hàng đã tham gia chương trình quay thưởng, hóa đơn đủ điều kiện sẽ tự sinh lượt quay (trường <code>entitlements</code>) và vé quay số may mắn của các kỳ đang mở (trường <code>tickets</code>).',
-      params: [['idempotency_key', 'string', true, 'Khóa chống trùng, ví dụ <code>pos:HD001</code>. Gửi lại cùng khóa sẽ trả lại kết quả cũ (<code>replayed: true</code>).'],
-        ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách. Khách được tạo tự động nếu chưa có.'],
-        ['source_ref', 'string', true, 'Mã hóa đơn. Một mã chỉ được cộng một lần.'],
-        ['amount_minor', 'integer', true, 'Giá trị hóa đơn (VND, số nguyên dương).'],
-        ['source_type', 'string', false, 'Nguồn, mặc định <code>manual</code>. POS nên dùng <code>pos</code>.'],
-        ['customer', 'object', false, '<code>{ name, phone }</code> — cập nhật hồ sơ khi tạo khách mới.'],
-        ['metadata', 'object', false, 'Dữ liệu tùy ý được lưu kèm giao dịch.']],
-      curl: `curl -X POST {{BASE}}/sales ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000,"customer":{"name":"An","phone":"0901234567"}}'`,
-      status: '201 Created (200 nếu replayed)', res: { entry: entry(), replayed: false, entitlements: [], tickets: [] } },
-    { id: 'post-redemptions', m: 'POST', path: '/redemptions', title: 'Trừ điểm (đổi thưởng)',
-      desc: 'Trừ điểm của khách khi đổi quà tại quầy. Hệ thống kiểm tra đủ điểm — kể cả khi hai máy POS trừ cùng lúc, số dư không bao giờ âm.',
-      params: [['idempotency_key', 'string', true, 'Khóa chống trùng, ví dụ <code>redeem:G001</code>.'],
-        ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (phải đã tồn tại).'],
-        ['source_ref', 'string', true, 'Mã đổi thưởng, mỗi mã chỉ dùng một lần.'],
-        ['points', 'integer', true, 'Số điểm cần trừ (nguyên dương).'],
-        ['note', 'string', false, 'Ghi chú, tối đa 500 ký tự.']],
-      curl: `curl -X POST {{BASE}}/redemptions ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"redeem:G001","customer_ref":"0901234567","source_ref":"G001","points":5,"note":"Đổi 1 ly nước"}'`,
-      status: '201 Created (200 nếu replayed)', res: { entry: entry({ transaction_type: 'redeem', points_delta: -5, amount_minor: 0, source_type: 'redemption', source_ref: 'G001', idempotency_key: 'redeem:G001' }), replayed: false, balance: 20 } },
-    { id: 'get-account', m: 'GET', path: '/account', title: 'Xem điểm & lịch sử của khách',
-      desc: 'Trả về số dư điểm và lịch sử giao dịch (cũ → mới). Báo 404 nếu khách chưa từng phát sinh giao dịch.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).'], ['page', 'integer', false, 'Trang, mặc định 1.'], ['per_page', 'integer', false, 'Số dòng mỗi trang, mặc định 100, tối đa 500.']],
+        ['customer_ref', 'string', true, 'Phone number or customer code.'],
+        ['order_id', 'string', false, 'Receipt number / redemption code (required for purchase and redeem).'],
+        ['amount_minor', 'integer', false, 'Receipt total in the smallest currency unit (purchase).'],
+        ['points', 'integer', false, 'Points to deduct (redeem).'],
+        ['customer', 'object', false, '<code>{ name, phone }</code> used when creating a new customer.']],
+      curl: `curl -X POST {{BASE}}/events ${KEY} \\\n  -H "Content-Type: application/json" -H "Idempotency-Key: pos:R001" \\\n  -d '{"type":"purchase","customer_ref":"0901234567","order_id":"R001","source_type":"pos","amount_minor":2500}'`,
+      status: '201 Created (200 if replayed)', res: { type: 'purchase', customer_ref: '0901234567', replayed: false, balance: 25, points_delta: 25, spins_earned: 0, tickets_earned: 0, detail: '…' } },
+    { id: 'post-sales', m: 'POST', path: '/sales', title: 'Add points for a receipt',
+      desc: 'Record a receipt and add points under the active rule. Each receipt is credited once. If the store joined a spin campaign, a qualifying receipt earns spins (<code>entitlements</code>) and lucky-draw tickets for open draws (<code>tickets</code>).',
+      params: [['idempotency_key', 'string', true, 'De-duplication key, e.g. <code>pos:R001</code>. Re-sending it returns the earlier result (<code>replayed: true</code>).'],
+        ['customer_ref', 'string', true, 'Phone number or customer code. The customer is created if missing.'],
+        ['source_ref', 'string', true, 'Receipt number. Credited only once.'],
+        ['amount_minor', 'integer', true, 'Receipt total in the smallest unit (positive integer): cents for USD, đồng for VND.'],
+        ['source_type', 'string', false, 'Source, default <code>manual</code>. A POS should send <code>pos</code>.'],
+        ['customer', 'object', false, '<code>{ name, phone }</code> — profile used when creating the customer.'],
+        ['metadata', 'object', false, 'Any data to store with the transaction.']],
+      curl: `curl -X POST {{BASE}}/sales ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"pos:R001","customer_ref":"0901234567","source_type":"pos","source_ref":"R001","amount_minor":2500,"customer":{"name":"An","phone":"0901234567"}}'`,
+      status: '201 Created (200 if replayed)', res: { entry: entry(), replayed: false, entitlements: [], tickets: [] } },
+    { id: 'post-redemptions', m: 'POST', path: '/redemptions', title: 'Redeem points',
+      desc: 'Deduct points when a customer redeems at the counter. The balance is checked — even if two terminals redeem at once, it never goes negative.',
+      params: [['idempotency_key', 'string', true, 'De-duplication key, e.g. <code>redeem:G001</code>.'],
+        ['customer_ref', 'string', true, 'Phone number or customer code (must exist).'],
+        ['source_ref', 'string', true, 'Redemption code, usable once.'],
+        ['points', 'integer', true, 'Points to deduct (positive integer).'],
+        ['note', 'string', false, 'Note, max 500 characters.']],
+      curl: `curl -X POST {{BASE}}/redemptions ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"idempotency_key":"redeem:G001","customer_ref":"0901234567","source_ref":"G001","points":5,"note":"One free drink"}'`,
+      status: '201 Created (200 if replayed)', res: { entry: entry({ transaction_type: 'redeem', points_delta: -5, amount_minor: 0, source_type: 'redemption', source_ref: 'G001', idempotency_key: 'redeem:G001' }), replayed: false, balance: 20 } },
+    { id: 'get-account', m: 'GET', path: '/account', title: "A customer's points & history",
+      desc: 'Returns the balance and transaction history (oldest → newest). 404 if the customer has no activity yet.',
+      params: [['customer_ref', 'string', true, CUSTOMER_Q], ['page', 'integer', false, 'Page, default 1.'], ['per_page', 'integer', false, 'Rows per page, default 100, max 500.']],
       curl: `curl "{{BASE}}/account?customer_ref=0901234567" ${KEY}`,
       status: '200 OK', res: { customer: { id: 'b082973a-…', customer_ref: '0901234567', name: 'An', status: 'active' }, balance: 20, entries: [entry()], pagination: { page: 1, per_page: 100, total_items: 1 } } },
-    { id: 'get-program', m: 'GET', path: '/program', title: 'Xem luật tích điểm hiện tại',
-      desc: 'Trả về luật đang hoạt động, hoặc <code>program: null</code> nếu chưa cấu hình.', params: [],
+    { id: 'get-program', m: 'GET', path: '/program', title: 'Current points rule',
+      desc: 'Returns the active rule, or <code>program: null</code> if none is configured.', params: [],
       curl: `curl {{BASE}}/program ${KEY}`, status: '200 OK',
-      res: { program: { id: '5864eb28-…', version: 1, currency: 'VND', spend_per_point_minor: 10000, points_per_step: 1, status: 'active' } } },
-    { id: 'put-program', m: 'PUT', path: '/program', title: 'Đặt luật tích điểm',
-      desc: 'Tạo một phiên bản luật mới và kích hoạt. Giao dịch cũ giữ nguyên điểm đã tính.',
-      params: [['spend_per_point_minor', 'integer', true, 'Chi bao nhiêu (VND) thì được một "bước" điểm.'], ['points_per_step', 'integer', false, 'Số điểm mỗi bước, mặc định 1.'], ['currency', 'string', false, 'Mặc định <code>VND</code>.']],
-      curl: `curl -X PUT {{BASE}}/program ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"spend_per_point_minor":10000,"points_per_step":1}'`,
-      status: '200 OK', res: { id: '5864eb28-…', version: 2, currency: 'VND', spend_per_point_minor: 10000, points_per_step: 1, status: 'active' } },
-    { id: 'get-stats', m: 'GET', path: '/stats', title: 'Thống kê tổng quan',
-      desc: 'Số liệu cho dashboard: khách hàng, điểm đã phát/dùng, doanh số 30 ngày, lượt quay, 15 ngày gần nhất và 8 giao dịch mới nhất.', params: [],
+      res: { program: { id: '5864eb28-…', version: 1, currency: 'USD', spend_per_point_minor: 100, points_per_step: 1, status: 'active' } } },
+    { id: 'put-program', m: 'PUT', path: '/program', title: 'Set the points rule',
+      desc: 'Creates and activates a new rule version. Past receipts keep their points.',
+      params: [['spend_per_point_minor', 'integer', true, 'Spend (smallest unit) that earns one step of points.'], ['points_per_step', 'integer', false, 'Points per step, default 1.'], ['currency', 'string', false, '<code>USD</code> or <code>VND</code>. Default <code>VND</code> for backward compatibility — send it explicitly.']],
+      curl: `curl -X PUT {{BASE}}/program ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"currency":"USD","spend_per_point_minor":100,"points_per_step":1}'`,
+      status: '200 OK', res: { id: '5864eb28-…', version: 2, currency: 'USD', spend_per_point_minor: 100, points_per_step: 1, status: 'active' } },
+    { id: 'get-stats', m: 'GET', path: '/stats', title: 'Overview statistics',
+      desc: 'Dashboard numbers: customers, points issued/redeemed, 30-day sales (store currency), spins, the last 15 days and the 8 latest transactions.', params: [],
       curl: `curl {{BASE}}/stats ${KEY}`, status: '200 OK',
-      res: { customers: 128, points_issued: 5400, points_redeemed: 1200, sales_30d: 54000000, receipts_today: 7, spins_available: 3, spins_used: 41, prizes_pending: 2, today: '2026-10-08', daily: [{ day: '2026-10-08', amount: 1250000, points: 125, receipts: 7 }], recent: ['…'] } },
+      res: { customers: 128, points_issued: 5400, points_redeemed: 1200, sales_30d: 540000, receipts_today: 7, spins_available: 3, spins_used: 41, prizes_pending: 2, today: '2026-10-08', daily: [{ day: '2026-10-08', amount: 12500, points: 125, receipts: 7 }], recent: ['…'] } },
   ]},
-  { id: 'rewards', title: 'Quay thưởng', endpoints: [
-    { id: 'get-campaigns', m: 'GET', path: '/reward-world/campaigns', title: 'Danh sách chương trình đang mở',
-      desc: 'Các chương trình quay thưởng chung đang chạy, kèm giải thưởng và việc cửa hàng đã tham gia (<code>joined</code>) hay chưa.', params: [],
+  { id: 'rewards', title: 'Reward spins', endpoints: [
+    { id: 'get-campaigns', m: 'GET', path: '/reward-world/campaigns', title: 'List open campaigns',
+      desc: "Running shared spin campaigns in your store's currency, with prizes and whether the store has <code>joined</code>.", params: [],
       curl: `curl {{BASE}}/reward-world/campaigns ${KEY}`, status: '200 OK',
-      res: { campaigns: [{ id: 'c1…', name: 'Tết may mắn', status: 'active', starts_at: '2026-10-01T00:00:00Z', ends_at: '2026-12-31T00:00:00Z', spend_per_spin_minor: 100000, max_spins_per_sale: 2, joined: true, prizes: [{ id: 'p1…', name: 'Voucher 50k', prize_type: 'voucher', weight: 1, max_wins: 10, status: 'active' }] }] } },
-    { id: 'post-join', m: 'POST', path: '/reward-world/campaigns/:id/join', title: 'Tham gia chương trình',
-      desc: 'Cửa hàng tham gia một chương trình. Từ đó, hóa đơn đủ điều kiện (mỗi <code>spend_per_spin_minor</code> một lượt, tối đa <code>max_spins_per_sale</code>) tự sinh lượt quay.', params: [],
+      res: { campaigns: [{ id: 'c1…', name: 'Lucky New Year', status: 'active', starts_at: '2026-10-01T00:00:00Z', ends_at: '2026-12-31T00:00:00Z', currency: 'USD', spend_per_spin_minor: 1000, max_spins_per_sale: 2, joined: true, prizes: [{ id: 'p1…', name: '$5 voucher', prize_type: 'voucher', weight: 1, max_wins: 10, status: 'active' }] }] } },
+    { id: 'post-join', m: 'POST', path: '/reward-world/campaigns/:id/join', title: 'Join a campaign',
+      desc: 'From then on, qualifying receipts (one spin per <code>spend_per_spin_minor</code>, up to <code>max_spins_per_sale</code>) earn spins. A campaign in another currency returns 409.', params: [],
       curl: `curl -X POST {{BASE}}/reward-world/campaigns/CAMPAIGN_ID/join ${KEY}`, status: '200 OK',
       res: { join: { id: 'j1…', campaign_id: 'c1…', status: 'active', joined_at: '2026-10-08T07:00:00Z' }, replayed: false } },
-    { id: 'get-entitlements', m: 'GET', path: '/reward-world/entitlements', title: 'Khách còn bao nhiêu lượt quay',
-      desc: 'Đếm lượt quay chưa dùng của khách, tổng và theo từng chương trình.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+    { id: 'get-entitlements', m: 'GET', path: '/reward-world/entitlements', title: "A customer's remaining spins",
+      desc: 'Unused spins, total and per campaign.',
+      params: [['customer_ref', 'string', true, CUSTOMER_Q]],
       curl: `curl "{{BASE}}/reward-world/entitlements?customer_ref=0901234567" ${KEY}`, status: '200 OK',
       res: { available: 2, campaigns: [{ campaign_id: 'c1…', available: 2 }] } },
-    { id: 'post-spins', m: 'POST', path: '/reward-world/spins', title: 'Chơi / quay thưởng cho khách',
-      desc: 'Dùng một lượt chơi. <b>Kết quả do máy chủ quyết định</b> (ngẫu nhiên theo trọng số, tôn trọng giới hạn số lần trúng của từng giải) rồi mới trả về — client chỉ việc hiển thị. Cùng một lượt dùng được cho nhiều trò: <code>wheel</code> (vòng quay), <code>cards</code> (chọn thẻ bí mật), <code>dice</code> (xúc xắc), <code>slot</code> (quay 3 biểu tượng). Trò chỉ khác cách trình bày; xác suất và giải thưởng như nhau.',
-      params: [['campaign_id', 'string', true, 'Chương trình cần chơi.'], ['customer_ref', 'string', true, 'Khách chơi.'], ['idempotency_key', 'string', true, 'Khóa chống trùng; gửi lại cùng khóa trả cùng kết quả, không tốn thêm lượt.'], ['game', 'string', false, '<code>wheel</code> (mặc định) · <code>cards</code> · <code>dice</code> · <code>slot</code>. Được lưu kèm kết quả để thống kê.']],
+    { id: 'post-spins', m: 'POST', path: '/reward-world/spins', title: 'Spin for a customer',
+      desc: 'Uses one spin. <b>The server decides the result</b> (weighted random, respecting win limits) before returning it — the client only displays it. A spin can be presented as <code>wheel</code>, <code>cards</code>, <code>dice</code> or <code>slot</code>; odds and prizes are identical.',
+      params: [['campaign_id', 'string', true, 'Campaign to play.'], ['customer_ref', 'string', true, 'Player.'], ['idempotency_key', 'string', true, 'Re-sending the same key returns the same result without using another spin.'], ['game', 'string', false, '<code>wheel</code> (default) · <code>cards</code> · <code>dice</code> · <code>slot</code>. Stored with the result.']],
       curl: `curl -X POST {{BASE}}/reward-world/spins ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"campaign_id":"CAMPAIGN_ID","customer_ref":"0901234567","idempotency_key":"spin:0901234567:1","game":"cards"}'`,
-      status: '201 Created (200 nếu replayed)', res: { result: { id: 'r1…', prize_id: 'p1…', prize_name: 'Voucher 50k', prize_type: 'voucher', status: 'won', game: 'cards', spun_at: '2026-10-08T07:20:00Z' }, replayed: false } },
-    { id: 'get-rewards', m: 'GET', path: '/reward-world/rewards', title: 'Giải thưởng đã trúng của khách',
-      desc: 'Các giải khách đã trúng; <code>claim</code> là <code>null</code> nếu chưa bàn giao.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+      status: '201 Created (200 if replayed)', res: { result: { id: 'r1…', prize_id: 'p1…', prize_name: '$5 voucher', prize_type: 'voucher', status: 'won', game: 'cards', spun_at: '2026-10-08T07:20:00Z' }, replayed: false } },
+    { id: 'get-rewards', m: 'GET', path: '/reward-world/rewards', title: "A customer's prizes",
+      desc: 'Prizes the customer won; <code>claim</code> is <code>null</code> until handed over.',
+      params: [['customer_ref', 'string', true, CUSTOMER_Q]],
       curl: `curl "{{BASE}}/reward-world/rewards?customer_ref=0901234567" ${KEY}`, status: '200 OK',
-      res: { rewards: [{ id: 'r1…', prize_name: 'Voucher 50k', status: 'won', spun_at: '2026-10-08T07:20:00Z', claim: null }] } },
-    { id: 'post-claim', m: 'POST', path: '/reward-world/results/:id/claim', title: 'Xác nhận đã giao thưởng',
-      desc: 'Đánh dấu cửa hàng đã trao giải cho khách. Gọi lại là an toàn (trả <code>replayed: true</code>).',
-      params: [['claim_note', 'string', false, 'Ghi chú, tối đa 500 ký tự.']],
-      curl: `curl -X POST {{BASE}}/reward-world/results/RESULT_ID/claim ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"claim_note":"Giao tại quầy 1"}'`,
-      status: '201 Created (200 nếu replayed)', res: { claim: { id: 'cl1…', result_id: 'r1…', prize_name: 'Voucher 50k', claimed_at: '2026-10-08T07:25:00Z' }, replayed: false } },
+      res: { rewards: [{ id: 'r1…', prize_name: '$5 voucher', status: 'won', spun_at: '2026-10-08T07:20:00Z', claim: null }] } },
+    { id: 'post-claim', m: 'POST', path: '/reward-world/results/:id/claim', title: 'Mark a prize delivered',
+      desc: 'Records that the store handed over the prize. Safe to repeat (<code>replayed: true</code>).',
+      params: [['claim_note', 'string', false, 'Note, max 500 characters.']],
+      curl: `curl -X POST {{BASE}}/reward-world/results/RESULT_ID/claim ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"claim_note":"Handed over at counter 1"}'`,
+      status: '201 Created (200 if replayed)', res: { claim: { id: 'cl1…', result_id: 'r1…', prize_name: '$5 voucher', claimed_at: '2026-10-08T07:25:00Z' }, replayed: false } },
   ]},
-  { id: 'games', title: 'Trò chơi giữ chân', endpoints: [
-    { id: 'post-checkin', m: 'POST', path: '/games/checkin', title: 'Điểm danh hôm nay',
-      desc: 'Điểm danh cho khách và cộng điểm. Mỗi khách một lần mỗi ngày (<b>ngày tính theo giờ Việt Nam</b>); gọi lại trong ngày trả <code>replayed: true</code> và không cộng thêm. Điểm danh liên tiếp tạo thành chuỗi; chạm mốc (ví dụ 7/14/30 ngày) được thưởng thêm đúng một lần.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (trong body).']],
+  { id: 'games', title: 'Retention games', endpoints: [
+    { id: 'post-checkin', m: 'POST', path: '/games/checkin', title: 'Check in today',
+      desc: 'Checks a customer in and adds points, once per day (<b>days follow Vietnam time</b>); repeating returns <code>replayed: true</code>. Consecutive days form a streak; each milestone (e.g. 7/14/30 days) pays once.',
+      params: [['customer_ref', 'string', true, CUSTOMER_B]],
       curl: `curl -X POST {{BASE}}/games/checkin ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer_ref":"0901234567"}'`,
-      status: '201 Created (200 nếu đã điểm danh hôm nay)', res: { replayed: false, day: '2026-10-08', points: 10, streak: 7, milestone: { days: 7, points: 50 }, next_milestone: { days: 14, points: 120, remaining: 7 }, balance: 305 } },
-    { id: 'get-checkin', m: 'GET', path: '/games/checkin', title: 'Xem chuỗi điểm danh của khách',
-      desc: '<code>streak</code> là chuỗi hiện tại (còn hiệu lực nếu khách điểm danh hôm nay hoặc hôm qua). <code>recent_days</code> là các ngày đã điểm danh gần đây.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+      status: '201 Created (200 if already checked in)', res: { replayed: false, day: '2026-10-08', points: 10, streak: 7, milestone: { days: 7, points: 50 }, next_milestone: { days: 14, points: 120, remaining: 7 }, balance: 305 } },
+    { id: 'get-checkin', m: 'GET', path: '/games/checkin', title: "A customer's streak",
+      desc: '<code>streak</code> is the current streak (still alive if checked in today or yesterday). <code>recent_days</code> lists recent check-ins.',
+      params: [['customer_ref', 'string', true, CUSTOMER_Q]],
       curl: `curl "{{BASE}}/games/checkin?customer_ref=0901234567" ${KEY}`, status: '200 OK',
       res: { customer_ref: '0901234567', today: '2026-10-08', checked_in_today: true, streak: 7, total_checkins: 23, last_checkin: '2026-10-08', recent_days: ['2026-10-08', '2026-10-07'], checkin_points: 10, next_milestone: { days: 14, points: 120, remaining: 7 }, milestones: [{ days: 7, points: 50 }, { days: 14, points: 120 }] } },
-    { id: 'get-missions', m: 'GET', path: '/games/missions', title: 'Nhiệm vụ hôm nay của khách',
-      desc: 'Các nhiệm vụ đang bật kèm tiến độ trong ngày. <code>kind</code>: <code>checkin</code> (điểm danh), <code>receipts</code> (số hóa đơn trong ngày), <code>spend</code> (tổng chi tiêu trong ngày). Không truyền <code>customer_ref</code> thì trả danh sách cấu hình nhiệm vụ.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+    { id: 'get-missions', m: 'GET', path: '/games/missions', title: "A customer's missions today",
+      desc: "Active missions with today's progress. <code>kind</code>: <code>checkin</code>, <code>receipts</code> (receipts today), <code>spend</code> (today's spend, smallest unit). Without <code>customer_ref</code> it returns the mission definitions.",
+      params: [['customer_ref', 'string', true, CUSTOMER_Q]],
       curl: `curl "{{BASE}}/games/missions?customer_ref=0901234567" ${KEY}`, status: '200 OK',
-      res: { customer_ref: '0901234567', day: '2026-10-08', missions: [{ id: 'm1…', name: 'Mua 1 hóa đơn', kind: 'receipts', target: 1, reward_type: 'points', reward_points: 20, current: 1, completed: true, claimed: false }] } },
-    { id: 'post-mission-claim', m: 'POST', path: '/games/missions/:id/claim', title: 'Nhận thưởng nhiệm vụ',
-      desc: 'Trao thưởng khi khách đã hoàn thành nhiệm vụ trong ngày: cộng điểm, hoặc cấp một <b>lượt quay</b> (dùng ở <code>/reward-world/spins</code>). Mỗi nhiệm vụ nhận một lần mỗi ngày; gọi lại không thưởng trùng. Chưa hoàn thành → 409.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (trong body).']],
+      res: { customer_ref: '0901234567', day: '2026-10-08', missions: [{ id: 'm1…', name: 'Buy once', kind: 'receipts', target: 1, reward_type: 'points', reward_points: 20, current: 1, completed: true, claimed: false }] } },
+    { id: 'post-mission-claim', m: 'POST', path: '/games/missions/:id/claim', title: 'Claim a mission reward',
+      desc: 'Pays out a completed mission: points, or a <b>spin</b> (used with <code>/reward-world/spins</code>). Once per day. Not completed → 409.',
+      params: [['customer_ref', 'string', true, CUSTOMER_B]],
       curl: `curl -X POST {{BASE}}/games/missions/MISSION_ID/claim ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer_ref":"0901234567"}'`,
-      status: '201 Created (200 nếu đã nhận)', res: { replayed: false, mission_id: 'm1…', day: '2026-10-08', reward: { type: 'points', points: 20 }, balance: 325 } },
-    { id: 'get-draws', m: 'GET', path: '/games/draws', title: 'Danh sách kỳ quay số may mắn',
-      desc: 'Các kỳ quay số của cửa hàng. Khi kỳ ở trạng thái <code>open</code>, mỗi hóa đơn qua <code>POST /sales</code> tự sinh vé (trường <code>tickets</code> trong phản hồi) theo <code>spend_per_ticket_minor</code> và <code>max_tickets_per_sale</code>.', params: [],
+      status: '201 Created (200 if already claimed)', res: { replayed: false, mission_id: 'm1…', day: '2026-10-08', reward: { type: 'points', points: 20 }, balance: 325 } },
+    { id: 'get-draws', m: 'GET', path: '/games/draws', title: 'List lucky draws',
+      desc: "The store's draws. While a draw is <code>open</code>, each receipt earns tickets (<code>tickets</code> in the response) per <code>spend_per_ticket_minor</code> and <code>max_tickets_per_sale</code>.", params: [],
       curl: `curl {{BASE}}/games/draws ${KEY}`, status: '200 OK',
-      res: { draws: [{ id: 'd1…', name: 'Quay số tháng 10', status: 'open', spend_per_ticket_minor: 100000, max_tickets_per_sale: 3, one_prize_per_customer: true, prizes: [{ name: 'Giải nhất', quantity: 1 }], ticket_count: 48, customer_count: 21, winner_count: 0 }] } },
-    { id: 'post-draw-tickets', m: 'POST', path: '/games/draws/:id/tickets', title: 'Cấp vé thủ công',
-      desc: 'Cấp thêm vé cho khách (tối đa 50 vé mỗi lần), chỉ khi kỳ đang <code>draft</code> hoặc <code>open</code>. Số vé được đánh liên tục trong từng kỳ. Gửi lại cùng <code>idempotency_key</code> thì không cấp thêm.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách.'], ['count', 'integer', false, 'Số vé, mặc định 1.'], ['idempotency_key', 'string', false, 'Khóa chống trùng.']],
+      res: { draws: [{ id: 'd1…', name: 'October draw', status: 'open', spend_per_ticket_minor: 1000, max_tickets_per_sale: 3, one_prize_per_customer: true, prizes: [{ name: '1st prize', quantity: 1 }], ticket_count: 48, customer_count: 21, winner_count: 0 }] } },
+    { id: 'post-draw-tickets', m: 'POST', path: '/games/draws/:id/tickets', title: 'Issue tickets manually',
+      desc: 'Adds up to 50 tickets at a time while the draw is <code>draft</code> or <code>open</code>. Ticket numbers are sequential per draw. The same <code>idempotency_key</code> never issues twice.',
+      params: [['customer_ref', 'string', true, 'Phone number or customer code.'], ['count', 'integer', false, 'Tickets, default 1.'], ['idempotency_key', 'string', false, 'De-duplication key.']],
       curl: `curl -X POST {{BASE}}/games/draws/DRAW_ID/tickets ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer_ref":"0901234567","count":2,"idempotency_key":"promo:abc"}'`,
       status: '201 Created', res: { tickets: [{ id: 't1…', draw_id: 'd1…', ticket_no: 49, customer_ref: '0901234567' }, { id: 't2…', draw_id: 'd1…', ticket_no: 50, customer_ref: '0901234567' }] } },
-    { id: 'post-draw-run', m: 'POST', path: '/games/draws/:id/draw', title: 'Rút thăm',
-      desc: 'Chọn ngẫu nhiên (nguồn ngẫu nhiên an toàn) người trúng từ các vé và chốt kỳ. Mỗi kỳ chỉ quay <b>một lần</b>; nếu bật “mỗi khách một giải” thì mỗi khách tối đa một giải. Giải ở đầu danh sách được rút trước.', params: [],
+    { id: 'post-draw-run', m: 'POST', path: '/games/draws/:id/draw', title: 'Run the draw',
+      desc: 'Picks winners at random (secure source) and closes the draw. Each draw runs <b>once</b>; with “one prize per customer” nobody wins twice. Prizes listed first are drawn first.', params: [],
       curl: `curl -X POST {{BASE}}/games/draws/DRAW_ID/draw ${KEY}`, status: '201 Created',
-      res: { draw_id: 'd1…', tickets: 48, winners: [{ id: 'w1…', ticket_no: 5, customer_ref: '0977333444', prize_name: 'Giải nhất', prize_index: 0, status: 'won' }] } },
-    { id: 'get-challenges', m: 'GET', path: '/games/challenges', title: 'Thử thách tuần của khách',
-      desc: 'Giống nhiệm vụ hằng ngày nhưng tính theo <b>tuần (thứ Hai – Chủ nhật, giờ Việt Nam)</b> và tự làm mới mỗi tuần. <code>kind</code> <code>checkin</code> ở đây là <i>số ngày điểm danh trong tuần</i> (1–7); <code>receipts</code> và <code>spend</code> cộng dồn cả tuần. Không truyền <code>customer_ref</code> thì trả danh sách cấu hình.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (query).']],
+      res: { draw_id: 'd1…', tickets: 48, winners: [{ id: 'w1…', ticket_no: 5, customer_ref: '0977333444', prize_name: '1st prize', prize_index: 0, status: 'won' }] } },
+    { id: 'get-challenges', m: 'GET', path: '/games/challenges', title: "A customer's weekly challenges",
+      desc: 'Like daily missions but per <b>week (Monday – Sunday, Vietnam time)</b>. For <code>checkin</code> the target is <i>days checked in this week</i> (1–7); <code>receipts</code> and <code>spend</code> accumulate over the week.',
+      params: [['customer_ref', 'string', true, CUSTOMER_Q]],
       curl: `curl "{{BASE}}/games/challenges?customer_ref=0901234567" ${KEY}`, status: '200 OK',
-      res: { customer_ref: '0901234567', period: 'week', period_start: '2026-10-05', period_end: '2026-10-11', missions: [{ id: 'w1…', name: 'Điểm danh 5 ngày', kind: 'checkin', target: 5, reward_type: 'points', reward_points: 60, current: 5, completed: true, claimed: false }] } },
-    { id: 'post-challenge-claim', m: 'POST', path: '/games/challenges/:id/claim', title: 'Nhận thưởng thử thách tuần',
-      desc: 'Mỗi thử thách nhận một lần mỗi tuần; gọi lại không thưởng trùng. <code>reward.type</code> là <code>points</code>, <code>spin</code> (một lượt chơi) hoặc <code>gift</code> (quà hiện vật: hệ thống tạo phiếu quà chờ nhân viên giao, xem <code>/games/gifts</code>). Chưa đạt → 409.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách (trong body).']],
+      res: { customer_ref: '0901234567', period: 'week', period_start: '2026-10-05', period_end: '2026-10-11', missions: [{ id: 'w1…', name: 'Check in 5 days', kind: 'checkin', target: 5, reward_type: 'points', reward_points: 60, current: 5, completed: true, claimed: false }] } },
+    { id: 'post-challenge-claim', m: 'POST', path: '/games/challenges/:id/claim', title: 'Claim a weekly reward',
+      desc: 'Once per week. <code>reward.type</code> is <code>points</code>, <code>spin</code> or <code>gift</code> (a gift ticket waits for staff, see <code>/games/gifts</code>). Not reached → 409.',
+      params: [['customer_ref', 'string', true, CUSTOMER_B]],
       curl: `curl -X POST {{BASE}}/games/challenges/CHALLENGE_ID/claim ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer_ref":"0901234567"}'`,
-      status: '201 Created (200 nếu đã nhận)', res: { replayed: false, mission_id: 'w2…', period: 'week', day: '2026-10-05', reward: { type: 'gift', label: 'Túi vải', gift_id: 'g1…' }, balance: 325 } },
-    { id: 'post-treasure-redeem', m: 'POST', path: '/games/treasure/redeem', title: 'Nhập mã kho báu',
-      desc: 'Khách nhập mã quà ẩn (cửa hàng giấu ở website, app, poster, hóa đơn...). Mã không phân biệt hoa/thường, bỏ qua khoảng trắng và dấu gạch (<code>k7m2-xp9q</code> = <code>K7M2XP9Q</code>). Mỗi khách nhận mỗi kho báu một lần (gọi lại trả <code>replayed: true</code>, không thưởng thêm). Kho báu có giới hạn suất sẽ báo 409 khi đã hết. Tạo kho báu ở dashboard hoặc <code>POST /games/treasures</code>.',
-      params: [['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách.'], ['code', 'string', true, 'Mã kho báu khách nhập.']],
+      status: '201 Created (200 if already claimed)', res: { replayed: false, mission_id: 'w2…', period: 'week', day: '2026-10-05', reward: { type: 'gift', label: 'Tote bag', gift_id: 'g1…' }, balance: 325 } },
+    { id: 'post-treasure-redeem', m: 'POST', path: '/games/treasure/redeem', title: 'Redeem a treasure code',
+      desc: 'The customer enters a hidden reward code. Codes ignore case, spaces and hyphens (<code>k7m2-xp9q</code> = <code>K7M2XP9Q</code>). Once per customer per treasure; fully claimed treasures return 409. Create treasures in the dashboard or with <code>POST /games/treasures</code>.',
+      params: [['customer_ref', 'string', true, 'Phone number or customer code.'], ['code', 'string', true, 'Code the customer typed.']],
       curl: `curl -X POST {{BASE}}/games/treasure/redeem ${KEY} \\\n  -H "Content-Type: application/json" \\\n  -d '{"customer_ref":"0901234567","code":"k7m2-xp9q"}'`,
-      status: '201 Created (200 nếu đã nhận trước đó)', res: { replayed: false, treasure: { id: 't1…', name: 'Kho báu trang giới thiệu', hint: 'Cuộn xuống cuối trang' }, reward: { type: 'points', points: 30 }, balance: 355 } },
-    { id: 'get-gifts', m: 'GET', path: '/games/gifts', title: 'Quà hiện vật chờ giao',
-      desc: 'Các phiếu quà phát sinh từ nhiệm vụ, thử thách tuần và kho báu có phần thưởng <code>gift</code>. Lọc theo <code>status</code> (<code>pending</code> hoặc <code>delivered</code>).',
-      params: [['status', 'string', false, '<code>pending</code> hoặc <code>delivered</code> (query).']],
+      status: '201 Created (200 if claimed before)', res: { replayed: false, treasure: { id: 't1…', name: 'About-page treasure', hint: 'Scroll to the bottom' }, reward: { type: 'points', points: 30 }, balance: 355 } },
+    { id: 'get-gifts', m: 'GET', path: '/games/gifts', title: 'Gifts to hand out',
+      desc: 'Gift tickets from missions, challenges and treasures with a <code>gift</code> reward.',
+      params: [['status', 'string', false, '<code>pending</code> or <code>delivered</code> (query).']],
       curl: `curl "{{BASE}}/games/gifts?status=pending" ${KEY}`, status: '200 OK',
-      res: { gifts: [{ id: 'g1…', customer_ref: '0901234567', source_type: 'challenge', label: 'Túi vải', status: 'pending', created_at: '2026-10-11T09:00:00Z' }] } },
-    { id: 'post-gift-deliver', m: 'POST', path: '/games/gifts/:id/deliver', title: 'Xác nhận đã giao quà',
-      desc: 'Đánh dấu cửa hàng đã trao quà cho khách. Gọi lại là an toàn.', params: [],
+      res: { gifts: [{ id: 'g1…', customer_ref: '0901234567', source_type: 'challenge', label: 'Tote bag', status: 'pending', created_at: '2026-10-11T09:00:00Z' }] } },
+    { id: 'post-gift-deliver', m: 'POST', path: '/games/gifts/:id/deliver', title: 'Mark a gift delivered',
+      desc: 'Records that the gift was handed over. Safe to repeat.', params: [],
       curl: `curl -X POST {{BASE}}/games/gifts/GIFT_ID/deliver ${KEY}`, status: '200 OK',
-      res: { gift: { id: 'g1…', customer_ref: '0901234567', label: 'Túi vải', status: 'delivered', delivered_at: '2026-10-12T03:00:00Z' } } },
+      res: { gift: { id: 'g1…', customer_ref: '0901234567', label: 'Tote bag', status: 'delivered', delivered_at: '2026-10-12T03:00:00Z' } } },
   ]},
 ];
 
 const ERRORS = [
-  ['400', 'Dữ liệu gửi lên sai hoặc thiếu', '<code>amount_minor must be a positive integer.</code>'],
-  ['401', 'Thiếu hoặc sai API key / key đã bị thu hồi', '<code>API key is invalid or revoked.</code>'],
-  ['403', 'Không có quyền (ví dụ dùng API key để quản lý key)', '<code>API keys can only be managed from a signed-in session.</code>'],
-  ['404', 'Không tìm thấy', '<code>Customer was not found.</code> · <code>No active loyalty program is configured for this tenant.</code>'],
-  ['409', 'Xung đột nghiệp vụ', '<code>This receipt/source was already credited.</code> · <code>Insufficient points. Current balance is 3.</code> · <code>Customer has no available spin.</code> · <code>Sale amount is below the minimum spend required to earn points.</code>'],
-  ['500', 'Lỗi máy chủ — thử lại cùng <code>idempotency_key</code>', '<code>Internal server error.</code>'],
+  ['400', 'Missing or invalid input', '<code>amount_minor must be a positive integer.</code>'],
+  ['401', 'Missing, invalid or revoked API key', '<code>API key is invalid or revoked.</code>'],
+  ['403', 'Not allowed (e.g. managing keys with an API key)', '<code>API keys can only be managed from a signed-in session.</code>'],
+  ['404', 'Not found', '<code>Customer was not found.</code> · <code>No active loyalty program is configured for this tenant.</code>'],
+  ['409', 'Business conflict', '<code>This receipt/source was already credited.</code> · <code>Insufficient points. Current balance is 3.</code> · <code>Customer has no available spin.</code> · <code>Sale amount is below the minimum spend required to earn points.</code>'],
+  ['500', 'Server error — retry with the same <code>idempotency_key</code>', '<code>Internal server error.</code>'],
 ];
 
 const FLOW = {
-  curl: `# 1) Khách đưa số điện thoại → hiện điểm
+  curl: `# 1) Customer gives a phone number → show points
 curl "{{BASE}}/account?customer_ref=0901234567" ${KEY}
 
-# 2) Chốt đơn → cộng điểm (an toàn khi gọi lại)
+# 2) Checkout → add points (safe to repeat)
 curl -X POST {{BASE}}/sales ${KEY} -H "Content-Type: application/json" \\
-  -d '{"idempotency_key":"pos:HD001","customer_ref":"0901234567","source_type":"pos","source_ref":"HD001","amount_minor":250000}'
+  -d '{"idempotency_key":"pos:R001","customer_ref":"0901234567","source_type":"pos","source_ref":"R001","amount_minor":2500}'
 
-# 3) Khách đổi 5 điểm lấy quà
+# 3) Customer redeems 5 points
 curl -X POST {{BASE}}/redemptions ${KEY} -H "Content-Type: application/json" \\
   -d '{"idempotency_key":"redeem:G001","customer_ref":"0901234567","source_ref":"G001","points":5}'`,
   js: `const API = "{{BASE}}";
@@ -230,18 +232,18 @@ async function call(path, body) {
   return data;
 }
 
-// Chốt đơn: cộng điểm. Mạng lỗi? Cứ gọi lại, không bao giờ cộng trùng.
+// Checkout: add points. Network error? Just call again, nothing is counted twice.
 const sale = await call("/sales", {
-  idempotency_key: "pos:HD001", customer_ref: "0901234567",
-  source_type: "pos", source_ref: "HD001", amount_minor: 250000,
+  idempotency_key: "pos:R001", customer_ref: "0901234567",
+  source_type: "pos", source_ref: "R001", amount_minor: 2500,
 });
-console.log("Đã cộng", sale.entry.points_delta, "điểm; lượt quay mới:", sale.entitlements?.length ?? 0);
+console.log("Added", sale.entry.points_delta, "points; new spins:", sale.entitlements?.length ?? 0);
 
-// Đổi điểm
+// Redeem
 const redeem = await call("/redemptions", {
   idempotency_key: "redeem:G001", customer_ref: "0901234567", source_ref: "G001", points: 5,
 });
-console.log("Còn", redeem.balance, "điểm");`,
+console.log("Balance", redeem.balance);`,
   py: `import requests
 
 API = "{{BASE}}"
@@ -255,15 +257,15 @@ def call(path, body=None):
     return data
 
 sale = call("/sales", {
-    "idempotency_key": "pos:HD001", "customer_ref": "0901234567",
-    "source_type": "pos", "source_ref": "HD001", "amount_minor": 250000,
+    "idempotency_key": "pos:R001", "customer_ref": "0901234567",
+    "source_type": "pos", "source_ref": "R001", "amount_minor": 2500,
 })
-print("Đã cộng", sale["entry"]["points_delta"], "điểm")
+print("Added", sale["entry"]["points_delta"], "points")
 
 redeem = call("/redemptions", {
     "idempotency_key": "redeem:G001", "customer_ref": "0901234567", "source_ref": "G001", "points": 5,
 })
-print("Còn", redeem["balance"], "điểm")`,
+print("Balance", redeem["balance"])`,
   php: `<?php
 $api = "{{BASE}}"; $key = "lsk_YOUR_KEY";
 
@@ -281,37 +283,37 @@ function call($path, $body = null) {
 }
 
 $sale = call("/sales", [
-    "idempotency_key" => "pos:HD001", "customer_ref" => "0901234567",
-    "source_type" => "pos", "source_ref" => "HD001", "amount_minor" => 250000,
+    "idempotency_key" => "pos:R001", "customer_ref" => "0901234567",
+    "source_type" => "pos", "source_ref" => "R001", "amount_minor" => 2500,
 ]);
-echo "Đã cộng " . $sale["entry"]["points_delta"] . " điểm";`,
+echo "Added " . $sale["entry"]["points_delta"] . " points";`,
 };
 
 /* ---------- Render ---------- */
 const sections = [];
 sections.push(`<section class="doc-section" id="intro">
   <div class="mb-3"><span class="pill" style="background:#eef0ff;color:#4f46e5">REST · JSON</span></div>
-  <h1 class="fw-bold mb-2" style="font-size:2.1rem;letter-spacing:-.02em">API tích điểm & quay thưởng</h1>
-  <p class="fs-4 text-secondary">Kết nối POS của cửa hàng để cộng điểm khi chốt đơn, đổi thưởng tại quầy và quay thưởng cho khách.</p>
-  <div class="card"><div class="card-body"><div class="label-sm mt-0">Base URL</div><div class="d-flex align-items-center gap-2"><code class="fs-5" id="base-url"></code><button class="btn btn-sm btn-outline-secondary" onclick="copyBase(this)">Sao chép</button></div></div></div>
+  <h1 class="fw-bold mb-2" style="font-size:2.1rem;letter-spacing:-.02em">Points & rewards API</h1>
+  <p class="fs-4 text-secondary">Connect your POS to add points at checkout, redeem at the counter and run reward spins.</p>
+  <div class="card"><div class="card-body"><div class="label-sm mt-0">Base URL</div><div class="d-flex align-items-center gap-2"><code class="fs-5" id="base-url"></code><button class="btn btn-sm btn-outline-secondary" onclick="copyBase(this)">Copy</button></div></div></div>
 </section>`);
-sections.push(`<section class="doc-section" id="auth"><h2>Xác thực</h2>
-  <p>Tạo API key tại <a href="integrations.html">Tích hợp POS</a> trong dashboard, rồi gửi trong header mọi yêu cầu:</p>
+sections.push(`<section class="doc-section" id="auth"><h2>Authentication</h2>
+  <p>Create an API key under <a href="integrations.html">POS integration</a> in the dashboard and send it with every request:</p>
   ${code('Authorization: Bearer lsk_YOUR_KEY')}
-  <div class="callout mt-3"><b>Mỗi key gắn với một cửa hàng</b> và chỉ truy cập dữ liệu của cửa hàng đó. Key chỉ hiện đầy đủ một lần khi tạo — hãy lưu ở nơi an toàn, <b>không nhúng vào ứng dụng chạy trên máy khách</b> (web, app di động); hãy gọi từ máy chủ hoặc phần mềm POS. Lộ key? Thu hồi và tạo key mới.</div>
+  <div class="callout mt-3"><b>Each key belongs to one store</b> and only reaches that store's data. It is shown once — store it safely and <b>never embed it in client apps</b> (web or mobile); call from your server or POS. Leaked? Revoke it and create a new one.</div>
 </section>`);
-sections.push(`<section class="doc-section" id="idempotency"><h2>Chống trùng (idempotency)</h2>
-  <p>Các yêu cầu ghi (<code>/sales</code>, <code>/redemptions</code>, <code>/reward-world/spins</code>) bắt buộc có <code>idempotency_key</code>. Nếu mạng lỗi hoặc POS không chắc yêu cầu đã thành công, <b>cứ gửi lại y nguyên</b>: hệ thống trả lại kết quả cũ với <code>replayed: true</code> và không cộng/trừ thêm.</p>
-  <ul><li>Dùng khóa ổn định theo nghiệp vụ: <code>pos:&lt;mã hóa đơn&gt;</code>, <code>redeem:&lt;mã đổi thưởng&gt;</code>.</li>
-  <li>Dùng lại một khóa cho yêu cầu <b>khác nội dung</b> sẽ báo lỗi 409.</li>
-  <li>Mã hóa đơn (<code>source_ref</code>) cũng chỉ được cộng một lần, kể cả khi khóa khác nhau.</li></ul>
+sections.push(`<section class="doc-section" id="idempotency"><h2>Idempotency</h2>
+  <p>Write requests (<code>/sales</code>, <code>/redemptions</code>, <code>/reward-world/spins</code>) require an <code>idempotency_key</code>. If the network fails or you are unsure a request succeeded, <b>send it again unchanged</b>: you get the earlier result with <code>replayed: true</code> and nothing is counted twice.</p>
+  <ul><li>Use stable business keys: <code>pos:&lt;receipt&gt;</code>, <code>redeem:&lt;code&gt;</code>.</li>
+  <li>Re-using a key for a <b>different request</b> returns 409.</li>
+  <li>A receipt number (<code>source_ref</code>) is also credited only once, even with different keys.</li></ul>
 </section>`);
-sections.push(`<section class="doc-section" id="conventions"><h2>Quy ước</h2>
-  <ul><li>Tiền tệ là VND, gửi dạng <b>số nguyên</b> (<code>amount_minor</code>). Điểm cũng là số nguyên.</li>
-  <li>Thời gian theo ISO 8601 (UTC). Số trả về là <b>number</b> (không phải chuỗi).</li>
-  <li><code>customer_ref</code> là số điện thoại hoặc mã khách tùy bạn chọn — hãy dùng nhất quán.</li>
-  <li>Điểm thưởng từ game (điểm danh, chuỗi, nhiệm vụ) được ghi vào <b>cùng sổ điểm</b> với hóa đơn, nên <code>balance</code> luôn là tổng.</li>
-  <li>Lỗi trả về dạng <code>{ "error": "thông báo" }</code> kèm mã HTTP phù hợp.</li></ul>
+sections.push(`<section class="doc-section" id="conventions"><h2>Conventions</h2>
+  <ul><li>Each store uses <b>USD or VND</b> (set in its points rule). Amounts are <b>integers in the smallest unit</b> (<code>amount_minor</code>): <code>2500</code> = $25.00 in USD, or 2,500 ₫ in VND. Points are integers too.</li>
+  <li>Timestamps are ISO 8601 (UTC). Numbers are returned as <b>numbers</b>, not strings.</li>
+  <li><code>customer_ref</code> is a phone number or any customer code you choose — be consistent.</li>
+  <li>Game points (check-in, streaks, missions) go into the <b>same ledger</b> as receipts, so <code>balance</code> is always the total.</li>
+  <li>Errors look like <code>{ "error": "message" }</code> with a matching HTTP status.</li></ul>
 </section>`);
 
 for (const g of GROUPS) {
@@ -320,36 +322,36 @@ for (const g of GROUPS) {
       <div class="card-header"><span class="method m-${e.m.toLowerCase()}">${e.m}</span><span class="ep-path">${esc(e.path)}</span><span class="ms-auto text-secondary d-none d-md-inline">${e.title}</span></div>
       <div class="card-body">
         <p class="mb-2">${e.desc}</p>
-        ${e.params.length ? `<div class="label-sm">Tham số</div><div class="table-responsive"><table class="table table-sm param-table"><thead><tr><th>Tên</th><th>Kiểu</th><th>Mô tả</th></tr></thead><tbody>${e.params.map(([n, t, r, d]) => `<tr><td><code>${n}</code> ${r ? '<span class="req">bắt buộc</span>' : ''}</td><td class="text-secondary">${t}</td><td>${d}</td></tr>`).join('')}</tbody></table></div>` : ''}
-        <div class="label-sm">Ví dụ yêu cầu</div>${code(e.curl)}
-        <div class="label-sm">Phản hồi <span class="text-secondary" style="text-transform:none;letter-spacing:0;font-weight:500">· ${e.status}</span></div>${code(JSON.stringify(e.res, null, 2))}
+        ${e.params.length ? `<div class="label-sm">Parameters</div><div class="table-responsive"><table class="table table-sm param-table"><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>${e.params.map(([n, t, r, d]) => `<tr><td><code>${n}</code> ${r ? '<span class="req">required</span>' : ''}</td><td class="text-secondary">${t}</td><td>${d}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        <div class="label-sm">Example request</div>${code(e.curl)}
+        <div class="label-sm">Response <span class="text-secondary" style="text-transform:none;letter-spacing:0;font-weight:500">· ${e.status}</span></div>${code(JSON.stringify(e.res, null, 2))}
       </div></article>`).join('')}</section>`);
 }
-sections.push(`<section class="doc-section" id="flow"><h2>Luồng mẫu cho POS</h2>
-  <p>Ba bước thường gặp tại quầy: tra điểm → cộng điểm khi chốt đơn → đổi điểm. Chọn ngôn ngữ:</p>
+sections.push(`<section class="doc-section" id="flow"><h2>Sample POS flow</h2>
+  <p>The three common steps at the counter: show points → add points at checkout → redeem. Pick a language:</p>
   <ul class="nav nav-pills tabs-pill mb-3" data-bs-toggle="tabs">${Object.keys(FLOW).map((k, i) => `<li class="nav-item"><a class="nav-link ${i ? '' : 'active'}" href="#flow-${k}" data-bs-toggle="tab">${{ curl: 'curl', js: 'JavaScript', py: 'Python', php: 'PHP' }[k]}</a></li>`).join('')}</ul>
   <div class="tab-content">${Object.entries(FLOW).map(([k, v], i) => `<div class="tab-pane ${i ? '' : 'active show'}" id="flow-${k}">${code(v)}</div>`).join('')}</div>
 </section>`);
-sections.push(`<section class="doc-section" id="errors"><h2>Mã lỗi</h2>
-  <div class="card"><div class="table-responsive"><table class="table table-vcenter card-table"><thead><tr><th style="width:70px">HTTP</th><th>Ý nghĩa</th><th>Ví dụ thông báo</th></tr></thead><tbody>${ERRORS.map(([c, m, e]) => `<tr><td><b>${c}</b></td><td>${m}</td><td class="small">${e}</td></tr>`).join('')}</tbody></table></div></div>
-  <div class="callout mt-3"><b>Mẹo:</b> lỗi 5xx hoặc timeout → gọi lại với <b>cùng</b> <code>idempotency_key</code>. Lỗi 4xx (trừ 401) là lỗi nghiệp vụ, gọi lại sẽ cho kết quả y hệt.</div>
+sections.push(`<section class="doc-section" id="errors"><h2>Errors</h2>
+  <div class="card"><div class="table-responsive"><table class="table table-vcenter card-table"><thead><tr><th style="width:70px">HTTP</th><th>Meaning</th><th>Example message</th></tr></thead><tbody>${ERRORS.map(([c, m, e]) => `<tr><td><b>${c}</b></td><td>${m}</td><td class="small">${e}</td></tr>`).join('')}</tbody></table></div></div>
+  <div class="callout mt-3"><b>Tip:</b> on 5xx or timeout, retry with the <b>same</b> <code>idempotency_key</code>. 4xx errors (except 401) are business errors; retrying gives the same answer.</div>
 </section>`);
 document.getElementById('doc').innerHTML = sections.join('');
 document.getElementById('base-url').textContent = BASE;
-function copyBase(btn) { navigator.clipboard.writeText(BASE); btn.textContent = 'Đã chép'; setTimeout(() => btn.textContent = 'Sao chép', 1400); }
+function copyBase(btn) { navigator.clipboard.writeText(BASE); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy', 1400); }
 
-/* Mục lục + đánh dấu mục đang xem */
-const toc = [['Giới thiệu', 'intro'], ['Xác thực', 'auth'], ['Chống trùng', 'idempotency'], ['Quy ước', 'conventions']];
+/* Table of contents + scroll spy */
+const toc = [['Introduction', 'intro'], ['Authentication', 'auth'], ['Idempotency', 'idempotency'], ['Conventions', 'conventions']];
 let html = toc.map(([t, id]) => `<a href="#${id}">${t}</a>`).join('');
 for (const g of GROUPS) html += `<div class="grp">${g.title}</div>` + g.endpoints.map(e => `<a href="#${e.id}"><span class="method m-${e.m.toLowerCase()}" style="min-width:44px;font-size:.62rem;margin-right:.4rem">${e.m}</span>${e.title}</a>`).join('');
-html += `<div class="grp">Khác</div><a href="#flow">Luồng mẫu cho POS</a><a href="#errors">Mã lỗi</a>`;
+html += `<div class="grp">Other</div><a href="#flow">Sample POS flow</a><a href="#errors">Errors</a>`;
 document.getElementById('toc').innerHTML = html;
 const links = [...document.querySelectorAll('#toc a')];
 const spy = new IntersectionObserver(entries => entries.forEach(en => {
   if (en.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
 }), { rootMargin: '-90px 0px -70% 0px' });
 document.querySelectorAll('.doc-section, .ep').forEach(el => spy.observe(el));
-document.addEventListener('click', e => { const b = e.target.closest('.copy-btn'); if (!b) return; navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent); b.textContent = 'Đã chép'; setTimeout(() => b.textContent = 'Sao chép', 1400); });
+document.addEventListener('click', e => { const b = e.target.closest('.copy-btn'); if (!b) return; navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent); b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1400); });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
 </body>

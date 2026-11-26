@@ -4,7 +4,7 @@ const WHEEL_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#e
 function wheelSvg(prizes) {
   const n = prizes.length, c = 200, r = 192;
   const point = (deg, radius) => { const a = (deg - 90) * Math.PI / 180; return [c + radius * Math.cos(a), c + radius * Math.sin(a)]; };
-  if (!n) return `<svg viewBox="0 0 400 400"><circle cx="200" cy="200" r="${r}" fill="#cbd5e1"/><text x="200" y="206" text-anchor="middle" fill="#fff" font-weight="700">Chưa có giải</text></svg>`;
+  if (!n) return `<svg viewBox="0 0 400 400"><circle cx="200" cy="200" r="${r}" fill="#cbd5e1"/><text x="200" y="206" text-anchor="middle" fill="#fff" font-weight="700">${T('No prizes', 'Chưa có giải')}</text></svg>`;
   const size = 360 / n;
   const slices = prizes.map((p, i) => {
     const fill = WHEEL_COLORS[i % WHEEL_COLORS.length];
@@ -19,7 +19,7 @@ function wheelSvg(prizes) {
 }
 
 function mountWheel(container, prizes) {
-  container.innerHTML = `<div class="wheel-stage"><div class="rim"></div><div class="wheel-pointer"></div>${wheelSvg(prizes)}<div class="wheel-hub">QUAY</div></div>`;
+  container.innerHTML = `<div class="wheel-stage"><div class="rim"></div><div class="wheel-pointer"></div>${wheelSvg(prizes)}<div class="wheel-hub">${T('SPIN', 'QUAY')}</div></div>`;
 }
 
 // Quay tới giải `index`; trả về Promise khi vòng quay dừng.

@@ -6,36 +6,38 @@ async function initMissionsPage(cfg) {
   await requireAuth();
   const weekly = cfg.period === 'week';
   renderLayout(cfg.page, cfg.title, cfg.subtitle);
+  await loadProgram().catch(() => {});
+  const spendDefault = () => (STORE_CURRENCY === 'USD' ? (weekly ? 50 : 10) : (weekly ? 500000 : 100000));
   document.getElementById('content').innerHTML = `
   <div class="row row-cards">
     <div class="col-lg-7">
       <section class="card mb-3"><div class="card-body">
-        <div class="fw-bold mb-2">${weekly ? 'Thử thách tuần này của khách' : 'Nhiệm vụ hôm nay của khách'}</div>
-        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="Số điện thoại / mã khách" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>Xem</button></form>
-        <div id="board"><div class="empty-state"><i class="ti ${cfg.icon}"></i>Nhập số điện thoại để xem tiến độ.</div></div>
+        <div class="fw-bold mb-2">${weekly ? T("Customer's challenges this week", 'Thử thách tuần này của khách') : T("Customer's missions today", 'Nhiệm vụ hôm nay của khách')}</div>
+        <form id="customer-form" class="input-group mb-3"><input id="customer-ref" class="form-control form-control-lg" placeholder="${T('Phone number / customer code', 'Số điện thoại / mã khách')}" required inputmode="tel"><button class="btn btn-primary" type="submit"><i class="ti ti-search me-1"></i>${T('View', 'Xem')}</button></form>
+        <div id="board"><div class="empty-state"><i class="ti ${cfg.icon}"></i>${T('Enter a phone number to see progress.', 'Nhập số điện thoại để xem tiến độ.')}</div></div>
       </div></section>
       <div id="gifts"></div>
     </div>
     <div class="col-lg-5">
-      <section class="card mb-3"><div class="card-header"><h3 class="card-title"><i class="ti ti-list-check me-2"></i>${weekly ? 'Danh sách thử thách' : 'Danh sách nhiệm vụ'}</h3></div><div class="card-body py-2" id="mission-list"><div class="text-secondary py-3">Đang tải...</div></div></section>
-      <section class="card"><div class="card-header"><h3 class="card-title"><i class="ti ti-plus me-2"></i>${weekly ? 'Thêm thử thách' : 'Thêm nhiệm vụ'}</h3></div>
+      <section class="card mb-3"><div class="card-header"><h3 class="card-title"><i class="ti ti-list-check me-2"></i>${weekly ? T('Challenges', 'Danh sách thử thách') : T('Missions', 'Danh sách nhiệm vụ')}</h3></div><div class="card-body py-2" id="mission-list"><div class="text-secondary py-3">${T('Loading...', 'Đang tải...')}</div></div></section>
+      <section class="card"><div class="card-header"><h3 class="card-title"><i class="ti ti-plus me-2"></i>${weekly ? T('Add challenge', 'Thêm thử thách') : T('Add mission', 'Thêm nhiệm vụ')}</h3></div>
         <form class="card-body" id="mission-form">
-          <div class="mb-3"><label class="form-label">Tên</label><input id="m-name" class="form-control" maxlength="120" required placeholder="${weekly ? 'Ví dụ: Điểm danh 5 ngày trong tuần' : 'Ví dụ: Mua hàng hôm nay'}"></div>
+          <div class="mb-3"><label class="form-label">${T('Name', 'Tên')}</label><input id="m-name" class="form-control" maxlength="120" required placeholder="${weekly ? T('e.g. Check in 5 days this week', 'Ví dụ: Điểm danh 5 ngày trong tuần') : T('e.g. Make a purchase today', 'Ví dụ: Mua hàng hôm nay')}"></div>
           <div class="row g-3 mb-3">
-            <div class="col-12"><label class="form-label">Điều kiện</label><select id="m-kind" class="form-select">
-              <option value="checkin">${weekly ? 'Số ngày điểm danh trong tuần' : 'Điểm danh hôm nay'}</option>
-              <option value="receipts">${weekly ? 'Số hóa đơn trong tuần' : 'Số hóa đơn trong ngày'}</option>
-              <option value="spend">${weekly ? 'Tổng chi tiêu trong tuần' : 'Tổng chi tiêu trong ngày'}</option></select></div>
-            <div class="col-12" id="target-wrap"><label class="form-label" id="target-label">Mục tiêu</label><input id="m-target" class="form-control" type="number" min="1" value="${weekly ? 5 : 1}"></div>
+            <div class="col-12"><label class="form-label">${T('Condition', 'Điều kiện')}</label><select id="m-kind" class="form-select">
+              <option value="checkin">${weekly ? T('Check-in days this week', 'Số ngày điểm danh trong tuần') : T('Check in today', 'Điểm danh hôm nay')}</option>
+              <option value="receipts">${weekly ? T('Receipts this week', 'Số hóa đơn trong tuần') : T('Receipts today', 'Số hóa đơn trong ngày')}</option>
+              <option value="spend">${weekly ? T('Total spend this week', 'Tổng chi tiêu trong tuần') : T('Total spend today', 'Tổng chi tiêu trong ngày')}</option></select></div>
+            <div class="col-12" id="target-wrap"><label class="form-label" id="target-label">${T('Target', 'Mục tiêu')}</label><input id="m-target" class="form-control" type="number" min="0.01" step="any" value="${weekly ? 5 : 1}"></div>
           </div>
           <div class="row g-3 mb-3">
-            <div class="col-12"><label class="form-label">Phần thưởng</label><select id="m-reward" class="form-select"><option value="points">Điểm thưởng</option><option value="spin">Lượt chơi (lượt quay)</option><option value="gift">Quà hiện vật (nhân viên giao)</option></select></div>
-            <div class="col-12" id="reward-points-wrap"><label class="form-label">Số điểm</label><input id="m-points" class="form-control" type="number" min="1" value="${weekly ? 50 : 10}"></div>
-            <div class="col-12 d-none" id="reward-campaign-wrap"><label class="form-label">Chương trình quay</label><select id="m-campaign" class="form-select"></select></div>
-            <div class="col-12 d-none" id="reward-label-wrap"><label class="form-label">Tên quà</label><input id="m-label" class="form-control" maxlength="120" placeholder="Ví dụ: Túi vải, Voucher 50k"></div>
+            <div class="col-12"><label class="form-label">${T('Reward', 'Phần thưởng')}</label><select id="m-reward" class="form-select"><option value="points">${T('Bonus points', 'Điểm thưởng')}</option><option value="spin">${T('Play (spin)', 'Lượt chơi (lượt quay)')}</option><option value="gift">${T('Physical gift (staff hands it out)', 'Quà hiện vật (nhân viên giao)')}</option></select></div>
+            <div class="col-12" id="reward-points-wrap"><label class="form-label">${T('Points', 'Số điểm')}</label><input id="m-points" class="form-control" type="number" min="1" value="${weekly ? 50 : 10}"></div>
+            <div class="col-12 d-none" id="reward-campaign-wrap"><label class="form-label">${T('Spin campaign', 'Chương trình quay')}</label><select id="m-campaign" class="form-select"></select></div>
+            <div class="col-12 d-none" id="reward-label-wrap"><label class="form-label">${T('Gift name', 'Tên quà')}</label><input id="m-label" class="form-control" maxlength="120" placeholder="${T('e.g. Tote bag, $5 voucher', 'Ví dụ: Túi vải, Voucher 50k')}"></div>
           </div>
-          <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i>${weekly ? 'Thêm thử thách' : 'Thêm nhiệm vụ'}</button>
-          <div class="form-hint mt-2">${weekly ? 'Kỳ thử thách tính từ thứ Hai đến Chủ nhật (giờ Việt Nam), tự làm mới mỗi tuần.' : 'Tiến độ tính theo ngày (giờ Việt Nam), tự làm mới mỗi ngày.'} Lượt quay dùng ở trang <a href="rewards.html">Quay thưởng</a> (cửa hàng cần đã tham gia chương trình đó).</div>
+          <button class="btn btn-grad w-100" type="submit"><i class="ti ti-plus me-1"></i>${weekly ? T('Add challenge', 'Thêm thử thách') : T('Add mission', 'Thêm nhiệm vụ')}</button>
+          <div class="form-hint mt-2">${weekly ? T('Challenges run Monday to Sunday (Vietnam time) and reset every week.', 'Kỳ thử thách tính từ thứ Hai đến Chủ nhật (giờ Việt Nam), tự làm mới mỗi tuần.') : T('Progress is counted per day (Vietnam time) and resets daily.', 'Tiến độ tính theo ngày (giờ Việt Nam), tự làm mới mỗi ngày.')} ${T('Spins are used on the <a href="rewards.html">Reward spins</a> page (the store must have joined that campaign).', 'Lượt quay dùng ở trang <a href="rewards.html">Quay thưởng</a> (cửa hàng cần đã tham gia chương trình đó).')}</div>
         </form></section>
     </div>
   </div>`;
@@ -44,33 +46,33 @@ async function initMissionsPage(cfg) {
   const gifts = mountGiftsPanel($('gifts'));
   let customer = null;
   const KIND = { checkin: ['ti-calendar-check'], receipts: ['ti-receipt-2'], spend: ['ti-coins'] };
-  const rewardText = m => m.reward_type === 'points' ? `+${money.format(m.reward_points)} điểm` : m.reward_type === 'spin' ? '🎁 1 lượt chơi' : `🎀 ${m.reward_label || 'Quà'}`;
-  const targetText = m => m.kind === 'checkin' ? (weekly ? `Điểm danh ${m.target} ngày` : 'Điểm danh hôm nay') : m.kind === 'receipts' ? `${m.target} hóa đơn` : `Chi ${money.format(m.target)} ₫`;
+  const rewardText = m => m.reward_type === 'points' ? `+${pts(m.reward_points)}` : m.reward_type === 'spin' ? T('🎁 1 play', '🎁 1 lượt chơi') : `🎀 ${m.reward_label || T('Gift', 'Quà')}`;
+  const targetText = m => m.kind === 'checkin' ? (weekly ? T(`Check in ${m.target} days`, `Điểm danh ${m.target} ngày`) : T('Check in today', 'Điểm danh hôm nay'))
+    : m.kind === 'receipts' ? T(`${m.target} ${plural(m.target, 'receipt', 'receipts')}`, `${m.target} hóa đơn`) : T(`Spend ${fmtMoney(m.target)}`, `Chi ${fmtMoney(m.target)}`);
 
   async function loadMissions() {
     const { missions } = await api.list();
     $('mission-list').innerHTML = missions.map(m => `<div class="activity"><span class="avatar avatar-sm ${m.status === 'active' ? 'tone-indigo' : ''} rounded-circle"><i class="ti ${KIND[m.kind][0]}"></i></span>
-      <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(m.name)}</div><div class="small text-secondary">${esc(targetText(m))} → ${esc(rewardText(m))}${m.status === 'paused' ? ' · <b>đang tạm dừng</b>' : ''}</div></div>
-      <div class="btn-list flex-nowrap"><button class="btn btn-sm btn-outline-secondary mission-toggle" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'paused' : 'active'}">${m.status === 'active' ? 'Tạm dừng' : 'Bật lại'}</button><button class="btn btn-sm btn-outline-danger mission-delete" data-id="${esc(m.id)}" title="Xóa"><i class="ti ti-trash"></i></button></div></div>`).join('')
-      || `<div class="empty-state py-3"><i class="ti ${cfg.icon}"></i>Chưa có gì. Thêm ${weekly ? 'thử thách' : 'nhiệm vụ'} đầu tiên bên dưới.</div>`;
+      <div class="me-auto" style="min-width:0"><div class="fw-bold text-truncate">${esc(m.name)}</div><div class="small text-secondary">${esc(targetText(m))} → ${esc(rewardText(m))}${m.status === 'paused' ? ` · <b>${T('paused', 'đang tạm dừng')}</b>` : ''}</div></div>
+      <div class="btn-list flex-nowrap"><button class="btn btn-sm btn-outline-secondary mission-toggle" data-id="${esc(m.id)}" data-status="${m.status === 'active' ? 'paused' : 'active'}">${m.status === 'active' ? T('Pause', 'Tạm dừng') : T('Resume', 'Bật lại')}</button><button class="btn btn-sm btn-outline-danger mission-delete" data-id="${esc(m.id)}" title="${T('Delete', 'Xóa')}"><i class="ti ti-trash"></i></button></div></div>`).join('')
+      || `<div class="empty-state py-3"><i class="ti ${cfg.icon}"></i>${T(`Nothing yet. Add your first ${weekly ? 'challenge' : 'mission'} below.`, `Chưa có gì. Thêm ${weekly ? 'thử thách' : 'nhiệm vụ'} đầu tiên bên dưới.`)}</div>`;
   }
   $('mission-list').addEventListener('click', async e => {
     const t = e.target.closest('.mission-toggle'), d = e.target.closest('.mission-delete');
     try {
       if (t) await api.update(t.dataset.id, { status: t.dataset.status });
-      else if (d) { if (!confirm('Xóa mục này? Lịch sử nhận thưởng vẫn được giữ.')) return; await api.update(d.dataset.id, { status: 'archived' }); }
+      else if (d) { if (!confirm(T('Delete this item? Reward history is kept.', 'Xóa mục này? Lịch sử nhận thưởng vẫn được giữ.'))) return; await api.update(d.dataset.id, { status: 'archived' }); }
       else return;
       await loadMissions(); if (customer) await showBoard(customer);
     } catch (err) { showAlert(err.message, 'danger'); }
   });
 
+  let lastKind = null;
   function syncForm() {
     const kind = $('m-kind').value, reward = $('m-reward').value;
     $('target-wrap').classList.toggle('d-none', kind === 'checkin' && !weekly);
-    $('target-label').textContent = kind === 'checkin' ? 'Số ngày điểm danh (1–7)' : kind === 'receipts' ? 'Số hóa đơn' : 'Số tiền (₫)';
-    if (kind === 'spend' && Number($('m-target').value) < 1000) $('m-target').value = weekly ? 500000 : 100000;
-    if (kind === 'receipts' && Number($('m-target').value) > 100) $('m-target').value = weekly ? 3 : 1;
-    if (kind === 'checkin' && weekly && Number($('m-target').value) > 7) $('m-target').value = 5;
+    $('target-label').textContent = kind === 'checkin' ? T('Check-in days (1–7)', 'Số ngày điểm danh (1–7)') : kind === 'receipts' ? T('Number of receipts', 'Số hóa đơn') : T(`Amount (${currencySymbol()})`, `Số tiền (${currencySymbol()})`);
+    if (kind !== lastKind) { $('m-target').value = kind === 'spend' ? spendDefault() : kind === 'receipts' ? (weekly ? 3 : 1) : (weekly ? 5 : 1); lastKind = kind; }
     $('reward-points-wrap').classList.toggle('d-none', reward !== 'points');
     $('reward-campaign-wrap').classList.toggle('d-none', reward !== 'spin');
     $('reward-label-wrap').classList.toggle('d-none', reward !== 'gift');
@@ -78,25 +80,25 @@ async function initMissionsPage(cfg) {
   ['m-kind', 'm-reward'].forEach(id => $(id).addEventListener('change', syncForm));
   onSubmit('mission-form', async () => {
     const reward = $('m-reward').value;
-    if (reward === 'spin' && !$('m-campaign').value) throw new Error('Chưa có chương trình quay nào cửa hàng đã tham gia. Hãy tham gia ở trang Quay thưởng trước.');
+    if (reward === 'spin' && !$('m-campaign').value) throw new Error(T('Your store has not joined any spin campaign. Join one on the Reward spins page first.', 'Chưa có chương trình quay nào cửa hàng đã tham gia. Hãy tham gia ở trang Quay thưởng trước.'));
     await api.create({
-      name: $('m-name').value.trim(), kind: $('m-kind').value, target: Number($('m-target').value || 1), reward_type: reward,
+      name: $('m-name').value.trim(), kind: $('m-kind').value, target: $('m-kind').value === 'spend' ? toMinor($('m-target').value) : Number($('m-target').value || 1), reward_type: reward,
       ...(reward === 'points' ? { reward_points: Number($('m-points').value) } : reward === 'spin' ? { reward_campaign_id: $('m-campaign').value } : { reward_label: $('m-label').value.trim() }),
     });
-    $('m-name').value = ''; showAlert(weekly ? 'Đã thêm thử thách.' : 'Đã thêm nhiệm vụ.'); await loadMissions(); if (customer) await showBoard(customer);
+    $('m-name').value = ''; showAlert(weekly ? T('Challenge added.', 'Đã thêm thử thách.') : T('Mission added.', 'Đã thêm nhiệm vụ.')); await loadMissions(); if (customer) await showBoard(customer);
   });
 
   function renderBoard(board) {
-    const fmt = d => `${d.slice(8)}/${d.slice(5, 7)}`;
-    const periodLabel = weekly ? `<div class="small text-secondary mb-2"><i class="ti ti-calendar me-1"></i>Tuần ${fmt(board.period_start)} – ${fmt(board.period_end)}</div>` : '';
+    const fmt = d => T(`${d.slice(5, 7)}/${d.slice(8)}`, `${d.slice(8)}/${d.slice(5, 7)}`);
+    const periodLabel = weekly ? `<div class="small text-secondary mb-2"><i class="ti ti-calendar me-1"></i>${T('Week', 'Tuần')} ${fmt(board.period_start)} – ${fmt(board.period_end)}</div>` : '';
     $('board').innerHTML = periodLabel + (board.missions.map(m => {
       const pct = Math.min(100, Math.round(m.current / m.target * 100));
       return `<div class="activity"><span class="avatar avatar-md ${m.claimed ? 'tone-green' : m.completed ? 'tone-amber' : 'tone-indigo'} rounded-circle"><i class="ti ${m.claimed ? 'ti-circle-check' : KIND[m.kind][0]}"></i></span>
         <div class="me-auto" style="min-width:0"><div class="fw-bold">${esc(m.name)} <span class="pill" style="background:#f3ecff;color:#6d28d9">${esc(rewardText(m))}</span></div>
           <div class="progress progress-sm my-1" style="max-width:260px"><div class="progress-bar ${m.completed ? 'bg-success' : ''}" style="width:${pct}%"></div></div>
-          <div class="small text-secondary">${m.kind === 'spend' ? `${money.format(m.current)} / ${money.format(m.target)} ₫` : m.kind === 'checkin' && weekly ? `${m.current} / ${m.target} ngày` : `${m.current} / ${m.target}`}</div></div>
-        ${m.claimed ? '<span class="pill pill-earn">Đã nhận</span>' : m.completed ? `<button class="btn btn-grad btn-sm claim" data-id="${esc(m.id)}">Nhận thưởng</button>` : '<span class="text-secondary small">Chưa xong</span>'}</div>`;
-    }).join('') || `<div class="empty-state"><i class="ti ${cfg.icon}"></i>Chưa có ${weekly ? 'thử thách' : 'nhiệm vụ'} nào đang bật.</div>`);
+          <div class="small text-secondary">${m.kind === 'spend' ? `${fmtMoney(m.current)} / ${fmtMoney(m.target)}` : m.kind === 'checkin' && weekly ? `${m.current} / ${m.target} ${T('days', 'ngày')}` : `${m.current} / ${m.target}`}</div></div>
+        ${m.claimed ? `<span class="pill pill-earn">${T('Claimed', 'Đã nhận')}</span>` : m.completed ? `<button class="btn btn-grad btn-sm claim" data-id="${esc(m.id)}">${T('Claim reward', 'Nhận thưởng')}</button>` : `<span class="text-secondary small">${T('Not done', 'Chưa xong')}</span>`}</div>`;
+    }).join('') || `<div class="empty-state"><i class="ti ${cfg.icon}"></i>${T(`No active ${weekly ? 'challenges' : 'missions'}.`, `Chưa có ${weekly ? 'thử thách' : 'nhiệm vụ'} nào đang bật.`)}</div>`);
   }
   async function showBoard(ref) { customer = ref; renderBoard(await api.board(ref)); }
   onSubmit('customer-form', () => showBoard($('customer-ref').value.trim()));
@@ -105,10 +107,10 @@ async function initMissionsPage(cfg) {
     b.disabled = true;
     try {
       const r = await api.claim(b.dataset.id, customer);
-      showAlert(r.replayed ? 'Khách đã nhận phần thưởng này rồi.'
-        : r.reward.type === 'points' ? `Đã cộng ${r.reward.points} điểm. Số dư: ${money.format(r.balance)} điểm.`
-        : r.reward.type === 'spin' ? 'Đã cấp 1 lượt chơi cho khách 🎁'
-        : `Đã tạo phiếu quà "${r.reward.label}" — nhớ giao cho khách.`);
+      showAlert(r.replayed ? T('The customer already claimed this reward.', 'Khách đã nhận phần thưởng này rồi.')
+        : r.reward.type === 'points' ? T(`Added ${pts(r.reward.points)}. Balance: ${pts(r.balance)}.`, `Đã cộng ${r.reward.points} điểm. Số dư: ${money.format(r.balance)} điểm.`)
+        : r.reward.type === 'spin' ? T('Granted 1 play to the customer 🎁', 'Đã cấp 1 lượt chơi cho khách 🎁')
+        : T(`Gift ticket "${r.reward.label}" created — remember to hand it out.`, `Đã tạo phiếu quà "${r.reward.label}" — nhớ giao cho khách.`));
       if (!r.replayed && r.reward.type === 'gift') launchConfetti(1600);
       await showBoard(customer); gifts.reload();
     } catch (err) { showAlert(err.message, 'danger'); b.disabled = false; }
@@ -117,7 +119,7 @@ async function initMissionsPage(cfg) {
   try {
     await loadMissions();
     const world = await LoyaltyAPI.campaigns();
-    $('m-campaign').innerHTML = world.campaigns.filter(c => c.joined).map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') || '<option value="">(chưa tham gia chương trình nào)</option>';
+    $('m-campaign').innerHTML = world.campaigns.filter(c => c.joined).map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('') || `<option value="">${T('(no campaign joined)', '(chưa tham gia chương trình nào)')}</option>`;
   } catch (e) { showAlert(e.message, 'danger'); }
   syncForm();
 }

@@ -243,7 +243,7 @@ try {
   check("me: thiếu phone → 400", (await pub(slugA, "/me", {})).s === 400);
   check("me: body hỏng → 400", (await raw(`/api/v1/public/${slugA}/me`, { method: "POST", rawBody: "{x" })).s === 400);
   check("me: SQL injection chỉ là số sai → 400", (await pub(slugA, "/me", { phone: "0909' OR '1'='1" })).s === 400);
-  check("me: số lạ → 404, thông điệp thân thiện", (await pub(slugA, "/me", { phone: "0999888777" })).j?.error?.includes("mua hàng"));
+  check("me: số lạ → 404, thông điệp thân thiện", (await pub(slugA, "/me", { phone: "0999888777" })).j?.error?.includes("first purchase"));
   const me = await pub(slugA, "/me", { phone: "0909 111 222" });
   check("me: chấp nhận khoảng trắng; tên chỉ còn tên gọi", me.s === 200 && me.j?.customer?.name === "Anh" && me.j?.balance === 205, me);
   check("me: dấu chấm/gạch cũng được", (await pub(slugA, "/me", { phone: "0909.111-222" })).s === 200);

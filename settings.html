@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Luật tích điểm - Loyal SchoolsAI</title>
+  <title>Points rule - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -23,26 +23,27 @@
 <div class="row row-cards">
   <div class="col-lg-6">
     <section class="card">
-      <div class="card-header"><h3 class="card-title">Quy đổi điểm</h3></div>
+      <div class="card-header"><h3 class="card-title" data-vi="Quy đổi điểm">Points conversion</h3></div>
       <form class="card-body" id="program-form">
-        <div class="mb-3"><label class="form-label">Khách chi tiêu bao nhiêu (VND)</label><input id="spend-per-point" class="form-control form-control-lg" type="number" min="1" step="1" value="10000" required></div>
-        <div class="mb-4"><label class="form-label">Thì nhận số điểm</label><input id="points-per-step" class="form-control form-control-lg" type="number" min="1" step="1" value="1" required></div>
-        <button class="btn btn-grad" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu và kích hoạt</button>
-        <div class="form-hint mt-3" id="program-status">Đang tải luật hiện tại...</div>
+        <div class="mb-3"><label class="form-label" data-vi="Tiền tệ của cửa hàng">Store currency</label><select id="currency" class="form-select"><option value="USD">US Dollar (USD, $)</option><option value="VND">Vietnamese đồng (VND, ₫)</option></select></div>
+        <div class="mb-3"><label class="form-label"><span data-vi="Khách chi tiêu bao nhiêu">Customer spends</span> (<span data-cur></span>)</label><input id="spend-per-point" class="form-control form-control-lg" type="number" min="0.01" data-money required></div>
+        <div class="mb-4"><label class="form-label" data-vi="Thì nhận số điểm">Points earned</label><input id="points-per-step" class="form-control form-control-lg" type="number" min="1" step="1" value="1" required></div>
+        <button class="btn btn-grad" type="submit"><i class="ti ti-device-floppy me-1"></i><span data-vi="Lưu và kích hoạt">Save and activate</span></button>
+        <div class="form-hint mt-3" id="program-status" data-vi="Đang tải luật hiện tại...">Loading the current rule...</div>
       </form>
     </section>
   </div>
   <div class="col-lg-6">
     <section class="card mb-3">
-      <div class="card-header"><h3 class="card-title">Xem trước</h3></div>
+      <div class="card-header"><h3 class="card-title" data-vi="Xem trước">Preview</h3></div>
       <div class="card-body"><div id="preview"></div></div>
     </section>
     <section class="card"><div class="card-body">
-      <div class="fw-bold mb-1"><i class="ti ti-info-circle me-1 text-primary"></i>Cách hoạt động</div>
+      <div class="fw-bold mb-1"><i class="ti ti-info-circle me-1 text-primary"></i><span data-vi="Cách hoạt động">How it works</span></div>
       <ul class="text-secondary mb-0 ps-3">
-        <li>Điểm = phần nguyên của (số tiền ÷ mức chi) × số điểm.</li>
-        <li>Mỗi lần lưu tạo một <b>phiên bản</b> mới; giao dịch cũ giữ nguyên điểm đã tính.</li>
-        <li>Hóa đơn nhỏ hơn mức chi tối thiểu sẽ không được cộng điểm.</li>
+        <li data-vi="Điểm = phần nguyên của (số tiền ÷ mức chi) × số điểm.">Points = whole part of (amount ÷ spend step) × points.</li>
+        <li data-vi="Mỗi lần lưu tạo một <b>phiên bản</b> mới; giao dịch cũ giữ nguyên điểm đã tính.">Every save creates a new <b>version</b>; past receipts keep their points.</li>
+        <li data-vi="Hóa đơn nhỏ hơn mức chi tối thiểu sẽ không được cộng điểm.">Receipts below the spend step earn no points.</li>
       </ul>
     </div></section>
   </div>
@@ -51,32 +52,43 @@
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('settings', 'Luật tích điểm', 'Khách chi bao nhiêu thì được bao nhiêu điểm.');
+  renderLayout('settings', T('Points rule', 'Luật tích điểm'), T('How much spend earns how many points.', 'Khách chi bao nhiêu thì được bao nhiêu điểm.'));
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  applyI18n(); applyCurrency();
   const $ = id => document.getElementById(id);
 
   function preview() {
-    const spend = Number($('spend-per-point').value) || 0, step = Number($('points-per-step').value) || 0;
+    const spend = toMinor($('spend-per-point').value) || 0, step = Number($('points-per-step').value) || 0;
     if (!spend || !step) { $('preview').innerHTML = ''; return; }
     const rows = [spend / 2, spend, spend * 5, spend * 25].map(a => Math.round(a)).map(a => [a, Math.floor(a / spend) * step]);
-    $('preview').innerHTML = `<table class="table table-vcenter mb-0"><thead><tr><th>Hóa đơn</th><th class="text-end">Điểm nhận</th></tr></thead><tbody>${rows.map(([a, p]) => `<tr><td>${money.format(a)} ₫</td><td class="text-end">${p ? `<span class="pill pill-earn">+${money.format(p)}</span>` : '<span class="text-secondary">không đủ mức</span>'}</td></tr>`).join('')}</tbody></table>`;
+    $('preview').innerHTML = `<table class="table table-vcenter mb-0"><thead><tr><th>${T('Receipt', 'Hóa đơn')}</th><th class="text-end">${T('Points', 'Điểm nhận')}</th></tr></thead><tbody>${rows.map(([a, p]) => `<tr><td>${fmtMoney(a)}</td><td class="text-end">${p ? `<span class="pill pill-earn">+${money.format(p)}</span>` : `<span class="text-secondary">${T('below minimum', 'không đủ mức')}</span>`}</td></tr>`).join('')}</tbody></table>`;
   }
   ['spend-per-point', 'points-per-step'].forEach(id => $(id).addEventListener('input', preview));
-
-  function renderProgram(p) {
-    if (!p) { $('program-status').textContent = 'Chưa có luật đang hoạt động. Lưu form để tạo luật đầu tiên.'; preview(); return; }
-    $('spend-per-point').value = p.spend_per_point_minor;
-    $('points-per-step').value = p.points_per_step;
-    $('program-status').innerHTML = `Đang dùng <b>phiên bản ${p.version}</b>: mỗi ${money.format(Number(p.spend_per_point_minor))} ₫ nhận ${p.points_per_step} điểm.`;
+  const defaultSpend = () => (STORE_CURRENCY === 'USD' ? 1 : 10000);
+  let saved = null; // the active program
+  function useCurrency(code) {
+    setStoreCurrency(code); $('currency').value = code; applyCurrency();
+    $('spend-per-point').value = saved?.currency === code ? toMajor(saved.spend_per_point_minor) : defaultSpend();
     preview();
   }
+  $('currency').addEventListener('change', () => useCurrency($('currency').value));
+
+  function renderProgram(p) {
+    saved = p;
+    if (!p) { $('program-status').textContent = T('No active rule yet. Save the form to create the first one.', 'Chưa có luật đang hoạt động. Lưu form để tạo luật đầu tiên.'); useCurrency('USD'); return; }
+    $('points-per-step').value = p.points_per_step;
+    useCurrency(p.currency);
+    $('program-status').innerHTML = T(`Using <b>version ${p.version}</b>: every ${fmtMoney(p.spend_per_point_minor)} earns ${pts(p.points_per_step)}.`, `Đang dùng <b>phiên bản ${p.version}</b>: mỗi ${fmtMoney(p.spend_per_point_minor)} nhận ${p.points_per_step} điểm.`);
+  }
   onSubmit('program-form', async () => {
-    const program = await LoyaltyAPI.saveProgram({ currency: 'VND', spend_per_point_minor: Number($('spend-per-point').value), points_per_step: Number($('points-per-step').value) });
-    showAlert(`Đã kích hoạt luật phiên bản ${program.version}.`);
+    const currency = $('currency').value;
+    if (saved && saved.currency !== currency && !confirm(T(`Change the store currency from ${saved.currency} to ${currency}?\nExisting receipts keep their currency. Review spend amounts in missions and lucky draws, and only ${currency} spin campaigns will apply.`, `Đổi tiền tệ từ ${saved.currency} sang ${currency}?\nHóa đơn cũ giữ nguyên tiền tệ. Hãy xem lại mức chi trong nhiệm vụ và quay số; chỉ chương trình quay ${currency} được áp dụng.`))) return;
+    const program = await LoyaltyAPI.saveProgram({ currency, spend_per_point_minor: toMinor($('spend-per-point').value), points_per_step: Number($('points-per-step').value) });
+    showAlert(T(`Rule version ${program.version} is now active.`, `Đã kích hoạt luật phiên bản ${program.version}.`));
     renderProgram(program);
   });
   try { renderProgram((await LoyaltyAPI.getProgram()).program); }
-  catch (e) { showAlert(e.message, 'danger'); $('program-status').textContent = 'Không tải được luật hiện tại.'; }
+  catch (e) { showAlert(e.message, 'danger'); $('program-status').textContent = T('Could not load the current rule.', 'Không tải được luật hiện tại.'); }
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>

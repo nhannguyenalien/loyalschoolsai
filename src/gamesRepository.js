@@ -78,7 +78,7 @@ export function createGamesRepository({ query, one, repo }) {
     /** Tiến độ của khách trong khoảng ngày [start, end] (giờ VN): số hóa đơn, tổng chi tiêu, số ngày đã điểm danh. */
     async missionProgress(tenant, ref, start, end) {
       const [sales, checkins] = await Promise.all([
-        one(`SELECT COUNT(*) AS receipts, COALESCE(SUM(amount_minor), 0) AS spend FROM loyalty_ledger
+        one(`SELECT COUNT(*) AS receipts, COALESCE(SUM(amount_minor) FILTER (WHERE currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS spend FROM loyalty_ledger
              WHERE tenant = $1 AND customer_ref = $2 AND transaction_type = 'earn'
                AND (occurred_at AT TIME ZONE '${TZ}')::date BETWEEN $3::date AND $4::date`, [tenant, ref, start, end]),
         one("SELECT COUNT(*) AS n FROM game_checkins WHERE tenant = $1 AND customer_ref = $2 AND day BETWEEN $3::date AND $4::date", [tenant, ref, start, end]),

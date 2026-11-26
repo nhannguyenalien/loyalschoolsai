@@ -3,7 +3,7 @@
  * Sau requireAuth(): window.AUTH_USER = {uid, email, name}; window.TENANT = uid
  * (mỗi tài khoản là một cửa hàng; server tính tenant từ uid trong ID token).
  */
-if (!FIREBASE_CONFIG.apiKey) console.error('Thiếu cấu hình Firebase: điền assets/js/firebase-config.js');
+if (!FIREBASE_CONFIG.apiKey) console.error('Missing Firebase config: fill in assets/js/firebase-config.js');
 firebase.initializeApp(FIREBASE_CONFIG);
 const fbAuth = firebase.auth();
 
@@ -18,20 +18,20 @@ async function requireAuth() {
 }
 
 async function getIdToken() {
-  if (!fbAuth.currentUser) throw new Error('Phiên đăng nhập đã hết hạn.');
+  if (!fbAuth.currentUser) throw new Error(T('Your session has expired.', 'Phiên đăng nhập đã hết hạn.'));
   return fbAuth.currentUser.getIdToken(); // SDK tự làm mới token khi gần hết hạn
 }
 
 const AUTH_ERRORS = {
-  'auth/invalid-credential': 'Sai email hoặc mật khẩu.',
-  'auth/wrong-password': 'Sai email hoặc mật khẩu.',
-  'auth/user-not-found': 'Sai email hoặc mật khẩu.',
-  'auth/email-already-in-use': 'Email này đã có tài khoản.',
-  'auth/weak-password': 'Mật khẩu cần ít nhất 6 ký tự.',
-  'auth/invalid-email': 'Email không hợp lệ.',
-  'auth/too-many-requests': 'Thử quá nhiều lần, hãy đợi một lúc.',
-  'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập Google.',
-  'auth/unauthorized-domain': 'Tên miền này chưa được thêm vào Authorized domains của Firebase.',
+  'auth/invalid-credential': T('Wrong email or password.', 'Sai email hoặc mật khẩu.'),
+  'auth/wrong-password': T('Wrong email or password.', 'Sai email hoặc mật khẩu.'),
+  'auth/user-not-found': T('Wrong email or password.', 'Sai email hoặc mật khẩu.'),
+  'auth/email-already-in-use': T('This email already has an account.', 'Email này đã có tài khoản.'),
+  'auth/weak-password': T('Password needs at least 6 characters.', 'Mật khẩu cần ít nhất 6 ký tự.'),
+  'auth/invalid-email': T('Invalid email.', 'Email không hợp lệ.'),
+  'auth/too-many-requests': T('Too many attempts. Please wait a moment.', 'Thử quá nhiều lần, hãy đợi một lúc.'),
+  'auth/popup-closed-by-user': T('You closed the Google sign-in window.', 'Bạn đã đóng cửa sổ đăng nhập Google.'),
+  'auth/unauthorized-domain': T('This domain is not in Firebase Authorized domains.', 'Tên miền này chưa được thêm vào Authorized domains của Firebase.'),
 };
 const authError = error => new Error(AUTH_ERRORS[error.code] || error.message);
 

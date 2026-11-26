@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trang khách & QR - Loyal SchoolsAI</title>
+  <title>Customer page & QR - Loyal SchoolsAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
@@ -39,49 +39,50 @@
   <div class="col-lg-5">
     <section class="card"><div class="card-body text-center">
       <div id="qr" class="mx-auto mb-3" style="max-width:280px"></div>
-      <div class="input-group mb-3"><input id="link" class="form-control" readonly onclick="this.select()"><button class="btn" id="copy" type="button">Sao chép</button></div>
+      <div class="input-group mb-3"><input id="link" class="form-control" readonly onclick="this.select()"><button class="btn" id="copy" type="button" data-vi="Sao chép">Copy</button></div>
       <div class="btn-list justify-content-center">
-        <a class="btn btn-outline-primary" id="open" target="_blank" rel="noopener"><i class="ti ti-external-link me-1"></i>Mở thử</a>
-        <button class="btn btn-outline-primary" id="png" type="button"><i class="ti ti-download me-1"></i>Tải PNG</button>
-        <button class="btn btn-grad" id="print" type="button"><i class="ti ti-printer me-1"></i>In poster</button>
+        <a class="btn btn-outline-primary" id="open" target="_blank" rel="noopener"><i class="ti ti-external-link me-1"></i><span data-vi="Mở thử">Preview</span></a>
+        <button class="btn btn-outline-primary" id="png" type="button"><i class="ti ti-download me-1"></i><span data-vi="Tải PNG">Download PNG</span></button>
+        <button class="btn btn-grad" id="print" type="button"><i class="ti ti-printer me-1"></i><span data-vi="In poster">Print poster</span></button>
       </div>
     </div></section>
   </div>
   <div class="col-lg-7">
-    <section class="card mb-3"><div class="card-header"><h3 class="card-title"><i class="ti ti-smart-home me-2"></i>Trang cho khách của bạn</h3></div>
+    <section class="card mb-3"><div class="card-header"><h3 class="card-title"><i class="ti ti-smart-home me-2"></i><span data-vi="Trang cho khách của bạn">Your customer page</span></h3></div>
       <form class="card-body" id="page-form">
-        <p class="text-secondary">Khách quét mã QR, nhập số điện thoại để xem điểm, điểm danh, nhận thưởng nhiệm vụ và quay thưởng — không cần cài app hay đăng nhập.</p>
-        <div class="mb-3"><label class="form-label">Tên hiển thị cho khách</label><input id="name" class="form-control" maxlength="80" required></div>
-        <div class="mb-3"><label class="form-label">Đường dẫn</label><div class="input-group"><span class="input-group-text" id="origin"></span><input id="slug" class="form-control" maxlength="30" pattern="[a-z0-9][a-z0-9\-]{2,29}" required></div><div class="form-hint">3–30 ký tự: chữ thường, số, dấu gạch ngang. Đổi đường dẫn thì mã QR cũ sẽ không dùng được nữa.</div></div>
-        <label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="enabled"><span class="form-check-label">Đang mở cho khách</span></label>
-        <label class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="require-pin"><span class="form-check-label">Yêu cầu khách đặt mã PIN (4–6 số)</span></label>
-        <div class="form-hint mb-3">Lần đầu khách tạo PIN, sau đó phải nhập PIN mới xem điểm, điểm danh, quay thưởng. Nhập sai 5 lần sẽ bị khóa 15 phút. Nên bật nếu số điện thoại khách dễ bị người khác biết.</div>
-        <button class="btn btn-grad" type="submit"><i class="ti ti-device-floppy me-1"></i>Lưu</button>
+        <p class="text-secondary" data-vi="Khách quét mã QR, nhập số điện thoại để xem điểm, điểm danh, nhận thưởng nhiệm vụ và quay thưởng — không cần cài app hay đăng nhập.">Customers scan the QR code and enter their phone number to see points, check in, claim mission rewards and spin — no app or sign-up.</p>
+        <div class="mb-3"><label class="form-label" data-vi="Tên hiển thị cho khách">Store name shown to customers</label><input id="name" class="form-control" maxlength="80" required></div>
+        <div class="mb-3"><label class="form-label" data-vi="Đường dẫn">Link</label><div class="input-group"><span class="input-group-text" id="origin"></span><input id="slug" class="form-control" maxlength="30" pattern="[a-z0-9][a-z0-9\-]{2,29}" required></div><div class="form-hint" data-vi="3–30 ký tự: chữ thường, số, dấu gạch ngang. Đổi đường dẫn thì mã QR cũ sẽ không dùng được nữa.">3–30 characters: lowercase letters, numbers, hyphens. Changing the link breaks old QR codes.</div></div>
+        <label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="enabled"><span class="form-check-label" data-vi="Đang mở cho khách">Open to customers</span></label>
+        <label class="form-check form-switch mb-1"><input class="form-check-input" type="checkbox" id="require-pin"><span class="form-check-label" data-vi="Yêu cầu khách đặt mã PIN (4–6 số)">Require a customer PIN (4–6 digits)</span></label>
+        <div class="form-hint mb-3" data-vi="Lần đầu khách tạo PIN, sau đó phải nhập PIN mới xem điểm, điểm danh, quay thưởng. Nhập sai 5 lần sẽ bị khóa 15 phút. Nên bật nếu số điện thoại khách dễ bị người khác biết.">Customers create a PIN on their first visit and need it to see points, check in and spin. 5 wrong tries lock it for 15 minutes. Recommended if phone numbers are easy to guess or share.</div>
+        <button class="btn btn-grad" type="submit"><i class="ti ti-device-floppy me-1"></i><span data-vi="Lưu">Save</span></button>
       </form>
     </section>
     <section class="card"><div class="card-body small text-secondary">
-      <div class="fw-bold text-body mb-1">Lưu ý</div>
-      Khách chỉ xem được điểm khi số điện thoại đã có hồ sơ (sau lần mua đầu tiên). Trang không hiện họ tên đầy đủ hay lịch sử giao dịch. Quà hiện vật trúng thưởng vẫn do nhân viên trao tại quầy ở mục <a href="rewards.html">Quay thưởng</a> / <a href="missions.html">Nhiệm vụ</a>.
+      <div class="fw-bold text-body mb-1" data-vi="Lưu ý">Good to know</div>
+      <span data-vi="Khách chỉ xem được điểm khi số điện thoại đã có hồ sơ (sau lần mua đầu tiên). Trang không hiện họ tên đầy đủ hay lịch sử giao dịch. Quà hiện vật trúng thưởng vẫn do nhân viên trao tại quầy ở mục">Customers can see points once their number has a profile (after the first purchase). The page never shows full names or transaction history. Staff hand out physical prizes at the counter under</span> <a href="rewards.html" data-vi="Quay thưởng">Reward spins</a> / <a href="missions.html" data-vi="Nhiệm vụ">Missions</a>.
     </div></section>
   </div>
 </div>
-<div id="poster"><h1 id="poster-name"></h1><p>Quét mã – tích điểm – điểm danh – quay thưởng mỗi ngày!</p><div class="qr" id="poster-qr"></div><div class="url" id="poster-url"></div></div>
+<div id="poster"><h1 id="poster-name"></h1><p data-vi="Quét mã – tích điểm – điểm danh – quay thưởng mỗi ngày!">Scan to earn points, check in and spin every day!</p><div class="qr" id="poster-qr"></div><div class="url" id="poster-url"></div></div>
 </template>
 <script>
 (async () => {
   await requireAuth();
-  renderLayout('qr', 'Trang khách & QR', 'Cho khách tự xem điểm, điểm danh và quay thưởng bằng cách quét mã.');
+  renderLayout('qr', T('Customer page & QR', 'Trang khách & QR'), T('Let customers check points, check in and spin by scanning a code.', 'Cho khách tự xem điểm, điểm danh và quay thưởng bằng cách quét mã.'));
   document.getElementById('content').append(document.getElementById('tpl').content.cloneNode(true));
+  applyI18n(); applyCurrency();
   const $ = id => document.getElementById(id);
   let page = null;
 
-  const publicUrl = () => `${location.origin}/c?s=${page.slug}`;
+  const publicUrl = () => `${publicOrigin()}/c?s=${page.slug}`;
 
   function paint() {
     const url = publicUrl(), svg = qrSvg(url);
     $('qr').innerHTML = svg; $('poster-qr').innerHTML = svg;
     $('link').value = url; $('open').href = url; $('poster-url').textContent = url; $('poster-name').textContent = page.name;
-    $('name').value = page.name; $('slug').value = page.slug; $('enabled').checked = page.enabled; $('require-pin').checked = !!page.require_pin; $('origin').textContent = `${location.host}/c?s=`;
+    $('name').value = page.name; $('slug').value = page.slug; $('enabled').checked = page.enabled; $('require-pin').checked = !!page.require_pin; $('origin').textContent = `${new URL(publicOrigin()).host}/c?s=`;
     $('qr').style.opacity = page.enabled ? 1 : .35;
   }
 
@@ -90,7 +91,7 @@
   $('png').addEventListener('click', () => downloadQrPng(publicUrl(), `qr-${page.slug}.png`));
   onSubmit('page-form', async () => {
     ({ page } = await LoyaltyAPI.saveStorePage({ name: $('name').value.trim(), slug: $('slug').value.trim().toLowerCase(), enabled: $('enabled').checked, require_pin: $('require-pin').checked }));
-    paint(); showAlert('Đã lưu.');
+    paint(); showAlert(T('Saved.', 'Đã lưu.'));
   });
 
   try { ({ page } = await LoyaltyAPI.storePage()); paint(); }

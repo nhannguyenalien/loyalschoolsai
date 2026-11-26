@@ -221,3 +221,7 @@ CREATE TABLE IF NOT EXISTS customer_pins (
   failed_attempts int NOT NULL DEFAULT 0, locked_until timestamptz, updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (tenant, customer_ref)
 );
+
+-- ===================== Đa tiền tệ (VND / USD) =====================
+-- amount_minor theo đơn vị nhỏ nhất: VND = đồng, USD = cent. Chiến dịch quay chỉ áp dụng cho cửa hàng cùng tiền tệ.
+ALTER TABLE reward_campaigns ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'VND';
