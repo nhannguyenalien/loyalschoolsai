@@ -1,2 +1,7 @@
 /api/*
   Cache-Control: no-store
+
+/connect*
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Cache-Control: no-store

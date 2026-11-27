@@ -26,6 +26,7 @@ const earnedEvents = (customerRef, result) => [
   ...(result.entitlements?.length ? [["spin.issued", { customer_ref: customerRef, spins: result.entitlements.length, source_ref: result.entry.source_ref }]] : []),
 ];
 const eventEvents = (r) => {
+  if (r.type === "refund") return [["points.refunded", { customer_ref: r.customer_ref, points: Math.abs(r.points_delta), balance: r.balance, source_ref: r.detail.entry.source_ref }]];
   if (r.type === "purchase") return earnedEvents(r.customer_ref, r.detail);
   if (r.type === "redeem") return [["points.redeemed", { customer_ref: r.customer_ref, points: Math.abs(r.points_delta), balance: r.balance }]];
   return [["checkin.completed", { customer_ref: r.customer_ref, points: r.points_delta, streak: r.detail.streak, milestone: r.detail.milestone, balance: r.balance }]];

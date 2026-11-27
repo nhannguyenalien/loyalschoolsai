@@ -1,6 +1,6 @@
 import { HttpError } from "./auth.js";
 
-export const WEBHOOK_EVENTS = ["points.earned", "points.redeemed", "checkin.completed", "spin.issued", "reward.won", "ping"];
+export const WEBHOOK_EVENTS = ["points.earned", "points.redeemed", "points.refunded", "checkin.completed", "spin.issued", "reward.won", "ping"];
 const BACKOFF_SECONDS = [60, 300, 1800, 7200, 21600]; // sau lần thử 1..5; lần thứ 6 thất bại là dừng hẳn
 const MAX_ATTEMPTS = BACKOFF_SECONDS.length + 1;
 const MAX_ENDPOINTS = 5;

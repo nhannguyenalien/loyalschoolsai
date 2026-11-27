@@ -75,7 +75,7 @@
     try { await loginWithGoogle(); }
     catch (error) { showAlert(error.message, 'danger'); event.currentTarget.disabled = false; }
   });
-  authReady.then(user => { if (user) location.href = 'overview.html'; });
+  authReady.then(user => { if (user) location.href = homeAfterLogin(); });
 </script>
 </body>
 </html>

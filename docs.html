@@ -51,7 +51,7 @@ const CUSTOMER_B = 'Phone number or customer code (in the body).';
 const GROUPS = [
   { id: 'webhooks', title: 'Webhooks', endpoints: [
     { id: 'webhook-events', m: 'POST', path: 'Your URL', title: 'Receive events (webhooks)',
-      desc: 'Add a URL on the <b>POS integration</b> page. Each event is sent as a JSON <code>POST</code>: <code>{ id, type, created_at, data }</code>. Event types: <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Verify the signature</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, where <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; reject if <code>t</code> is more than 5 minutes off. Reply 2xx within 5 seconds, otherwise we retry after 1 min, 5 min, 30 min, 2 h and 6 h (6 attempts at most). The same <code>id</code> may arrive more than once — handle it idempotently.',
+      desc: 'Add a URL on the <b>POS integration</b> page. Each event is sent as a JSON <code>POST</code>: <code>{ id, type, created_at, data }</code>. Event types: <code>points.earned</code>, <code>points.redeemed</code>, <code>points.refunded</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Verify the signature</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, where <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; reject if <code>t</code> is more than 5 minutes off. Reply 2xx within 5 seconds, otherwise we retry after 1 min, 5 min, 30 min, 2 h and 6 h (6 attempts at most). The same <code>id</code> may arrive more than once — handle it idempotently.',
       params: [],
       curl: `// Node.js\nimport crypto from "node:crypto";\nconst [t, v1] = req.headers["x-loyalty-signature"].split(",").map(p => p.split("=")[1]);\nconst ok = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(t + "." + rawBody).digest("hex") === v1;`,
       status: '2xx reply', res: { id: 'c1f0…', type: 'points.earned', created_at: '2026-11-20T03:12:00.000Z', data: { customer_ref: '0901234567', points: 25, amount_minor: 2500, currency: 'USD', source_ref: 'R001' } } },
@@ -59,10 +59,10 @@ const GROUPS = [
 
   { id: 'points', title: 'Points', endpoints: [
     { id: 'post-events', m: 'POST', path: '/events', title: 'Send an event (recommended)',
-      desc: 'One endpoint for everything: <code>purchase</code> (add points + earn spins + tickets), <code>redeem</code> (deduct points), <code>checkin</code> (check-in + streak). Missions and challenges compute progress from these events. De-duplicated by the <code>Idempotency-Key</code> header, or by default <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
-      params: [['type', 'string', true, '<code>purchase</code> | <code>redeem</code> | <code>checkin</code>.'],
-        ['customer_ref', 'string', true, 'Phone number or customer code.'],
-        ['order_id', 'string', false, 'Receipt number / redemption code (required for purchase and redeem).'],
+      desc: 'One endpoint for everything: <code>purchase</code> (add points + earn spins + tickets), <code>redeem</code> (deduct points), <code>checkin</code> (check-in + streak), <code>refund</code> (a cancelled/returned receipt: reverses its points and revokes unused spins and tickets; send the same <code>order_id</code> and <code>source_type</code>; once per receipt; the balance may go negative if the points were already spent). Missions and challenges compute progress from these events. De-duplicated by the <code>Idempotency-Key</code> header, or by default <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
+      params: [['type', 'string', true, '<code>purchase</code> | <code>redeem</code> | <code>checkin</code> | <code>refund</code>.'],
+        ['customer_ref', 'string', true, 'Phone number or customer code (optional for refund).'],
+        ['order_id', 'string', false, 'Receipt number / redemption code (required for purchase, redeem and refund).'],
         ['amount_minor', 'integer', false, 'Receipt total in the smallest currency unit (purchase).'],
         ['points', 'integer', false, 'Points to deduct (redeem).'],
         ['customer', 'object', false, '<code>{ name, phone }</code> used when creating a new customer.']],

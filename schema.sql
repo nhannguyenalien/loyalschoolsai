@@ -225,3 +225,11 @@ CREATE TABLE IF NOT EXISTS customer_pins (
 -- ===================== Đa tiền tệ (VND / USD) =====================
 -- amount_minor theo đơn vị nhỏ nhất: VND = đồng, USD = cent. Chiến dịch quay chỉ áp dụng cho cửa hàng cùng tiền tệ.
 ALTER TABLE reward_campaigns ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'VND';
+
+-- ===================== Kết nối một nút từ ứng dụng đối tác (POS) =====================
+-- Mã dùng một lần (hết hạn 5 phút, lưu bản băm) để máy chủ đối tác đổi lấy API key sau khi chủ cửa hàng bấm "Cho phép".
+CREATE TABLE IF NOT EXISTS connect_codes (
+  code_hash text PRIMARY KEY, tenant text NOT NULL, redirect_uri text NOT NULL, code_challenge text NOT NULL,
+  store_name text NOT NULL DEFAULT '', expires_at timestamptz NOT NULL, used_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);

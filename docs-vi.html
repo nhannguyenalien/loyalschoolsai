@@ -49,7 +49,7 @@ const entry = (extra) => ({ id: '6c0a7713-…', customer_ref: '0901234567', tran
 const GROUPS = [
   { id: 'webhooks', title: 'Webhook', endpoints: [
     { id: 'webhook-events', m: 'POST', path: 'URL của bạn', title: 'Nhận sự kiện (webhook)',
-      desc: 'Thêm URL ở trang <b>Tích hợp</b>. Mỗi sự kiện được gửi bằng <code>POST</code> JSON: <code>{ id, type, created_at, data }</code>. Loại sự kiện: <code>points.earned</code>, <code>points.redeemed</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Xác minh chữ ký</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, với <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; nên từ chối nếu <code>t</code> lệch quá 5 phút. Trả về 2xx trong 5 giây; nếu không, hệ thống thử lại sau 1 phút, 5 phút, 30 phút, 2 giờ, 6 giờ (tối đa 6 lần). Cùng <code>id</code> có thể đến nhiều lần — hãy xử lý idempotent.',
+      desc: 'Thêm URL ở trang <b>Tích hợp</b>. Mỗi sự kiện được gửi bằng <code>POST</code> JSON: <code>{ id, type, created_at, data }</code>. Loại sự kiện: <code>points.earned</code>, <code>points.redeemed</code>, <code>points.refunded</code>, <code>checkin.completed</code>, <code>spin.issued</code>, <code>reward.won</code>. <b>Xác minh chữ ký</b>: header <code>X-Loyalty-Signature: t=&lt;unix&gt;,v1=&lt;hex&gt;</code>, với <code>v1 = HMAC_SHA256(secret, t + "." + body)</code>; nên từ chối nếu <code>t</code> lệch quá 5 phút. Trả về 2xx trong 5 giây; nếu không, hệ thống thử lại sau 1 phút, 5 phút, 30 phút, 2 giờ, 6 giờ (tối đa 6 lần). Cùng <code>id</code> có thể đến nhiều lần — hãy xử lý idempotent.',
       params: [],
       curl: `// Node.js\nimport crypto from "node:crypto";\nconst [t, v1] = req.headers["x-loyalty-signature"].split(",").map(p => p.split("=")[1]);\nconst ok = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(t + "." + rawBody).digest("hex") === v1;`,
       status: 'Phản hồi 2xx', res: { id: 'c1f0…', type: 'points.earned', created_at: '2026-11-20T03:12:00.000Z', data: { customer_ref: '0901234567', points: 25, amount_minor: 250000, source_ref: 'HD001' } } },
@@ -57,10 +57,10 @@ const GROUPS = [
 
   { id: 'points', title: 'Tích điểm', endpoints: [
     { id: 'post-events', m: 'POST', path: '/events', title: 'Gửi sự kiện (khuyên dùng)',
-      desc: 'Một endpoint cho mọi thứ: <code>purchase</code> (cộng điểm + sinh lượt quay + vé), <code>redeem</code> (trừ điểm), <code>checkin</code> (điểm danh + chuỗi). Nhiệm vụ và thử thách tự tính tiến độ từ các sự kiện này. Chống trùng bằng header <code>Idempotency-Key</code> hoặc mặc định <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
-      params: [['type', 'string', true, '<code>purchase</code> | <code>redeem</code> | <code>checkin</code>.'],
+      desc: 'Một endpoint cho mọi thứ: <code>purchase</code> (cộng điểm + sinh lượt quay + vé), <code>redeem</code> (trừ điểm), <code>checkin</code> (điểm danh + chuỗi), <code>refund</code> (đơn hủy/trả: trừ lại điểm, thu hồi lượt quay và vé chưa dùng; gửi cùng <code>order_id</code> và <code>source_type</code>; mỗi đơn một lần; số dư có thể âm nếu khách đã dùng điểm). Nhiệm vụ và thử thách tự tính tiến độ từ các sự kiện này. Chống trùng bằng header <code>Idempotency-Key</code> hoặc mặc định <code>&lt;type&gt;:&lt;order_id&gt;</code>.',
+      params: [['type', 'string', true, '<code>purchase</code> | <code>redeem</code> | <code>checkin</code> | <code>refund</code>.'],
         ['customer_ref', 'string', true, 'Số điện thoại hoặc mã khách.'],
-        ['order_id', 'string', false, 'Mã hóa đơn / mã đổi thưởng (bắt buộc với purchase và redeem).'],
+        ['order_id', 'string', false, 'Mã hóa đơn / mã đổi thưởng (bắt buộc với purchase, redeem và refund).'],
         ['amount_minor', 'integer', false, 'Giá trị hóa đơn (purchase).'],
         ['points', 'integer', false, 'Số điểm trừ (redeem).'],
         ['customer', 'object', false, '<code>{ name, phone }</code> khi tạo khách mới.']],

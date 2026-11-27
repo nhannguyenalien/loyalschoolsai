@@ -68,6 +68,14 @@ export function createNeonRepository(databaseUrl) {
       [crypto.randomUUID(), tenant, name, keyPrefix, keyHash]),
     findActiveApiKey: (keyHash) => one(
       "SELECT id, tenant FROM api_keys WHERE key_hash = $1 AND revoked_at IS NULL", [keyHash]),
+    revokeApiKeysByName: (tenant, name) => query("UPDATE api_keys SET revoked_at = now() WHERE tenant = $1 AND name = $2 AND revoked_at IS NULL", [tenant, name]),
+    createConnectCode: (c) => query(
+      `INSERT INTO connect_codes (code_hash, tenant, redirect_uri, code_challenge, store_name, expires_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [c.codeHash, c.tenant, c.redirectUri, c.challenge, c.storeName, c.expiresAt]),
+    // Dùng một lần: đánh dấu và trả về trong cùng một câu lệnh.
+    consumeConnectCode: (codeHash) => one(
+      `UPDATE connect_codes SET used_at = now() WHERE code_hash = $1 AND used_at IS NULL AND expires_at > now()
+       RETURNING tenant, redirect_uri, code_challenge, store_name`, [codeHash]),
     touchApiKey: (id) => query(
       "UPDATE api_keys SET last_used_at = now() WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')", [id]),
     listApiKeys: (tenant) => query(
@@ -81,10 +89,10 @@ export function createNeonRepository(databaseUrl) {
       const tz = "Asia/Ho_Chi_Minh";
       const [totals, spins, daily, recent, today] = await Promise.all([
         one(`SELECT (SELECT COUNT(*) FROM loyalty_customers WHERE tenant = $1) AS customers,
-               COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points_issued,
-               COALESCE(-SUM(points_delta) FILTER (WHERE points_delta < 0), 0) AS points_redeemed,
-               COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND occurred_at >= now() - interval '30 days' AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS sales_30d,
-               COUNT(*) FILTER (WHERE transaction_type = 'earn' AND (occurred_at AT TIME ZONE '${tz}')::date = (now() AT TIME ZONE '${tz}')::date) AS receipts_today
+               COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0 OR transaction_type = 'refund'), 0) AS points_issued,
+               COALESCE(-SUM(points_delta) FILTER (WHERE points_delta < 0 AND transaction_type <> 'refund'), 0) AS points_redeemed,
+               COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND NOT EXISTS (SELECT 1 FROM loyalty_ledger r WHERE r.reverses_entry_id = loyalty_ledger.id) AND occurred_at >= now() - interval '30 days' AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS sales_30d,
+               COUNT(*) FILTER (WHERE transaction_type = 'earn' AND NOT EXISTS (SELECT 1 FROM loyalty_ledger r WHERE r.reverses_entry_id = loyalty_ledger.id) AND (occurred_at AT TIME ZONE '${tz}')::date = (now() AT TIME ZONE '${tz}')::date) AS receipts_today
              FROM loyalty_ledger WHERE tenant = $1`, [tenant]),
         one(`SELECT
                (SELECT COUNT(*) FROM reward_spin_entitlements e WHERE e.tenant = $1 AND e.status = 'available'
@@ -92,9 +100,9 @@ export function createNeonRepository(databaseUrl) {
                (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1) AS spins_used,
                (SELECT COUNT(*) FROM reward_spin_results WHERE tenant = $1 AND status = 'won') AS prizes_pending`, [tenant]),
         query(`SELECT to_char((occurred_at AT TIME ZONE '${tz}')::date, 'YYYY-MM-DD') AS day,
-                 COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS amount,
-                 COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0), 0) AS points,
-                 COUNT(*) FILTER (WHERE transaction_type = 'earn') AS receipts
+                 COALESCE(SUM(amount_minor) FILTER (WHERE transaction_type = 'earn' AND NOT EXISTS (SELECT 1 FROM loyalty_ledger r WHERE r.reverses_entry_id = loyalty_ledger.id) AND currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS amount,
+                 COALESCE(SUM(points_delta) FILTER (WHERE points_delta > 0 OR transaction_type = 'refund'), 0) AS points,
+                 COUNT(*) FILTER (WHERE transaction_type = 'earn' AND NOT EXISTS (SELECT 1 FROM loyalty_ledger r WHERE r.reverses_entry_id = loyalty_ledger.id)) AS receipts
                FROM loyalty_ledger WHERE tenant = $1 AND occurred_at >= now() - interval '15 days'
                GROUP BY 1 ORDER BY 1`, [tenant]),
         query(`SELECT l.id, l.transaction_type, l.points_delta, l.amount_minor, l.currency, l.source_ref, l.occurred_at, l.customer_ref, c.name
@@ -183,6 +191,31 @@ export function createNeonRepository(databaseUrl) {
         throw new LoyaltyConflictError("This receipt/source was already used.");
       }
       throw new LoyaltyConflictError("Insufficient points.");
+    },
+    // Dòng đảo (hoàn đơn): được phép làm số dư âm, trùng nguồn/khóa thì trả dòng đã có.
+    async appendReversal(entry) {
+      const cols = COLUMNS.loyalty_ledger.filter((c) => entry[c] !== undefined);
+      const row = await one(
+        `INSERT INTO loyalty_ledger (id, ${cols.join(", ")}) VALUES ($1, ${cols.map((_, i) => `$${i + 2}`).join(", ")})
+         ON CONFLICT DO NOTHING RETURNING ${SELECT}`, [crypto.randomUUID(), ...cols.map((c) => entry[c])]);
+      if (row) return { entry: row, replayed: false };
+      const winner = await this.findLedgerBySource(entry.tenant, entry.source_type, entry.source_ref);
+      if (winner) return { entry: winner, replayed: true };
+      throw new LoyaltyConflictError("The refund could not be recorded.");
+    },
+    // Thu hồi lượt quay chưa dùng và vé (kỳ chưa quay) sinh ra từ một hóa đơn.
+    async revokeSaleRewards({ tenant, customerRef, sourceRef }) {
+      const spins = await query(
+        `UPDATE reward_spin_entitlements e SET status = 'revoked'
+         WHERE e.tenant = $1 AND e.customer_ref = $2 AND e.source_type = 'sale' AND e.status = 'available'
+           AND e.source_ref IN (SELECT $3 || ':' || n FROM generate_series(1, 1000) n)
+           AND NOT EXISTS (SELECT 1 FROM reward_spin_results r WHERE r.entitlement_id = e.id)
+         RETURNING e.id`, [tenant, customerRef, sourceRef]);
+      const tickets = await query(
+        `DELETE FROM game_draw_tickets t USING game_draws d
+         WHERE d.id = t.draw_id AND d.status <> 'drawn' AND t.tenant = $1 AND t.customer_ref = $2 AND t.source_type = 'sale' AND t.source_ref = $3
+         RETURNING t.id`, [tenant, customerRef, sourceRef]);
+      return { spins: spins.length, tickets: tickets.length };
     },
     async listCustomerLedger(tenant, customerId, { page = 1, perPage = 100 } = {}) {
       const [items, count] = await Promise.all([

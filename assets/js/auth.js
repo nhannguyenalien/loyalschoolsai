@@ -35,17 +35,24 @@ const AUTH_ERRORS = {
 };
 const authError = error => new Error(AUTH_ERRORS[error.code] || error.message);
 
+// After signing in, return to the connect screen if that is where the visitor came from.
+function homeAfterLogin() {
+  let next = '';
+  try { next = sessionStorage.getItem('ls_after_login') || ''; sessionStorage.removeItem('ls_after_login'); } catch { /* no storage: go to overview */ }
+  return /^connect\.html\?/.test(next) ? next : 'overview.html';
+}
+
 async function loginWithPassword(email, password) {
   try { await fbAuth.signInWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
-  location.href = 'overview.html';
+  location.href = homeAfterLogin();
 }
 async function registerWithPassword(email, password) {
   try { await fbAuth.createUserWithEmailAndPassword(email, password); } catch (e) { throw authError(e); }
-  location.href = 'overview.html';
+  location.href = homeAfterLogin();
 }
 async function loginWithGoogle() {
   try { await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); } catch (e) { throw authError(e); }
-  location.href = 'overview.html';
+  location.href = homeAfterLogin();
 }
 async function resetPassword(email) {
   try { await fbAuth.sendPasswordResetEmail(email); } catch (e) { throw authError(e); }

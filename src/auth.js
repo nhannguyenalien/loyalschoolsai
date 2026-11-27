@@ -24,7 +24,7 @@ export async function authenticateApiKey(request, repository) {
   const row = await repository.findActiveApiKey(await sha256Hex(token));
   if (!row) throw new HttpError(401, "API key is invalid or revoked.");
   repository.touchApiKey(row.id).catch(() => {});
-  return { tenant: row.tenant, via: "api_key" };
+  return { tenant: row.tenant, via: "api_key", keyId: row.id };
 }
 
 const FIREBASE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));

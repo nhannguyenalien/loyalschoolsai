@@ -80,6 +80,7 @@ export function createGamesRepository({ query, one, repo }) {
       const [sales, checkins] = await Promise.all([
         one(`SELECT COUNT(*) AS receipts, COALESCE(SUM(amount_minor) FILTER (WHERE currency = COALESCE((SELECT currency FROM loyalty_programs WHERE tenant = $1 AND status = 'active' ORDER BY version DESC LIMIT 1), currency)), 0) AS spend FROM loyalty_ledger
              WHERE tenant = $1 AND customer_ref = $2 AND transaction_type = 'earn'
+               AND NOT EXISTS (SELECT 1 FROM loyalty_ledger r WHERE r.reverses_entry_id = loyalty_ledger.id)
                AND (occurred_at AT TIME ZONE '${TZ}')::date BETWEEN $3::date AND $4::date`, [tenant, ref, start, end]),
         one("SELECT COUNT(*) AS n FROM game_checkins WHERE tenant = $1 AND customer_ref = $2 AND day BETWEEN $3::date AND $4::date", [tenant, ref, start, end]),
       ]);

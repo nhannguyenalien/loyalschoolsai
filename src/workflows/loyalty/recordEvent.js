@@ -1,10 +1,11 @@
 import { recordLoyaltySale } from "./recordSale.js";
 import { redeemLoyaltyPoints } from "./redeemPoints.js";
+import { refundLoyaltySale } from "./refundSale.js";
 import { checkIn } from "../games/checkin.js";
 import { requireNonEmpty } from "../../domain/loyalty/points.js";
 import { LoyaltyValidationError } from "../../domain/loyalty/errors.js";
 
-export const EVENT_TYPES = ["purchase", "redeem", "checkin"];
+export const EVENT_TYPES = ["purchase", "redeem", "checkin", "refund"];
 
 /**
  * Cổng sự kiện duy nhất cho tích hợp: một lời gọi → điểm, lượt quay, vé, điểm danh, tiến độ nhiệm vụ.
@@ -14,7 +15,8 @@ export const EVENT_TYPES = ["purchase", "redeem", "checkin"];
 export async function recordLoyaltyEvent({ repository, tenant, input, idempotencyKey }) {
   const type = String(input?.type || "").trim();
   if (!EVENT_TYPES.includes(type)) throw new LoyaltyValidationError(`type must be one of: ${EVENT_TYPES.join(", ")}.`);
-  const customerRef = requireNonEmpty(input.customer_ref, "customer_ref", 200);
+  // Hoàn đơn tra theo order_id nên không bắt buộc customer_ref.
+  const customerRef = type === "refund" ? String(input.customer_ref || "").trim() : requireNonEmpty(input.customer_ref, "customer_ref", 200);
   const orderId = String(input.order_id || "").trim();
   const key = String(idempotencyKey || input.idempotency_key || (orderId ? `${type}:${orderId}` : "")).trim();
 
@@ -31,13 +33,18 @@ export async function recordLoyaltyEvent({ repository, tenant, input, idempotenc
       idempotency_key: requireNonEmpty(key, "Idempotency-Key (or order_id)", 200), customer_ref: customerRef,
       source_ref: requireNonEmpty(orderId, "order_id", 200), points: input.points, note: input.note, metadata: input.metadata,
     } });
+  } else if (type === "refund") {
+    result = await refundLoyaltySale({ repository, tenant, input: {
+      source_type: input.source_type || "api", source_ref: orderId, customer_ref: customerRef, metadata: input.metadata,
+    } });
   } else {
     result = await checkIn({ repository, tenant, customerRef });
   }
 
-  const balance = Number(await repository.getBalance(tenant, customerRef));
+  const ref = result.entry?.customer_ref || customerRef;
+  const balance = Number(await repository.getBalance(tenant, ref));
   return {
-    type, customer_ref: customerRef, replayed: Boolean(result.replayed), balance,
+    type, customer_ref: ref, replayed: Boolean(result.replayed), balance,
     points_delta: result.entry ? Number(result.entry.points_delta) : Number(result.points || 0),
     spins_earned: result.entitlements?.length || 0,
     tickets_earned: result.tickets?.length || 0,

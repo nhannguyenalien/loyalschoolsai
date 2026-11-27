@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect an app - Loyal SchoolsAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  </head>
+<body>
+<div class="container py-5" style="max-width:480px">
+  <div class="card"><div class="card-body p-4">
+    <div class="text-center mb-3"><span class="avatar avatar-lg avatar-grad rounded-circle"><i class="ti ti-plug-connected fs-2"></i></span></div>
+    <h2 class="text-center mb-1" id="title"></h2>
+    <p class="text-center text-secondary" id="sub"></p>
+    <div id="alert"></div>
+    <div id="details" class="d-none">
+      <ul class="text-secondary ps-3" id="perms"></ul>
+      <div class="small text-secondary mb-3" id="account"></div>
+      <button class="btn btn-grad btn-lg w-100 mb-2" id="allow" type="button"></button>
+      <button class="btn w-100" id="cancel" type="button"></button>
+    </div>
+  </div></div>
+</div>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const request = { redirect_uri: q.get('redirect_uri') || '', state: q.get('state') || '', code_challenge: q.get('code_challenge') || '', store: (q.get('store') || '').slice(0, 80) };
+  $('title').textContent = T('Connect your POS', 'Kết nối POS');
+  const user = await authReady;
+  if (!user) { // sign in first, then come back here
+    try { sessionStorage.setItem('ls_after_login', 'connect.html' + location.search); } catch {}
+    location.replace('index.html'); return;
+  }
+  await requireAuth();
+  try {
+    const info = await LoyaltyAPI.connectInfo(request.redirect_uri);
+    if (info.currency && info.currency !== info.required_currency) {
+      throw new Error(T(`Your points rule uses ${info.currency}. Switch it to ${info.required_currency} on the Points rule page, then connect again.`, `Luật tích điểm đang dùng ${info.currency}. Hãy đổi sang ${info.required_currency} ở trang Luật tích điểm rồi nối lại.`));
+    }
+    $('sub').textContent = T(`${request.store || 'A store'} on ${info.host} wants to connect to your loyalty program.`, `${request.store || 'Một cửa hàng'} trên ${info.host} muốn kết nối với chương trình khách thân thiết của bạn.`);
+    const perms = [
+      T('Add points when an order is completed, and take them back if it is cancelled', 'Cộng điểm khi đơn hoàn tất, và trừ lại khi đơn bị hủy'),
+      T("Access this loyalty store's data: customers, points and rewards", 'Truy cập dữ liệu của cửa hàng loyalty này: khách hàng, điểm và phần thưởng'),
+      T('It cannot manage API keys or webhooks. You can revoke it any time under POS integration.', 'Không quản lý được API key hay webhook. Bạn thu hồi lúc nào cũng được ở mục Tích hợp POS.'),
+    ];
+    if (!info.currency) perms.push(T('A points rule will be created: every ₫10,000 earns 1 point (you can change it).', 'Sẽ tạo luật tích điểm: mỗi 10.000 ₫ được 1 điểm (bạn đổi được).'));
+    $('perms').innerHTML = perms.map(p => `<li class="mb-1">${esc(p)}</li>`).join('');
+    $('account').innerHTML = `${T('Signed in as', 'Đang đăng nhập')} <b>${esc(window.AUTH_USER.email)}</b> · <a href="#" id="switch">${T('Use another account', 'Dùng tài khoản khác')}</a>`;
+    $('allow').textContent = T('Allow', 'Cho phép'); $('cancel').textContent = T('Cancel', 'Hủy');
+    $('details').classList.remove('d-none');
+    $('switch').addEventListener('click', async e => { e.preventDefault(); try { sessionStorage.setItem('ls_after_login', 'connect.html' + location.search); } catch {} await logout(); });
+    $('cancel').addEventListener('click', () => { const u = new URL(request.redirect_uri); u.searchParams.set('error', 'cancelled'); u.searchParams.set('state', request.state); location.href = u; });
+    $('allow').addEventListener('click', async () => {
+      $('allow').disabled = true;
+      try { location.href = (await LoyaltyAPI.connectAuthorize(request)).redirect_to; }
+      catch (e) { showAlert(e.message, 'danger'); $('allow').disabled = false; }
+    });
+  } catch (e) { showAlert(e.message, 'danger'); }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+</body>
+</html>
